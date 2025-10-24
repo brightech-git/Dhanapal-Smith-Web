@@ -23,7 +23,10 @@ export interface SmithDetails {
     pan?: string;
     gstno?: string;
     stateid?: number;
-    active?: string;
+    active: "Y" | "N";
     createdAt?: string;
     updatedAt?: string;
+    editData?: Partial<SmithDetails> | null;
+    onSubmit?: (formValues: Partial<SmithDetails>) => void;
+    onCancel?: () => void;
 }

@@ -1,10 +1,15 @@
 // src/pages/create-smith.tsx
 import React from "react";
-import SmithCreationForm from "@/component/pages/smith/SmithCreationForm";
+import SmithDetailsForm from "@/component/pages/smith/SmithDetailsForm";
+import ProtectedRoute from "@/component/Layout/ProtectedRoute";
 
-const CreateSmithPage = () => {
-    
-    return <SmithCreationForm />;
+const CreateSmithDetailPage = () => {
+
+    return(
+        <ProtectedRoute>
+            <SmithDetailsForm />
+        </ProtectedRoute>
+    ) 
 };
 
-export default CreateSmithPage;
+export default CreateSmithDetailPage;

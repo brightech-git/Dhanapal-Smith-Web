@@ -74,9 +74,10 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             />
 
             {/* Main Content */}
-            <main className='min-h-full' style={{
+            <main className='min-h-100vh' style={{
                 background: styles.background.primary,
-                color: styles.text.primary
+                color: styles.text.primary,
+                minHeight: 'calc(100vh - 5rem)', // Adjust based on your header height
             }}>
                 {children}
             </main>

@@ -73,6 +73,30 @@ export const colors: ThemeColors = {
         800: '#991b1b',
         900: '#7f1d1d',
     },
+    light: {
+        background: {
+            primary: '#ffffff',
+            secondary: '#f9fafb',
+            tertiary: '#f3f4f6',
+        },
+        text: {
+            primary: '#111827',
+            secondary: '#374151',
+            tertiary: '#6b7280',
+        },
+    },
+    dark: {
+        background: {
+            primary: '#1f2937',
+            secondary: '#374151',
+            tertiary: '#4b5563',
+        },
+        text: {
+            primary: '#f9fafb',
+            secondary: '#e5e7eb',
+            tertiary: '#d1d5db',
+        },
+    },
 };
 
 export const getColor = (colorPath: string): string => {

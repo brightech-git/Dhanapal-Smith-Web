@@ -6,8 +6,9 @@ import { ReactQueryProvider } from '@/provider/ReactQueryProvider';
 import { NavigationProvider } from '@/context/transition/NavigationContext';
 import { ToastProvider } from '@/context/smith/ToastContext';
 import LayoutWrapper from '@/component/layoutWrapper/LayoutWrapper';
-import { SmithTransactionProvider } from '@/context/smith/SmithTransactionContext';
+import { SmithTransactionProvider } from '@/context/smith/SmithTransactionsContext';
 import { SmithDetailsProvider } from '@/context/smith/useSmithDetails';
+import { AuthProvider } from '@/context/auth/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,13 +29,17 @@ export default function RootLayout({
           <ReactQueryProvider>
             <NavigationProvider>
               <ToastProvider>
-                <LayoutWrapper>
+           
                   <SmithTransactionProvider>
                     <SmithDetailsProvider >
-                    {children}
+                      <AuthProvider>
+                      <LayoutWrapper>
+                          {children}
+                      </LayoutWrapper>
+                      </AuthProvider>
                     </SmithDetailsProvider>
                   </SmithTransactionProvider>
-                </LayoutWrapper>
+             
               </ToastProvider>
           </NavigationProvider>
           </ReactQueryProvider>

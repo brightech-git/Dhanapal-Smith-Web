@@ -4,113 +4,64 @@ import React from 'react';
 import { Home, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react';
 import { useTheme } from '@/context/theme/ThemeContext';
 import { useNavigation } from '@/context/transition/NavigationContext';
+import companyLogo from '../../../../public/logo/com-logo.jpg';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // ✅ Correct import for App Router
 
 const Footer = () => {
     const { mode, theme } = useTheme();
-    const { navigateWithAnimation, isNavigating } = useNavigation();
+    const { navigateWithAnimation } = useNavigation();
+    const router = useRouter(); // ✅ Works fine in client component
 
-    // Safe theme access with fallbacks
-    const getFooterStyles = () => {
-        if (mode === 'dark') {
-            return {
-                background: theme.colors?.dark?.background?.primary || '#1a1a1a',
-                borderColor: '#374151',
-                text: {
-                    primary: theme.colors?.dark?.text?.primary || '#ffffff',
-                    secondary: theme.colors?.dark?.text?.secondary || '#a0a0a0',
-                },
-                hover: {
-                    text: '#ffffff',
-                }
-            };
+    const styles = mode === 'dark'
+        ? {
+            background: theme.colors?.dark?.background?.primary || '#1a1a1a',
+            borderColor: '#374151',
+            text: { primary: '#ffffff', secondary: '#a0a0a0' },
         }
-
-        // Light theme with safe access
-        return {
+        : {
             background: theme.colors?.light?.background?.primary || '#ffffff',
             borderColor: '#e5e7eb',
-            text: {
-                primary: theme.colors?.light?.text?.primary || '#1a1a1a',
-                secondary: theme.colors?.light?.text?.secondary || '#6c757d',
-            },
-            hover: {
-                text: '#1a1a1a',
-            }
+            text: { primary: '#1a1a1a', secondary: '#6c757d' },
         };
-    };
-
-    const styles = getFooterStyles();
-
-    // Navigation handler
-    const handleNavigation = (path: string) => {
-        navigateWithAnimation(path, {
-            direction: 'forward',
-            duration: 0.8,
-            ease: 'power2.inOut'
-        });
-    };
-
-    const quickLinks = [
-        { path: '/', label: 'Home', icon: Home },
-        { path: '/smiths/add', label: 'Smith Management' },
-        { path: '/about', label: 'About Us' },
-        { path: '/privacy', label: 'Privacy Policy' },
-        { path: '/terms', label: 'Terms of Service' },
-    ];
-
-    const resources = [
-        { path: '/blog', label: 'Blog' },
-        { path: '/docs', label: 'Documentation' },
-        { path: '/support', label: 'Support' },
-    ];
-
-    const socialLinks = [
-        { href: 'https://x.com/example', icon: Twitter, label: 'X Platform' },
-        { href: 'https://linkedin.com/company/example', icon: Linkedin, label: 'LinkedIn' },
-        { href: 'https://github.com/example', icon: Github, label: 'GitHub' },
-    ];
-
-    const contactInfo = [
-        {
-            type: 'email',
-            value: 'support@example.com',
-            href: 'mailto:support@example.com',
-            icon: Mail
-        },
-        {
-            type: 'phone',
-            value: '+1 (234) 567-890',
-            href: 'tel:+1234567890',
-            icon: Phone
-        },
-        {
-            type: 'address',
-            value: '123 Smith St, City, Country',
-            icon: MapPin
-        },
-    ];
 
     return (
-        <footer className="" style={{ background: styles.background  , borderTop: `1px solid ${styles.borderColor}`, }}>
-           
-               
+        <footer
+            style={{
+                background: styles.background,
+                borderTop: `1px solid ${styles.borderColor}`,
+            }}
+        >
+            <div
+                className="
+    pt-2 
+    flex flex-col sm:flex-row  /* stack on small, row on ≥640px */
+    justify-center items-center 
+    mx-auto max-w-7xl 
+    text-center text-xs 
+    gap-2 sm:gap-5            /* tighter gap on mobile */
+  "
+                style={{ color: styles.text.secondary }}
+            >
+                <p>
+                    &copy; {new Date().getFullYear()} Smith Management System. All rights reserved.
+                </p>
 
-                {/* Bottom Bar */}
-                <div
-                className="pt-2 flex justify-center  mx-auto  max-w-6xl text-center text-xs gap-5"
-                    style={{
-                       
-                        color: styles.text.secondary
-                    }}
+                <p
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => window.open('https://www.brightechsoftware.com/', '_blank')}
                 >
-                    <p>
-                        &copy; {new Date().getFullYear()} Smith Management System. All rights reserved.
-                    </p>
-                    <p>
-                        Creafted by BrightechSoftwareSolutions
-                    </p>
-                </div>
-          
+                    Crafted by
+                    <Image
+                        src={companyLogo}
+                        height={20}
+                        width={20}
+                        alt="logo"
+                    />
+                    <span>Brightech Software Solutions</span>
+                </p>
+            </div>
+
         </footer>
     );
 };

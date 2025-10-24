@@ -361,7 +361,7 @@ const Table: React.FC<TableProps> = ({
                             ))}
                             {hasActions && (
                                 <th
-                                    className={`${getPaddingClass()} text-center ${getTextSizeClass()} font-semibold ${tableStyles.headerText} uppercase tracking-wider whitespace-nowrap border-b border-r-0`}
+                                    className={`${getPaddingClass()} bg-[var(--primary-background-color)] text-center ${getTextSizeClass()} font-semibold ${tableStyles.headerText} ${tableStyles.headerBg} uppercase tracking-wider whitespace-nowrap border-b border-r-0`}
                                     style={{ width: responsive.isMobile ? '70px' : '120px', minWidth: responsive.isMobile ? '70px' : '120px' }}
                                     scope="col"
                                 >
@@ -392,7 +392,7 @@ const Table: React.FC<TableProps> = ({
                                         {renderCell(column, row, rowIndex)}
                                     </td>
                                 ))}
-                                {/* {hasActions && !isEmptyRow(row, rowIndex) && (
+                                {hasActions && !isEmptyRow(row, rowIndex) && (
                                     <td
                                         className={`${getPaddingClass()} whitespace-nowrap text-sm font-medium text-center border-r-0`}
                                         style={{ width: responsive.isMobile ? '70px' : '120px', minWidth: responsive.isMobile ? '70px' : '120px' }}
@@ -462,7 +462,7 @@ const Table: React.FC<TableProps> = ({
                                             <Eye size={responsive.isMobile ? 14 : 16} />
                                         </div>
                                     </td>
-                                )} */}
+                                )}
                             </tr>
                         ))}
                     </tbody>
