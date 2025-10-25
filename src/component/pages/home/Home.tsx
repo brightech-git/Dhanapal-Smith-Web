@@ -101,7 +101,7 @@ export default function SmithsPage() {
             {
                 id: null,
                 smithId: selectedSmithId,
-                date: new Date().toISOString().split('T')[0],
+                date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
                 receipts: 0,
                 payments: 0,
                 weightDifference: 0
@@ -129,7 +129,7 @@ export default function SmithsPage() {
             {
                 id: null,
                 smithId: selectedSmithId,
-                date: new Date().toISOString().split('T')[0],
+                date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
                 receipts: 0,
                 payments: 0,
                 balance: 0
@@ -181,16 +181,26 @@ export default function SmithsPage() {
     const handleWeightSave = async (row: any, field: string, newValue: any) => {
         if (!selectedSmithId) return;
 
+       
+
         try {
+
+            const formattedValue =
+                field === "date" && typeof newValue === "string" && newValue.includes("-")
+                    ? (() => {
+                        const parts = newValue.split("-");
+                        return parts[0].length === 2 ? parts.reverse().join("-") : newValue;
+                    })()
+                    : newValue;
             if (row.id) {
-                await updateWeight(row.id, { [field]: newValue });
+                await updateWeight(row.id, { [field]: formattedValue });
                 addToast({
                     type: 'success',
                     title: 'Weight Updated',
                     message: 'Weight data updated successfully'
                 });
             } else {
-                await addWeight(selectedSmithId, { ...row, [field]: newValue });
+                await addWeight(selectedSmithId, { ...row, [field]: formattedValue });
                 addToast({
                     type: 'success',
                     title: 'Weight Added',
@@ -211,16 +221,26 @@ export default function SmithsPage() {
     const handleCashSave = async (row: any, field: string, newValue: any) => {
         if (!selectedSmithId) return;
 
+        
+
         try {
+
+            const formattedValue =
+                field === "date" && typeof newValue === "string" && newValue.includes("-")
+                    ? (() => {
+                        const parts = newValue.split("-");
+                        return parts[0].length === 2 ? parts.reverse().join("-") : newValue;
+                    })()
+                    : newValue;
             if (row.id) {
-                await updateCash(row.id, { [field]: newValue });
+                await updateCash(row.id, { [field]: formattedValue });
                 addToast({
                     type: 'success',
                     title: 'Cash Updated',
                     message: 'Cash data updated successfully'
                 });
             } else {
-                await addCash(selectedSmithId, { ...row, [field]: newValue });
+                await addCash(selectedSmithId, { ...row, [field]: formattedValue });
                 addToast({
                     type: 'success',
                     title: 'Cash Added',
@@ -306,6 +326,34 @@ export default function SmithsPage() {
         }
     };
 
+
+    const formatDateForDisplay = (dateString: string) => {
+        console.log(dateString, 'date');
+        if (!dateString) return "";
+
+        // If already in dd-mm-yyyy format
+        if (dateString.includes('-') && dateString.split('-')[0]?.length === 2) {
+            return dateString;
+        }
+
+        const parts = dateString.split('-').map((p) => p.trim());
+
+        // yyyy-mm-dd → dd-mm-yyyy
+        if (parts.length === 3 && parts[0].length === 4) {
+            const [year, month, day] = parts;
+            return `${day}-${month}-${year}`;
+        }
+
+        // mm-dd-yyyy → dd-mm-yyyy
+        if (parts.length === 3 && parts[2].length === 4) {
+            const [month, day, year] = parts;
+            return `${day}-${month}-${year}`;
+        }
+
+        // If unknown or already formatted, return as-is
+        return dateString;
+    };
+
     // ──────────── Focus next cell ────────────
     const focusNextCell = (rowIndex: number, colIndex: number, table: "weight" | "cash") => {
         const currentRefs = cellRefs.current;
@@ -347,7 +395,7 @@ export default function SmithsPage() {
                 label: "Date",
                 align: "center" as const,
                 width: "100px",
-                render: (v: string) => (v ? formatDate(v) : "-"),
+                render: (v: string) => (v ? formatDateForDisplay(v) : "-"),
             },
             {
                 key: "weightBalance",
@@ -409,19 +457,31 @@ export default function SmithsPage() {
                 label: labelMap[field],
                 align: field === "date" ? ("center" as const) : ("right" as const),
                 width: responsive.isMobile ? "80px" : "90px",
-                render: (value: any, row: any, rowIndex: number) => (
-                    <EditableCell
-                        value={value}
-                        type={typeMap[field]}
-                        onSave={(newVal) =>
-                            handleWeightSave(row, field, typeMap[field] === "number" ? parseFloat(newVal) : newVal)
-                        }
-                        onTabNext={() => focusNextCell(rowIndex, colIndex, "weight")}
-                        isMobile={responsive.isMobile}
-                    />
-                ),
+                render: (value: any, row: any, rowIndex: number) => {
+                    const displayValue =
+                        typeMap[field] === "date"
+                            ? formatDateForDisplay(value)
+                            : value;
+                    return(
+
+                        <EditableCell
+                            value={displayValue}
+                            type={typeMap[field]}
+                            onSave={(newVal) => {
+                                const finalValue =
+                                    typeMap[field] === "date"
+                                        ? newVal.split("-").reverse().join("-") // dd-mm-yyyy → yyyy-mm-dd
+                                        : parseFloat(newVal);
+                                handleWeightSave(row, field, finalValue);
+                            }}
+                            onTabNext={() => focusNextCell(rowIndex, colIndex, "weight")}
+                            isMobile={responsive.isMobile}
+                        />
+                    );
+                },
             };
         });
+
 
         const balanceColumn = {
             key: "balance",
@@ -461,17 +521,28 @@ export default function SmithsPage() {
                 label: labelMap[field],
                 align: field === "date" ? ("center" as const) : ("right" as const),
                 width: responsive.isMobile ? "80px" : "100px",
-                render: (value: any, row: any, rowIndex: number) => (
-                    <EditableCell
-                        value={value}
-                        type={typeMap[field]}
-                        onSave={(newVal) =>
-                            handleCashSave(row, field, typeMap[field] === "number" ? parseFloat(newVal) : newVal)
-                        }
-                        onTabNext={() => focusNextCell(rowIndex, colIndex, "cash")}
-                        isMobile={responsive.isMobile}
-                    />
-                ),
+                render: (value: any, row: any, rowIndex: number) => {
+                    const displayValue =
+                        typeMap[field] === "date"
+                            ? formatDateForDisplay(value)
+                            : value;
+                    return (
+
+                        <EditableCell
+                            value={displayValue}
+                            type={typeMap[field]}
+                            onSave={(newVal) => {
+                                const finalValue =
+                                    typeMap[field] === "date"
+                                        ? newVal.split("-").reverse().join("-") // dd-mm-yyyy → yyyy-mm-dd
+                                        : parseFloat(newVal);
+                                handleCashSave(row, field, finalValue);
+                            }}
+                            onTabNext={() => focusNextCell(rowIndex, colIndex, "weight")}
+                            isMobile={responsive.isMobile}
+                        />
+                    );
+                },
             };
         });
 

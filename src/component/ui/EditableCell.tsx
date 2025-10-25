@@ -5,10 +5,11 @@ import { formatDateForAPI } from "@/utils/formatDateForAPI";
 interface EditableCellProps {
     value: any;
     type?: "text" | "number" | "date";
-    onSave: (newValue: any) => Promise<void>;
+    onSave: (newValue: any) => void | Promise<void>;
     onTabNext?: () => void;
     isMobile?: boolean;
 }
+
 
 export default function EditableCell({ value, type = "text", onSave, onTabNext, isMobile }: EditableCellProps) {
     const [editing, setEditing] = useState(false);
