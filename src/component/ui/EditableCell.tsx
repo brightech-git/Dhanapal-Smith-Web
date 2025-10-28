@@ -1,178 +1,159 @@
-'use client';
-import React, { useState, useEffect, useRef } from "react";
+// EditableCell.tsx
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useToast } from '@/context/smith/ToastContext';
 
 interface EditableCellProps {
     value: any;
-    type?: "text" | "number" | "date" | "numbers";
-    onSave: (newValue: any) => void | Promise<void>;
-    onBlur?: () => void;
-    onTabNext?: () => void;
-    isMobile?: boolean;
-    autoFocus?: boolean;
+    type: 'text' | 'number' | 'date' | 'numbers';
+    onSave: (value: any) => Promise<void>;
+    className?: string;
 }
 
-export default function EditableCell({
+const EditableCell: React.FC<EditableCellProps> = ({
     value,
-    type = "text",
+    type,
     onSave,
-    onBlur,
-    onTabNext,
-    isMobile,
-    autoFocus = false
-}: EditableCellProps) {
-    const [editing, setEditing] = useState(autoFocus);
-    const [tempValue, setTempValue] = useState(value ?? "");
+    className = ""
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(value);
+    const [isSaving, setIsSaving] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    // Sync with parent value
-    useEffect(() => {
-        setTempValue(value ?? "");
-    }, [value]);
+    const { addToast } = useToast();
 
     useEffect(() => {
-        if (editing && inputRef.current) {
+        if (isEditing && inputRef.current) {
             inputRef.current.focus();
-            if (type !== "date") {
+            if (type !== 'date') {
                 inputRef.current.select();
             }
         }
-    }, [editing, type]);
+    }, [isEditing, type]);
 
-    // Convert dd-mm-yyyy to yyyy-mm-dd for input[type="date"]
-    const formatDateForInput = (dateStr: string) => {
-        if (!dateStr) return "";
-
-        if (dateStr.includes('-') && dateStr.split('-')[0]?.length === 2) {
-            // dd-mm-yyyy → yyyy-mm-dd
-            const [day, month, year] = dateStr.split('-');
-            return `${year}-${month}-${day}`;
+    const handleClick = () => {
+        if (!isEditing) {
+            setEditValue(value);
+            setIsEditing(true);
         }
-        return dateStr;
     };
 
-    // Convert yyyy-mm-dd back to dd-mm-yyyy for display
-    const formatDateForDisplay = (dateStr: string) => {
-        if (!dateStr) return "";
-
-        if (dateStr.includes('-') && dateStr.split('-')[0]?.length === 4) {
-            // yyyy-mm-dd → dd-mm-yyyy
-            const [year, month, day] = dateStr.split('-');
-            return `${day}-${month}-${year}`;
+    const handleBlur = async () => {
+        if (isEditing && !isSaving) {
+            await saveValue();
         }
-        return dateStr;
-    };
-
-    const handleSave = async () => {
-        if (tempValue !== value) {
-            try {
-                let formattedValue = tempValue;
-
-                if (type === "number") {
-                    formattedValue = tempValue === "" ? 0 : parseFloat(tempValue);
-                    if (isNaN(formattedValue)) formattedValue = 0;
-                } else if (type === "date") {
-                    // Convert from yyyy-mm-dd (input format) back to dd-mm-yyyy (storage format)
-                    formattedValue = formatDateForDisplay(tempValue);
-                }
-                else if (type === "numbers") {
-                    formattedValue = tempValue === "" ? 0 : parseFloat(tempValue);
-                    if (isNaN(formattedValue)) formattedValue = 0;
-                }
-
-                await onSave(formattedValue);
-            } catch (err) {
-                console.error("Save failed:", err);
-                setTempValue(value ?? "");
-            }
-        }
-        setEditing(false);
-        onBlur?.();
     };
 
     const handleKeyDown = async (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            await handleSave();
-        } else if (e.key === "Escape") {
-            setEditing(false);
-            setTempValue(value ?? "");
-            onBlur?.();
-        } else if (e.key === "Tab") {
-            e.preventDefault();
-            await handleSave();
-            onTabNext?.();
+        if (e.key === 'Enter') {
+            await saveValue();
+        } else if (e.key === 'Escape') {
+            setIsEditing(false);
+            setEditValue(value);
         }
     };
 
-    const handleClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent event bubbling
-        setEditing(true);
+    const saveValue = async () => {
+        if (isSaving) return;
+
+        const trimmedValue = typeof editValue === 'string' ? editValue.trim() : editValue;
+
+        // Don't save if value hasn't changed
+        if (trimmedValue === value) {
+            setIsEditing(false);
+            return;
+        }
+
+        // Validation
+        if ((type === 'number' || type === 'numbers') && trimmedValue !== '') {
+            const numValue = parseFloat(trimmedValue);
+            if (isNaN(numValue) || numValue < 0) {
+                addToast({
+                    type: 'error',
+                    title: 'Invalid Input',
+                    message: 'Please enter a valid positive number'
+                });
+                return;
+            }
+        }
+
+        if (type === 'date' && trimmedValue) {
+            const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
+            if (!dateRegex.test(trimmedValue)) {
+                addToast({
+                    type: 'error',
+                    title: 'Invalid Date',
+                    message: 'Please enter date in DD-MM-YYYY format'
+                });
+                return;
+            }
+        }
+
+        try {
+            setIsSaving(true);
+            await onSave(trimmedValue);
+
+            addToast({
+                type: 'success',
+                title: 'Updated',
+                message: 'Value updated successfully'
+            });
+
+            setIsEditing(false);
+        } catch (error: any) {
+            console.error('Error saving value:', error);
+            addToast({
+                type: 'error',
+                title: 'Update Failed',
+                message: error.message || 'Failed to update value'
+            });
+            setEditValue(value);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleBlur = () => {
-        handleSave();
+    const formatDisplayValue = (val: any) => {
+        if (val == null || val === '') return '-';
+
+        if (type === 'number') {
+            return parseFloat(val).toFixed(3);
+        }
+
+        if (type === 'numbers') {
+            return new Intl.NumberFormat('en-IN').format(parseFloat(val));
+        }
+
+        return val;
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTempValue(e.target.value);
-    };
-
-    // If we're in editing mode or autoFocus is true
-    if (editing || autoFocus) {
+    if (isEditing) {
         return (
             <input
                 ref={inputRef}
-                type={type === "date" ? "date" : type === "number" ? "number" : "text"}
-                value={type === "date" ? formatDateForInput(tempValue) : tempValue ?? ""}
-                onChange={handleChange}
+                type={type === 'date' ? 'text' : type === 'numbers' ? 'text' : type}
+                value={editValue || ''}
+                onChange={(e) => setEditValue(e.target.value)}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-white dark:bg-gray-800 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1 text-sm"
-                step={type === "number" ? "0.001" : undefined}
-                min={type === "number" ? "0" : undefined}
-                inputMode={type === "number" ? "decimal" : "text"}
-                style={{
-                    fontSize: isMobile ? '14px' : '14px',
-                    minHeight: isMobile ? '32px' : 'auto'
-                }}
-                autoFocus={autoFocus}
-                onClick={(e) => e.stopPropagation()} // Prevent click from bubbling up
+                disabled={isSaving}
+                className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${className}`}
+                placeholder={type === 'date' ? 'DD-MM-YYYY' : 'Enter value'}
             />
         );
-    }
-
-    // Format display value
-    let displayValue = "";
-    if (type === "date" && tempValue) {
-        // For display, show in dd-mm-yyyy format
-        displayValue = formatDateForDisplay(tempValue);
-    } else if (type === "number") {
-        displayValue = tempValue !== undefined && tempValue !== null && tempValue !== ""
-            ? parseFloat(tempValue).toFixed(3)
-            : "0.000";
-    }
-    else if (type === "numbers") {
-        displayValue = tempValue !== undefined && tempValue !== null && tempValue !== ""
-            ? parseFloat(tempValue).toFixed(2)
-            : "0.00";
-    } else {
-        displayValue = tempValue ?? "";
     }
 
     return (
         <div
             onClick={handleClick}
-            onDoubleClick={handleClick}
-            className="cursor-pointer select-none px-1 py-1 min-h-[10px] flex items-center rounded hover:bg-gray-50 transition-colors"
-            style={{
-                justifyContent: type === "number" || type === "numbers" ? "flex-end" : "flex-start",
-                fontSize: isMobile ? "14px" : "14px",
-            }}
+            className={`w-full px-1 py-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors ${className}`}
+            title="Click to edit"
         >
-            {type === "number" || type === "numbers" ? (
-                <span className="font">{displayValue}</span>
-            ) : (
-                displayValue || "—"
-            )}
+            {formatDisplayValue(value)}
         </div>
     );
-}
+};
+
+export default EditableCell;

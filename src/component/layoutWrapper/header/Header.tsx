@@ -7,7 +7,7 @@ import { useNavigation } from '@/context/transition/NavigationContext';
 import { gsap } from 'gsap';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useMediaQuery } from '@mui/material';
-import PrintTable from '@/component/printingOptions/PrintTable';
+
 import { useSmithTransactionsContext } from '@/context/smith/SmithTransactionsContext';
 
 interface EnhancedHeaderProps {
@@ -143,11 +143,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                         {/* Right Section - Actions */}
                         <div className="flex items-center justify-end space-x-2 flex-1">
                           
-                            <div>
-                                <PrintTable title="Smith Transactions Summary"
-                                    subtitle="Daily Closing Balances"
-                                    data={transactions || []} />
-                            </div>
+                           
                             {/* Theme Toggle */}
                             <button
                                 onClick={handleThemeToggle}
@@ -215,17 +211,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                 </div>
             </header>
 
-            {/* Simplified Navigation Loader */}
-            {isNavigating && (
-                <div className="fixed top-0 left-0 w-full h-0.5 bg-primary-500 z-[9999] overflow-hidden">
-                    <div className="h-full bg-primary-300 animate-[loading_1.5s_ease-in-out_infinite]"
-                        style={{
-                            width: '100%',
-                            animation: 'loading 1.5s ease-in-out infinite',
-                        }}
-                    />
-                </div>
-            )}
+           
             <style jsx>{`
                 @keyframes loading {
                     0% { transform: translateX(-100%); }

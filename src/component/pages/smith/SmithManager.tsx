@@ -16,6 +16,7 @@ import { useSmithDetails } from "@/context/smith/useSmithDetails";
 import { useToast } from "@/context/smith/ToastContext";
 import { SmithDetails } from "@/types/smithDetails";
 import { useSmithTransactionsContext } from "@/context/smith/SmithTransactionsContext";
+import { motion } from "framer-motion"; // ✅ animation import
 
 type SmithManagerProps = {
     onSelectSmith?: (
@@ -28,13 +29,13 @@ type SmithManagerProps = {
 
 const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
     const { smiths, fetchAll, updateSmith, deleteSmith } = useSmithDetails();
-    const { transactions, deleteTransaction, getDetail } =
-        useSmithTransactionsContext();
+    const { transactions } = useSmithTransactionsContext();
     const { addToast } = useToast();
     const router = useRouter();
 
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [showAll, setShowAll] = useState(false); // ✅ controls visible rows
 
     // 🔹 Fetch smiths
     useEffect(() => {
@@ -105,8 +106,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         if (!confirmDelete) return;
 
         try {
-            const smithDetails = await getDetail(smith.smithId!);
-            console.log("Smith details:", smithDetails);
+            
 
             const smithTxns = transactions.filter(
                 (txn) => txn.smithId === smith.smithId!.toString()
@@ -128,10 +128,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                 });
                 return;
             }
-
-            for (const txn of smithTxns) {
-                await deleteTransaction(txn.id);
-            }
+            console.log("Deleting smith with id:", smith.smithId);
 
             await deleteSmith(smith.smithId!);
 
@@ -174,8 +171,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                         value={value}
                         type="text"
                         onSave={(newValue) => handleSave(row.smithId!, "pname", newValue)}
-                        onBlur={handleEditEnd}
-                        autoFocus
+                    
                     />
                 ) : (
                     <div
@@ -207,9 +203,12 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         },
     ];
 
+    // 🔹 Animated Table Display
+    const visibleSmiths = showAll ? smiths : smiths.slice(0, 0);
+
     return (
         <Box className="p-2">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-2 gap-2">
                 <Typography
                     variant="h6"
                     className="font-semibold"
@@ -220,6 +219,18 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                 >
                     Smith Management
                 </Typography>
+
+                {smiths.length > 5 && (
+                        <div className="flex justify-center mt-2">
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => setShowAll((prev) => !prev)}
+                            >
+                                {showAll ? "Show Less" : "See All"}
+                            </Button>
+                        </div>
+                    )}
             </div>
 
             {loading ? (
@@ -227,12 +238,26 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     <CircularProgress />
                 </div>
             ) : (
-                <Table
-                    columns={columns}
-                    data={smiths}
-                    emptyMessage="No Smiths available"
-                    showRows={5}
-                />
+                <>
+                    {/* ✅ Animated expand/collapse */}
+                    <motion.div
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                            {visibleSmiths.length === 0 ? (
+                                <div>Click See All </div>
+                            ) : (
+                                <Table columns={columns} data={visibleSmiths} />
+                            )}
+
+                        
+                    </motion.div>
+
+                    {/* ✅ See All / Show Less Button */}
+                    
+                </>
             )}
         </Box>
     );
