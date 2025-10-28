@@ -20,7 +20,8 @@ import {
     patchCashFlow,
     patchWeightFlow,
     addTransaction,
-    NewSmithTransaction
+    NewSmithTransaction,
+    deleteSmithTransaction
 } from "@/service/smithTransactionsService";
 
 interface SmithTransactionContextType {
@@ -38,6 +39,7 @@ interface SmithTransactionContextType {
     getCashFlows: (smithId: string) => Promise<CashFlow[]>;
     getWeightFlows: (smithId: string) => Promise<WeightFlow[]>;
     addTransaction: (data: NewSmithTransaction) => Promise<void>;
+    deleteTransaction: (id: number) => Promise<void>;
 }
 
 const SmithTransactionContext = createContext<SmithTransactionContextType | undefined>(undefined);
@@ -114,7 +116,10 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     };
 
-    
+    const deleteTransaction =async(id:number)=>{
+        await deleteSmithTransaction(id);
+        await loadTransactions();
+    }
 
     
 
@@ -138,6 +143,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
             getCashFlows,
             getWeightFlows,
             addTransaction: addTransactionContext, // ← add here
+            deleteTransaction
         }}>
             {children}
         </SmithTransactionContext.Provider>

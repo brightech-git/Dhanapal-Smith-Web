@@ -14,7 +14,9 @@ export const formatDate = (date: Date | string, options: Intl.DateTimeFormatOpti
 // Number formatting
 export const formatCurrency = (amount: number, currency: string = 'INR'): string => {
     return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
+        style: "decimal",
+        notation: "standard", // ✅ ensures full number, not compact (like 123K)
+        useGrouping: true, // ✅ adds Indian commas (e.g. 1,23,456)
         currency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,

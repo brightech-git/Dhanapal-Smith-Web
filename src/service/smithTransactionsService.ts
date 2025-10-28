@@ -7,7 +7,7 @@ export interface SmithTransaction {
     name: string;
     date: string;
     cashBalance: number;
-    weightBalance: number;
+    weightBalance: number ;
 }
 
 export interface NewSmithTransaction {
@@ -91,6 +91,7 @@ export const deleteCashFlow = async (id: number) => {
 
 // Weight Flow APIs
 export const addWeightFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
+    console.log("smith Payload:", payload);
     const response = await axiosInstance.post(`smith/weight?smithId=${smithId}`, payload);
     return response.data;
 };
@@ -127,4 +128,15 @@ export const patchWeightFlow = async (id: number, payload: Partial<WeightFlow>) 
     console.log(payload,id,'smithweightpayload')
     const response = await axiosInstance.patch(`smith/weight/${id}`, payload);
     return response.data;
+};
+
+export const deleteSmithTransaction = async (id: number) => {
+    try {
+        console.log("Deleting transaction with ID:", id);
+        const response = await axiosInstance.delete(`/smith/transactions/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Delete transaction failed:", error);
+        throw error;
+    }
 };

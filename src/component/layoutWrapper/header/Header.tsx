@@ -7,6 +7,8 @@ import { useNavigation } from '@/context/transition/NavigationContext';
 import { gsap } from 'gsap';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useMediaQuery } from '@mui/material';
+import PrintTable from '@/component/printingOptions/PrintTable';
+import { useSmithTransactionsContext } from '@/context/smith/SmithTransactionsContext';
 
 interface EnhancedHeaderProps {
     title?: string;
@@ -30,7 +32,11 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
     const isMobile = useMediaQuery('(max-width: 1279px)');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { user } =useAuth();
-    console.log('user',user)
+    console.log('user',user);
+    const {
+            transactions,
+           
+        } = useSmithTransactionsContext();
 
     const headerRef = useRef<HTMLElement>(null);
     const navRef = useRef<HTMLDivElement>(null);
@@ -137,7 +143,11 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                         {/* Right Section - Actions */}
                         <div className="flex items-center justify-end space-x-2 flex-1">
                           
-
+                            <div>
+                                <PrintTable title="Smith Transactions Summary"
+                                    subtitle="Daily Closing Balances"
+                                    data={transactions || []} />
+                            </div>
                             {/* Theme Toggle */}
                             <button
                                 onClick={handleThemeToggle}

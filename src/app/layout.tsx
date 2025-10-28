@@ -30,13 +30,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavigationProvider>
               <ToastProvider>
                 <AuthProvider>
-                <LayoutWrapper>
+               
                   <SmithTransactionProvider>
                     <SmithDetailsProvider>
+                      <LayoutWrapper>
                       {children}
+                      </LayoutWrapper>
                     </SmithDetailsProvider>
                   </SmithTransactionProvider>
-                </LayoutWrapper>
+              
                 </AuthProvider>
               </ToastProvider>
             </NavigationProvider>

@@ -66,7 +66,7 @@ const SmithDetailsForm: React.FC = () => {
 
     // Form validation
     const validateForm = (): boolean => {
-        const requiredFields: (keyof SmithDetails)[] = ["pname", "city", "state", "mobile"];
+        const requiredFields: (keyof SmithDetails)[] = ["pname"];
         const newErrors: Partial<Record<keyof SmithDetails, string>> = {};
 
         requiredFields.forEach((field) => {
