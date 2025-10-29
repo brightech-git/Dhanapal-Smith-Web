@@ -16,7 +16,7 @@ import { useSmithDetails } from "@/context/smith/useSmithDetails";
 import { useToast } from "@/context/smith/ToastContext";
 import { SmithDetails } from "@/types/smithDetails";
 import { useSmithTransactionsContext } from "@/context/smith/SmithTransactionsContext";
-import { motion } from "framer-motion"; // ✅ animation import
+import { motion } from "framer-motion";
 
 type SmithManagerProps = {
     onSelectSmith?: (
@@ -29,13 +29,12 @@ type SmithManagerProps = {
 
 const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
     const { smiths, fetchAll, updateSmith, deleteSmith } = useSmithDetails();
-    const { transactions } = useSmithTransactionsContext();
+    const { transactions, getDetail, deleteTransaction } = useSmithTransactionsContext();
     const { addToast } = useToast();
     const router = useRouter();
 
     const [loading, setLoading] = useState(true);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [showAll, setShowAll] = useState(false); // ✅ controls visible rows
+    const [showAll, setShowAll] = useState(false);
 
     // 🔹 Fetch smiths
     useEffect(() => {
@@ -75,29 +74,14 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             };
 
             await updateSmith(payload);
-            addToast({
-                type: "success",
-                title: "Updated",
-                message: `${key} updated successfully.`,
-            });
-            setEditingId(null); // Exit edit mode
         } catch {
             addToast({
                 type: "error",
                 title: "Error",
                 message: "Update failed.",
             });
+            throw new Error("Update failed");
         }
-    };
-
-    // 🔹 Enable editing mode
-    const handleEditStart = (smithId: number) => {
-        setEditingId(smithId);
-    };
-
-    // 🔹 Exit editing mode
-    const handleEditEnd = () => {
-        setEditingId(null);
     };
 
     // 🔹 Delete only if no nonzero transactions exist
@@ -106,13 +90,13 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         if (!confirmDelete) return;
 
         try {
-            
+            const getDetailTransaction = await getDetail(smith.smithId!);
 
-            const smithTxns = transactions.filter(
-                (txn) => txn.smithId === smith.smithId!.toString()
-            );
+            const smithTransactions = Array.isArray(getDetailTransaction)
+                ? getDetailTransaction
+                : [getDetailTransaction];
 
-            const hasAnyValue = smithTxns.some(
+            const hasAnyValue = smithTransactions.some(
                 (txn) =>
                     (parseFloat(String(txn.cashBalance || 0)) !== 0 &&
                         !isNaN(parseFloat(String(txn.cashBalance || 0)))) ||
@@ -128,8 +112,15 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                 });
                 return;
             }
-            console.log("Deleting smith with id:", smith.smithId);
 
+            // Delete all transactions for this smith
+            for (const txn of smithTransactions) {
+                if (txn.id) {
+                    await deleteTransaction(txn.id);
+                }
+            }
+
+            // Finally delete the smith itself
             await deleteSmith(smith.smithId!);
 
             addToast({
@@ -147,7 +138,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         }
     };
 
-    // 🔹 Columns definition
+    // 🔹 Columns definition - SIMPLIFIED using EditableCell directly
     const columns = [
         {
             key: "sno",
@@ -165,23 +156,16 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             width: "150px",
             align: "left" as const,
             headalign: "center" as const,
-            render: (value: any, row: SmithDetails) =>
-                editingId === row.smithId ? (
-                    <EditableCell
-                        value={value}
-                        type="text"
-                        onSave={(newValue) => handleSave(row.smithId!, "pname", newValue)}
-                    
-                    />
-                ) : (
-                    <div
-                        onDoubleClick={() => handleEditStart(row.smithId!)}
-                        className="cursor-pointer hover:text-blue-600 transition-colors px-2 py-1 rounded"
-                        title="Double-click to edit"
-                    >
-                        {row.pname}
-                    </div>
-                ),
+            render: (value: any, row: SmithDetails) => (
+                <EditableCell
+                    value={value}
+                    type="text"
+                    onSave={async (newValue) => {
+                        await handleSave(row.smithId!, "pname", newValue);
+                    }}
+                    className="w-full"
+                />
+            ),
         },
         {
             key: "actions",
@@ -221,16 +205,16 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                 </Typography>
 
                 {smiths.length > 5 && (
-                        <div className="flex justify-center mt-2">
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => setShowAll((prev) => !prev)}
-                            >
-                                {showAll ? "Show Less" : "See All"}
-                            </Button>
-                        </div>
-                    )}
+                    <div className="flex justify-center mt-2">
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowAll((prev) => !prev)}
+                        >
+                            {showAll ? "Show Less" : "See All"}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {loading ? (
@@ -239,24 +223,20 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                 </div>
             ) : (
                 <>
-                    {/* ✅ Animated expand/collapse */}
                     <motion.div
                         layout
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                            {visibleSmiths.length === 0 ? (
-                                <div>Click See All </div>
-                            ) : (
-                                <Table columns={columns} data={visibleSmiths} />
-                            )}
-
-                        
+                        {visibleSmiths.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500">
+                                Click "See All" to view and manage smiths
+                            </div>
+                        ) : (
+                            <Table columns={columns} data={visibleSmiths} />
+                        )}
                     </motion.div>
-
-                    {/* ✅ See All / Show Less Button */}
-                    
                 </>
             )}
         </Box>

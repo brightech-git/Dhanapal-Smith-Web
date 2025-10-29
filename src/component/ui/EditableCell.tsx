@@ -1,12 +1,13 @@
 // EditableCell.tsx
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useToast } from '@/context/smith/ToastContext';
+import React, { useState, useRef, useEffect } from "react";
+import { useToast } from "@/context/smith/ToastContext";
+import { formatDateForAPI } from "@/utils/formatDateForAPI";
 
 interface EditableCellProps {
     value: any;
-    type: 'text' | 'number' | 'date' | 'numbers';
+    type: "text" | "number" | "date" | "numbers";
     onSave: (value: any) => Promise<void>;
     className?: string;
 }
@@ -15,7 +16,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     value,
     type,
     onSave,
-    className = ""
+    className = "",
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(value);
@@ -26,7 +27,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     useEffect(() => {
         if (isEditing && inputRef.current) {
             inputRef.current.focus();
-            if (type !== 'date') {
+            if (type !== "date") {
                 inputRef.current.select();
             }
         }
@@ -46,9 +47,9 @@ const EditableCell: React.FC<EditableCellProps> = ({
     };
 
     const handleKeyDown = async (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
             await saveValue();
-        } else if (e.key === 'Escape') {
+        } else if (e.key === "Escape") {
             setIsEditing(false);
             setEditValue(value);
         }
@@ -57,56 +58,50 @@ const EditableCell: React.FC<EditableCellProps> = ({
     const saveValue = async () => {
         if (isSaving) return;
 
-        const trimmedValue = typeof editValue === 'string' ? editValue.trim() : editValue;
+        let trimmedValue = typeof editValue === "string" ? editValue.trim() : editValue;
 
-        // Don't save if value hasn't changed
+        // Skip if no change
         if (trimmedValue === value) {
             setIsEditing(false);
             return;
         }
 
-        // Validation
-        if ((type === 'number' || type === 'numbers') && trimmedValue !== '') {
-            const numValue = parseFloat(trimmedValue);
-            if (isNaN(numValue) || numValue < 0) {
-                addToast({
-                    type: 'error',
-                    title: 'Invalid Input',
-                    message: 'Please enter a valid positive number'
-                });
-                return;
-            }
-        }
-
-        if (type === 'date' && trimmedValue) {
-            const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
-            if (!dateRegex.test(trimmedValue)) {
-                addToast({
-                    type: 'error',
-                    title: 'Invalid Date',
-                    message: 'Please enter date in DD-MM-YYYY format'
-                });
-                return;
-            }
-        }
-
         try {
             setIsSaving(true);
+
+            // Handle date conversion before saving
+            if (type === "date" && trimmedValue) {
+                // Convert from yyyy-mm-dd (input) to API format (same)
+                trimmedValue = formatDateForAPI(trimmedValue);
+            }
+
+            if ((type === "number" || type === "numbers") && trimmedValue !== "") {
+                const numValue = parseFloat(trimmedValue);
+                if (isNaN(numValue) || numValue < 0) {
+                    addToast({
+                        type: "error",
+                        title: "Invalid Input",
+                        message: "Please enter a valid positive number",
+                    });
+                    return;
+                }
+            }
+
             await onSave(trimmedValue);
 
             addToast({
-                type: 'success',
-                title: 'Updated',
-                message: 'Value updated successfully'
+                type: "success",
+                title: "Updated",
+                message: "Value updated successfully",
             });
 
             setIsEditing(false);
         } catch (error: any) {
-            console.error('Error saving value:', error);
+            console.error("Error saving value:", error);
             addToast({
-                type: 'error',
-                title: 'Update Failed',
-                message: error.message || 'Failed to update value'
+                type: "error",
+                title: "Update Failed",
+                message: error.message || "Failed to update value",
             });
             setEditValue(value);
         } finally {
@@ -115,14 +110,19 @@ const EditableCell: React.FC<EditableCellProps> = ({
     };
 
     const formatDisplayValue = (val: any) => {
-        if (val == null || val === '') return '-';
+        if (val == null || val === "") return "-";
 
-        if (type === 'number') {
-            return parseFloat(val).toFixed(3);
-        }
+        if (type === "number") return parseFloat(val).toFixed(3);
+        if (type === "numbers")
+            return new Intl.NumberFormat("en-IN").format(parseFloat(val));
 
-        if (type === 'numbers') {
-            return new Intl.NumberFormat('en-IN').format(parseFloat(val));
+        if (type === "date") {
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return val;
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
         }
 
         return val;
@@ -132,15 +132,25 @@ const EditableCell: React.FC<EditableCellProps> = ({
         return (
             <input
                 ref={inputRef}
-                type={type === 'date' ? 'text' : type === 'numbers' ? 'text' : type}
-                value={editValue || ''}
+                type={type === "date" ? "date" : type === "numbers" ? "text" : type}
+                value={
+                    type === "date" && editValue
+                        ? (() => {
+                            const d = new Date(editValue);
+                            if (isNaN(d.getTime())) return "";
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, "0");
+                            const dd = String(d.getDate()).padStart(2, "0");
+                            return `${yyyy}-${mm}-${dd}`;
+                        })()
+                        : editValue || ""
+                }
                 onChange={(e) => setEditValue(e.target.value)}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
                 disabled={isSaving}
-                className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""
                     } ${className}`}
-                placeholder={type === 'date' ? 'DD-MM-YYYY' : 'Enter value'}
             />
         );
     }

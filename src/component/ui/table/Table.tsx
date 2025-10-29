@@ -104,13 +104,14 @@ const Table: React.FC<TableProps> = ({
             if (!column.responsive || column.responsive === 'always') return true;
             switch (column.responsive) {
 
-                case 'lg': return responsive.windowSize.width >= 1024;
-                case 'xl': return responsive.windowSize.width >= 1280;
+                case 'md': return responsive.windowSize.width >= 1124;
+                case 'lg': return responsive.windowSize.width >= 1280;
                 default: return true;
             }
         }),
         [columns, responsive.windowSize.width]
     );
+
 
     const shouldShowActions = showActions === 'responsive' ? !responsive.isMobile : showActions;
 
@@ -276,12 +277,12 @@ const Table: React.FC<TableProps> = ({
                             {visibleColumns.map((column, colIndex) => (
                                 <th
                                     key={column.key}
-                                    className={`${getPaddingClass()} ${getHeadAlignmentClass(column.align)} ${getTextSizeClass()} font-semibold ${tableStyles.headerText} uppercase tracking-wider whitespace-nowrap bg-[var(--primary-background-color)] border-b border-r ${tableStyles.border}`}
+                                    className={`${getPaddingClass()} ${getTextSizeClass()} font-semibold ${tableStyles.headerText} uppercase tracking-wider whitespace-nowrap bg-[var(--primary-background-color)] border-b border-r ${tableStyles.border} ${getHeadAlignmentClass(column.headalign)} ${colIndex < visibleColumns.length - 1 || hasActions ? `border-r ${tableStyles.border}` : ''} cursor-pointer select-none`}
                                     style={getResponsiveWidth(column.width) ? { width: getResponsiveWidth(column.width), minWidth: getResponsiveWidth(column.width) } : {}}
                                     scope="col"
                                 >
-                                    <div className="flex ">
-                                        <span className="truncate">{column.label}</span>
+                                    <div >
+                                        <span >{column.label}</span>
                                     </div>
                                 </th>
                             ))}

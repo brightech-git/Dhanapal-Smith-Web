@@ -75,12 +75,10 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         return await fetchSmithTransactionDetail(id);
     };
     const getCashFlows = async (smithId: string) => {
-        console.log("Fetching cash flows for smithId:", smithId);
         return await fetchCashFlows(smithId);
     };
 
     const getWeightFlows = async (smithId: string) => {
-        console.log("Fetching weight flows for smithId:", smithId);
         return await fetchWeightFlows(smithId);
     };
     const addCash = async (smithId: string, data: Partial<any>) => {
@@ -105,8 +103,12 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
     };
 
     const updateWeight = async (id: number, data: Partial<WeightFlow>) => {
+        console.time("Update Transaction");
         await patchWeightFlow(id, data);
+        console.timeEnd("Update Transaction");
+        console.time("Refetch Transactions");
         await loadTransactions();
+        console.timeEnd("Refetch Transactions");
     };
 
     const deleteWeight = async (id: number) => {
@@ -119,7 +121,6 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     }
 
-    
 
     useEffect(() => {
         loadTransactions();

@@ -10,7 +10,6 @@ export const getSmithFullDetails = async (): Promise<any> => {
     try {
         
         const response = await axiosInstance.get(SMITH_FULL_DETAILS_URL);
-        console.log("✅ Fetched Smith full details:", response.data);
         return response.data;
     } catch (error: any) {
         console.error("❌ Error fetching Smith full details:", error);

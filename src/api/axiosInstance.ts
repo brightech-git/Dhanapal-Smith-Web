@@ -6,10 +6,9 @@ const BASE_URL = process.env.REACT_APP_BASE_URL || "https://smith.dhanapaljewell
 
 
 const baseUrl ="http://localhost:8097/api/v1"
-console.log("BASE_URL:", BASE_URL)
+
 // const baseURL = 'https://app.bmgjewellers.com/api/v1';
 
-console.log("BASE_URL:", BASE_URL); // Debugging line
 
 if (!BASE_URL) {
     console.warn("⚠️ NEXT_PUBLIC_BASE_URL is not defined in .env file");

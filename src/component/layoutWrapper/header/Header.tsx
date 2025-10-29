@@ -32,7 +32,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
     const isMobile = useMediaQuery('(max-width: 1279px)');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { user } =useAuth();
-    console.log('user',user);
+    // console.log('user',user);
     const {
             transactions,
            

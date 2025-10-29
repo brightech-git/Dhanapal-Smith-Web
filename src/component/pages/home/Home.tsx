@@ -4,18 +4,32 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTheme } from "@/context/theme/ThemeContext";
 import Table from "@/component/ui/table/Table";
 import { IndianRupee, Scale, Wallet, Plus } from "lucide-react";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { formatCurrency, } from "@/utils/format";
 import { useSmithTransactionsContext } from "@/context/smith/SmithTransactionsContext";
 import { useSmithDetails } from '@/context/smith/useSmithDetails'
 import SmithManager from "../smith/SmithManager";
 import EditableCell from "@/component/ui/EditableCell";
 import { useToast } from "@/context/smith/ToastContext";
 import PrintTable from "@/component/printingOptions/PrintTable";
+import { useSoftControls } from "@/context/smith/SoftControlContext";
 
 export default function SmithsPage() {
     const { mode, theme, responsive } = useTheme();
     const { addToast } = useToast();
     const { createSmith, smiths: allSmiths } = useSmithDetails();
+    const { softControls } = useSoftControls();
+    const [showTotal, setShowTotal] = useState(false);
+    const [showLast2, setShowLast2] = useState(false);
+
+    useEffect(() => {
+        if (softControls && softControls.length) {
+            const grandTotalCtl = softControls.find(sc => sc.description === "GrandTotal");
+            const last2Ctl = softControls.find(sc => sc.description === "Last2Entry");
+
+            setShowTotal(grandTotalCtl?.ctlid === "Y");
+            setShowLast2(last2Ctl?.ctlid === "Y");
+        }
+    }, [softControls]);
 
     const styles = useMemo(() => {
         const isDark = mode === "dark";
@@ -50,7 +64,7 @@ export default function SmithsPage() {
 
     const [weightBalanceData, setWeightBalanceData] = useState<any[]>([]);
     const [cashBalanceData, setCashBalanceData] = useState<any[]>([]);
-    console.log('cash', cashBalanceData, weightBalanceData);
+  
     const [selectedSmithId, setSelectedSmithId] = useState<string>("");
     const [selectedSmithName, setSelectedSmithName] = useState<string>("");
     const [activeTable, setActiveTable] = useState<"weight" | "cash" | null>(null);
@@ -121,7 +135,9 @@ export default function SmithsPage() {
     };
 
     const handleCreateSmith = async () => {
-        if (!newSmithName.trim()) {
+        const trimmedName = newSmithName.trim();
+
+        if (!trimmedName) {
             addToast({
                 type: 'warning',
                 title: 'Name Required',
@@ -130,29 +146,47 @@ export default function SmithsPage() {
             return;
         }
 
+        // 🔍 Check if name already exists (case-insensitive)
+        const nameExists = allSmiths.some(
+            (smith) => smith.pname?.toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        if (nameExists) {
+            addToast({
+                type: 'warning',
+                title: 'Duplicate Name',
+                message: `The name "${trimmedName}" already exists. Please use another name.`
+            });
+            return;
+        }
+
         try {
             setIsCreatingSmith(true);
+
+            // 🆕 Create Smith
             const newSmith = await createSmith({
-                pname: newSmithName.trim(),
+                pname: trimmedName,
                 active: "Y"
             });
-
-            const today = new Date().toISOString().split('T')[0];
 
             if (!newSmith.smithId) {
                 throw new Error('Smith ID not returned from creation');
             }
 
+            // 🧾 Create initial empty transaction
+            const today = new Date().toISOString().split('T')[0];
+
             await addTransaction({
                 smithId: newSmith.smithId.toString(),
-                name: newSmith.pname || newSmithName.trim(),
+                name: newSmith.pname || trimmedName,
                 date: today,
                 cashBalance: 0,
                 weightBalance: 0,
             });
 
+            // ✅ Update UI
             setSelectedSmithId(newSmith.smithId.toString());
-            setSelectedSmithName(newSmith.pname || newSmithName.trim());
+            setSelectedSmithName(newSmith.pname || trimmedName);
             setNewSmithName("");
             setIsCreatingSmith(false);
 
@@ -172,6 +206,7 @@ export default function SmithsPage() {
             setIsCreatingSmith(false);
         }
     };
+
 
     const handleAddWeightRow = () => {
         if (!selectedSmithId) {
@@ -322,6 +357,17 @@ export default function SmithsPage() {
         }
     };
 
+    // Prepare weight balance rows
+    const displayWeightData = showLast2
+        ? weightBalanceData.slice(-2)  // last 2 entries
+        : weightBalanceData;
+
+    // Prepare cash balance rows
+    const displayCashData = showLast2
+        ? cashBalanceData.slice(-2)  // last 2 entries
+        : cashBalanceData;
+
+
     // Main Table Columns
     const mainTableColumns = useMemo(() => [
         {
@@ -411,7 +457,7 @@ export default function SmithsPage() {
             label: "Balance",
             headalign: "right" as const,
             align: "right" as const,
-            width: "90px",
+            width: "70px",
             render: (_v: any, row: any) => <span className="font-medium">{row.weightDifference?.toFixed(3)}</span>,
         },
         {
@@ -419,7 +465,7 @@ export default function SmithsPage() {
             label: "Remarks",
             headalign: "center" as const,
             align: "left" as const,
-            width: "200px",
+            width: "110px",
             render: (value: any, row: any) => (
                 <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
             ),
@@ -431,10 +477,10 @@ export default function SmithsPage() {
         {
             key: "sno",
             label: "S.No",
-            headalign: "center" as const,
-            align: "center" as const,
+            headalign: "left" as const,
+            align: "left" as const,
             width: "30px",
-            render: (_v: any, _row: any, rowIndex: number) => <span className="font-semibold">{rowIndex + 1}</span>,
+            render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
         },
         {
             key: "date",
@@ -471,7 +517,7 @@ export default function SmithsPage() {
             label: "Balance",
             headalign: "right" as const,
             align: "right" as const,
-            width: "100px",
+            width: "70px",
             render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
         },
         {
@@ -479,7 +525,7 @@ export default function SmithsPage() {
             label: "Remarks",
             headalign: "center" as const,
             align: "left" as const,
-            width: "200px",
+            width: "110px",
             render: (value: any, row: any) => (
                 <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
             ),
@@ -490,9 +536,9 @@ export default function SmithsPage() {
         <div style={{ background: styles.background.primary, color: styles.text.primary, minHeight: "100vh" }}>
             <main className="p-2 mx-auto">
                 {/* Fixed Flexbox Layout */}
-                <div className="flex flex-col lg:flex-row gap-2 w-full">
+                <div className="flex flex-col lg:flex-row gap-4 w-full">
                     {/* Left Side - Main Table (30% width) */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex-1 lg:flex-[0_0_30%] max-w-full lg:max-w-[50%] flex flex-col gap-1">
                         <div className="flex justify-between items-center p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                             <h2 className="text-base font-semibold flex items-center space-x-2">
                                 <Wallet size={18} className="text-blue-600 dark:text-blue-400" />
@@ -504,7 +550,7 @@ export default function SmithsPage() {
                                     data={transactions || []}
                                 />
                             </h2>
-                            <div className="flex items-center space-x-1">
+                            <div className="flex  items-center space-x-1">
                                 <input
                                     type="text"
                                     value={newSmithName}
@@ -555,7 +601,7 @@ export default function SmithsPage() {
                             />
                         </div>
 
-                        {selectedSmithId && selectedSmithName && !existingTransaction && (
+                        {/* {selectedSmithId && selectedSmithName && !existingTransaction && (
                             <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded border" style={{ borderColor: styles.border }}>
                                 <span className="text-sm font-medium">Selected: {selectedSmithName}</span>
                                 <button
@@ -565,11 +611,11 @@ export default function SmithsPage() {
                                     Add Transaction
                                 </button>
                             </div>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Right Side - Weight + Cash Tables (70% width) */}
-                    <div className="flex  flex-col gap-2">
+                    <div className="flex-1 lg:flex-[0_0_70%] max-w-full lg:max-w-[52%] flex flex-col gap-1">
                         {/* Weight Table */}
                         <div className="flex-1 flex flex-col ">
                             <div className="flex justify-between items-center px-3 py-4 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
@@ -580,7 +626,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <PrintTable title="Weight Balance Summary" columns={weightBalanceColumns} data={weightBalanceData} />
+                                        <PrintTable title="Weight Balance Summary" columns={weightBalanceColumns} data={displayWeightData} />
                                         <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
                                             Add New
                                         </button>
@@ -590,7 +636,7 @@ export default function SmithsPage() {
                             <div className="flex-1">
                                 <Table
                                     columns={weightBalanceColumns}
-                                    data={weightBalanceData}
+                                    data={displayWeightData}
                                     striped
                                     hoverable
                                     compact="auto"
@@ -598,7 +644,7 @@ export default function SmithsPage() {
                                     headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
                                     fixedHeight={responsive.isMobile ? "250px" : "280px"}
                                     showRows={5}
-                                    renderFooter={() => (
+                                    renderFooter={showTotal ? () => (
                                         <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-black font-semibold">
                                             <tr>
                                                 <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
@@ -608,7 +654,7 @@ export default function SmithsPage() {
                                                 <td></td>
                                             </tr>
                                         </tfoot>
-                                    )}
+                                    ) : undefined}
                                 />
                             </div>
                         </div>
@@ -623,7 +669,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <PrintTable title="Cash Balance Summary" columns={cashBalanceColumns} data={cashBalanceData} />
+                                        <PrintTable title="Cash Balance Summary" columns={cashBalanceColumns} data={displayCashData} />
                                         <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
                                             Add New
                                         </button>
@@ -633,7 +679,7 @@ export default function SmithsPage() {
                             <div className="flex-1">
                                 <Table
                                     columns={cashBalanceColumns}
-                                    data={cashBalanceData}
+                                    data={displayCashData}
                                     striped
                                     hoverable
                                     compact="auto"
@@ -641,7 +687,7 @@ export default function SmithsPage() {
                                     headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
                                     fixedHeight={responsive.isMobile ? "250px" : "280px"}
                                     showRows={5}
-                                    renderFooter={() => (
+                                    renderFooter={showTotal ? () => (
                                         <tfoot className=" sticky bottom-0 bg-blue-100 dark:bg-blue-800/30 text-black font-semibold">
                                             <tr>
                                                 <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
@@ -651,7 +697,7 @@ export default function SmithsPage() {
                                                 <td></td>
                                             </tr>
                                         </tfoot>
-                                    )}
+                                    ) : undefined}
                                 />
                             </div>
                         </div>

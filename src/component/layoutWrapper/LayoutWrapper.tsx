@@ -25,7 +25,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     onSearch,
 }) => {
     const { mode ,theme} = useTheme();
-    console.log(mode ,'mode')
+    // console.log(mode ,'mode')
     // Safe theme access with fallbacks
     const getThemeStyles = () => {
         if (mode === 'dark') {
@@ -63,7 +63,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     return (
         <div className={`flex flex-col transition-colors duration-200 ${mode === 'dark' ? 'dark' : ''}`}>
           
-            {/* Header */}
+           
             <EnhancedHeader
                 title={headerTitle}
                 subtitle={headerSubtitle}

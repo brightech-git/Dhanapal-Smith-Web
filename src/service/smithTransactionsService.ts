@@ -50,7 +50,6 @@ export interface WeightFlow {
 }
 
 export const addTransaction = async (payload: NewSmithTransaction) => {
-    console.log("smith Payload:", payload);
     const response = await axiosInstance.post("/smith/transactions", payload);
     return response.data as NewSmithTransaction;
 };
@@ -69,7 +68,7 @@ export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
 
 // Fetch one smith transaction with flows
 export const fetchSmithTransactionDetail = async (id: number): Promise<SmithTransactionDetail> => {
-    const response = await axiosInstance.get(`/smithTransactions/${id}`);
+    const response = await axiosInstance.get(`/smith/transactions/${id}`);
     return response.data;
 };
 
@@ -91,7 +90,6 @@ export const deleteCashFlow = async (id: number) => {
 
 // Weight Flow APIs
 export const addWeightFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
-    console.log("smith Payload:", payload);
     const response = await axiosInstance.post(`smith/weight?smithId=${smithId}`, payload);
     return response.data;
 };
@@ -107,32 +105,27 @@ export const deleteWeightFlow = async (id: number) => {
 };
 
 export const fetchCashFlows = async (smithId: string): Promise<CashFlow[]> => {
-    console.log("Fetching cash flows for smithId:", smithId);
     const response = await axiosInstance.get(`/smith/cash?smithId=${smithId}`);
     return response.data;
 };
 
 export const fetchWeightFlows = async (smithId: string): Promise<WeightFlow[]> => {
-    console.log("Fetching cash flows for smithId:", smithId);
     const response = await axiosInstance.get(`/smith/weight?smithId=${smithId}`);
     return response.data;
 };
 export const patchCashFlow = async (id: number, payload: Partial<CashFlow>) => {
-    console.log(payload,id, 'smithcashpayload')
     const response = await axiosInstance.patch(`smith/cash/${id}`, payload);
     return response.data;
 };
 
 // Weight Flow partial update
 export const patchWeightFlow = async (id: number, payload: Partial<WeightFlow>) => {
-    console.log(payload,id,'smithweightpayload')
     const response = await axiosInstance.patch(`smith/weight/${id}`, payload);
     return response.data;
 };
 
 export const deleteSmithTransaction = async (id: number) => {
     try {
-        console.log("Deleting transaction with ID:", id);
         const response = await axiosInstance.delete(`/smith/transactions/${id}`);
         return response.data;
     } catch (error) {
