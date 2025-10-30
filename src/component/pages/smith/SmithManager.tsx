@@ -30,6 +30,8 @@ type SmithManagerProps = {
 const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
     const { smiths, fetchAll, updateSmith, deleteSmith } = useSmithDetails();
     const { transactions, getDetail, deleteTransaction } = useSmithTransactionsContext();
+
+    console.log("Smiths in Manager:", smiths);
     const { addToast } = useToast();
     const router = useRouter();
 
@@ -204,7 +206,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     Smith Management
                 </Typography>
 
-                {smiths.length > 5 && (
+                {smiths.length > 1 && (
                     <div className="flex justify-center mt-2">
                         <Button
                             variant="outlined"
