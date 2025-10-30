@@ -12,6 +12,8 @@ import EditableCell from "@/component/ui/EditableCell";
 import { useToast } from "@/context/smith/ToastContext";
 import PrintTable from "@/component/printingOptions/PrintTable";
 import { useSoftControls } from "@/context/smith/SoftControlContext";
+import { Delete } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
 
 export default function SmithsPage() {
     const { mode, theme, responsive } = useTheme();
@@ -19,17 +21,24 @@ export default function SmithsPage() {
     const { createSmith, smiths: allSmiths } = useSmithDetails();
     const { softControls } = useSoftControls();
     const [showTotal, setShowTotal] = useState(false);
-    const [showLast2, setShowLast2] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
+
+    const weightPrintRef = useRef<HTMLDivElement>(null);
+    const cashPrintRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (softControls && softControls.length) {
+        if (Array.isArray(softControls)) {
             const grandTotalCtl = softControls.find(sc => sc.description === "GrandTotal");
-            const last2Ctl = softControls.find(sc => sc.description === "Last2Entry");
+            const showRowDelete = softControls.find(sc => sc.description === "Delete");
 
             setShowTotal(grandTotalCtl?.ctlid === "Y");
-            setShowLast2(last2Ctl?.ctlid === "Y");
+            setShowDelete(showRowDelete?.ctlid === "Y");
+        } else {
+            setShowTotal(false);
+            setShowDelete(false);
         }
     }, [softControls]);
+
 
     const styles = useMemo(() => {
         const isDark = mode === "dark";
@@ -57,8 +66,10 @@ export default function SmithsPage() {
         getCashFlows,
         addCash,
         updateCash,
+        deleteCash,
         addWeight,
         updateWeight,
+        deleteWeight,
         addTransaction
     } = useSmithTransactionsContext();
 
@@ -71,9 +82,7 @@ export default function SmithsPage() {
     const [isCreatingSmith, setIsCreatingSmith] = useState(false);
     const [newSmithName, setNewSmithName] = useState("");
 
-    const existingTransaction = transactions.find(
-        (transaction: any) => transaction.smithId === selectedSmithId
-    );
+    
 
     // Calculate totals for main table
     const transactionTotals = useMemo(() => {
@@ -336,36 +345,99 @@ export default function SmithsPage() {
         setSelectedSmithName(smithName);
     };
 
-    const handleAddTransaction = async () => {
-        if (!selectedSmithId || !selectedSmithName) return;
+    // const handleAddTransaction = async () => {
+    //     if (!selectedSmithId || !selectedSmithName) return;
+    //     try {
+    //         const existing = transactions.find((t: any) => t.smithId === selectedSmithId);
+    //         if (existing) {
+    //             addToast({ type: 'warning', title: 'Transaction Exists', message: 'Transaction already exists!' });
+    //             return;
+    //         }
+    //         await addTransaction({
+    //             smithId: selectedSmithId,
+    //             name: selectedSmithName,
+    //             date: new Date().toISOString().split('T')[0],
+    //             cashBalance: 0,
+    //             weightBalance: 0,
+    //         });
+    //         addToast({ type: 'success', title: 'Transaction Added', message: 'Transaction added successfully!' });
+    //     } catch (err: any) {
+    //         addToast({ type: 'error', title: 'Failed to Add Transaction', message: err.message || "Unknown error" });
+    //     }
+    // };
+
+    // Prepare weight balance rows
+    // const displayWeightData = showDelete
+    //     ? weightBalanceData.slice(-2)  // last 2 entries
+    //     : weightBalanceData;
+
+    // Prepare cash balance rows
+    // const displayCashData = showDelete
+    //     ? cashBalanceData.slice(-2)  // last 2 entries
+    //     : cashBalanceData;
+
+    const handleDeleteCashRow = async (rowId: number) => {
+        if (!selectedSmithId) return;
+
+        // Ask for user confirmation
+        const confirmed = window.confirm("Are you sure you want to delete this row?");
+        if (!confirmed) return;
+
         try {
-            const existing = transactions.find((t: any) => t.smithId === selectedSmithId);
-            if (existing) {
-                addToast({ type: 'warning', title: 'Transaction Exists', message: 'Transaction already exists!' });
-                return;
-            }
-            await addTransaction({
-                smithId: selectedSmithId,
-                name: selectedSmithName,
-                date: new Date().toISOString().split('T')[0],
-                cashBalance: 0,
-                weightBalance: 0,
+            // Call your delete API
+            await deleteCash(rowId);
+
+            // Remove row locally (optional if using React Query / state)
+            setCashBalanceData(prev => prev.filter(row => row.id !== rowId));
+
+            // Show toast after successful delete
+            addToast({
+                type: 'success',
+                title: 'Deleted',
+                message: `Cash row with ID ${rowId} deleted successfully.`
             });
-            addToast({ type: 'success', title: 'Transaction Added', message: 'Transaction added successfully!' });
-        } catch (err: any) {
-            addToast({ type: 'error', title: 'Failed to Add Transaction', message: err.message || "Unknown error" });
+        } catch (error) {
+            // Show error toast if delete fails
+            addToast({
+                type: 'error',
+                title: 'Delete Failed',
+                message: 'Failed to delete the row. Please try again.'
+            });
+            console.error(error);
         }
     };
 
-    // Prepare weight balance rows
-    const displayWeightData = showLast2
-        ? weightBalanceData.slice(-2)  // last 2 entries
-        : weightBalanceData;
 
-    // Prepare cash balance rows
-    const displayCashData = showLast2
-        ? cashBalanceData.slice(-2)  // last 2 entries
-        : cashBalanceData;
+    const handleDeleteWeightRow = async (rowId: number) => {
+        if (!selectedSmithId) return;
+
+        // Ask for user confirmation
+        const confirmed = window.confirm("Are you sure you want to delete this weight row?");
+        if (!confirmed) return;
+
+        try {
+            // Call your delete API
+            await deleteWeight(rowId);
+
+            // Remove row locally if using state
+            setWeightBalanceData(prev => prev.filter(row => row.id !== rowId));
+
+            // Show success toast
+            addToast({
+                type: 'success',
+                title: 'Deleted',
+                message: `Weight row with ID ${rowId} deleted successfully.`,
+            });
+        } catch (error) {
+            // Show error toast
+            addToast({
+                type: 'error',
+                title: 'Delete Failed',
+                message: 'Failed to delete the weight row. Please try again.',
+            });
+            console.error(error);
+        }
+    };
 
 
     // Main Table Columns
@@ -419,8 +491,20 @@ export default function SmithsPage() {
             label: "S.No",
             headalign: "left" as const,
             align: "left" as const,
-            width: "30px",
-            render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    {showDelete  && <button
+                        className="text-red-500 hover:text-red-700 ml-1"
+                        onClick={() => handleDeleteWeightRow(row.id)}
+                        title="Delete row"
+                    >
+                        <Delete fontSize="small" />
+                    </button>} 
+                   
+                </div>
+            ),
         },
         {
             key: "date",
@@ -470,7 +554,71 @@ export default function SmithsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
             ),
         },
-    ], [selectedSmithId, responsive.isMobile]);
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+    const weightBalancePrintColumns = useMemo(() => [
+        {
+            key: "sno",
+            label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    
+
+                </div>
+            ),
+        },
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleWeightSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "payments", newVal)} />
+            ),
+        },
+        {
+            key: "balance",
+            label: "Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "70px",
+            render: (_v: any, row: any) => <span className="font-medium">{row.weightDifference?.toFixed(3)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
 
     // Cash Table Columns
     const cashBalanceColumns = useMemo(() => [
@@ -479,9 +627,22 @@ export default function SmithsPage() {
             label: "S.No",
             headalign: "left" as const,
             align: "left" as const,
-            width: "30px",
-            render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    {showDelete   && <button
+                        className="text-red-500 hover:text-red-700 ml-2"
+                        onClick={() => handleDeleteCashRow(row.id)}
+                        title="Delete row"
+                    >
+                        <Delete fontSize="small" />
+                    </button>}
+                   
+                </div>
+            ),
         },
+
         {
             key: "date",
             label: "Date",
@@ -530,7 +691,75 @@ export default function SmithsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
             ),
         },
-    ], [selectedSmithId, responsive.isMobile]);
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+    const cashBalancePrintColumns = useMemo(() => [
+        {
+            key: "sno",
+            label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                
+
+                </div>
+            ),
+        },
+
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleCashSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "payments", newVal)} />
+            ),
+        },
+        {
+            key: "balance",
+            label: "Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "70px",
+            render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+
+
+
 
     return (
         <div style={{ background: styles.background.primary, color: styles.text.primary, minHeight: "100vh" }}>
@@ -626,7 +855,8 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <PrintTable title="Weight Balance Summary" columns={weightBalanceColumns} data={displayWeightData} />
+                                       <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} />
+                                        </div>
                                         <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
                                             Add New
                                         </button>
@@ -636,7 +866,7 @@ export default function SmithsPage() {
                             <div className="flex-1">
                                 <Table
                                     columns={weightBalanceColumns}
-                                    data={displayWeightData}
+                                    data={weightBalanceData}
                                     striped
                                     hoverable
                                     compact="auto"
@@ -669,7 +899,8 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <PrintTable title="Cash Balance Summary" columns={cashBalanceColumns} data={displayCashData} />
+                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} /></div>
+                                       
                                         <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
                                             Add New
                                         </button>
@@ -679,7 +910,7 @@ export default function SmithsPage() {
                             <div className="flex-1">
                                 <Table
                                     columns={cashBalanceColumns}
-                                    data={displayCashData}
+                                    data={cashBalanceData}
                                     striped
                                     hoverable
                                     compact="auto"

@@ -94,7 +94,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
 
     const deleteCash = async (id: number) => {
         await deleteCashFlow(id);
-        await loadTransactions();
+         await loadTransactions();
     };
 
     const addWeight = async (smithId: string, data: Partial<any>) => {
@@ -103,12 +103,11 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
     };
 
     const updateWeight = async (id: number, data: Partial<WeightFlow>) => {
-        console.time("Update Transaction");
+       
         await patchWeightFlow(id, data);
-        console.timeEnd("Update Transaction");
-        console.time("Refetch Transactions");
+       
         await loadTransactions();
-        console.timeEnd("Refetch Transactions");
+       
     };
 
     const deleteWeight = async (id: number) => {

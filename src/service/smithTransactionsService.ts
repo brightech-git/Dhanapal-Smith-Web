@@ -56,7 +56,9 @@ export const addTransaction = async (payload: NewSmithTransaction) => {
 // Fetch all smith transactions
 export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
     const response = await axiosInstance.get("/smith/transactions");
-    return response.data.map((item: any) => ({
+    const data = Array.isArray(response.data) ? response.data : [];
+
+    return data.map((item: any) => ({
         id: item.id,
         smithId: item.smithId,
         name: item.name,
@@ -65,6 +67,7 @@ export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
         weightBalance: item.weightBalance,
     }));
 };
+
 
 // Fetch one smith transaction with flows
 export const fetchSmithTransactionDetail = async (id: number): Promise<SmithTransactionDetail> => {
