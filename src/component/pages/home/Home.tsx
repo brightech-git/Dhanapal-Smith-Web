@@ -14,6 +14,7 @@ import PrintTable from "@/component/printingOptions/PrintTable";
 import { useSoftControls } from "@/context/smith/SoftControlContext";
 import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
+import { formatDateForInput, parseDateFromInput } from "@/utils/dateHelpers";
 
 export default function SmithsPage() {
     const { mode, theme, responsive } = useTheme();
@@ -134,13 +135,8 @@ export default function SmithsPage() {
         }
     };
 
-    const convertDateToAPIFormat = (dateString: string) => {
-        if (!dateString) return '';
-        if (dateString.includes('-') && dateString.split('-')[0]?.length === 2) {
-            const [day, month, year] = dateString.split('-');
-            return `${year}-${month}-${day}`;
-        }
-        return dateString;
+     const convertDateToAPIFormat = (dateStr: string): string => {
+        return parseDateFromInput(dateStr) || dateStr;
     };
 
     const handleCreateSmith = async () => {
