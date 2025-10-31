@@ -773,6 +773,7 @@ export default function SmithsPage() {
                                     // subtitle="Summary of balances"
                                     columns={mainTableColumns}
                                     data={transactions || []}
+                                    main={true}
                                 />
                             </h2>
                             <div className="flex  items-center space-x-1">
@@ -851,7 +852,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                       <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} />
+                                        <div ref={weightPrintRef}> <PrintTable main={true} title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} />
                                         </div>
                                         <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
                                             Add New
@@ -895,7 +896,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} /></div>
+                                        <div ref={cashPrintRef}> <PrintTable main={true}  title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} /></div>
                                        
                                         <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
                                             Add New

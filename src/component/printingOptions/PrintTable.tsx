@@ -16,6 +16,7 @@ interface ColumnDef<T> {
 interface PrintTableProps<T> {
     title: string;
     subtitle?: string;
+    main?: boolean;
     showTotal?: boolean;
     columns: ColumnDef<T>[];
     data: T[];
@@ -34,6 +35,7 @@ const PrintTable = <T extends Record<string, any>>({
     title,
     subtitle,
     showTotal,
+    main,
     columns,
     data,
 }: PrintTableProps<T>) => {
@@ -57,59 +59,58 @@ const PrintTable = <T extends Record<string, any>>({
             .join("\n");
 
         printWindow.document.write(`
-            <html>
-                <head>
-                    <title>${title}</title>
-                    <style>
-                        @page { size: A4; margin: 20mm; }
+<html>
+  <head >
+    <title > ${title}</title>
+   <style>
+  @page { size: A4; margin: 10mm; }
 
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            font-size: 12px; 
-                            color: #000; 
-                        }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+    -webkit-print-color-adjust: exact; /* Force background colors in Chrome/Safari */
+    print-color-adjust: exact;         /* Standard property for other browsers */
+  }
 
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            margin-top: 10px; 
-                        }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
 
-                        th, td { 
-                            border: 1px solid #555; 
-                            padding: 5px; 
-                            vertical-align: middle; 
-                        }
+  th, td {
+    border: 1px solid #555;
+    padding: 5px;
+    vertical-align: middle;
+  }
 
-                        th { 
-                            background: #eee; 
-                            text-align: center; 
-                        }
+  th {
+    background-color: #ddd; /* green background */
+    color: black !important;
+    text-align: center;
+  }
 
-                        .text-right { text-align: right; }
-                        .text-left { text-align: left; }
-                        .text-center { text-align: center; }
+  td {
+    background-color: #f9f9f9 !important; /* light gray */
+  }
 
-                        .footer td { 
-                            font-weight: bold; 
-                            background: #f2f2f2; 
-                        }
+  .footer td {
+    background-color: #ddd !important;
+    font-weight: bold;
+    color:red !important; 
 
-                        .header { 
-                            text-align: center; 
-                            margin-bottom: 8px; 
-                        }
+  }
 
-                        .header h1 { font-size: 16px; font-weight: bold; margin: 0; }
-                        .header p { font-size: 10px; color: #555; margin: 2px 0; }
+  /* Dynamic column font sizes */
+  ${columnFontStyles}
+</style>
 
-                        /* Dynamic column-based font sizes */
-                        ${columnFontStyles}
-                    </style>
-                </head>
-                <body>${printContents}</body>
-            </html>
-        `);
+  </head>
+  <body>${printContents}</body>
+</html>
+`);
+
 
         printWindow.document.close();
         printWindow.focus();
@@ -159,7 +160,7 @@ const PrintTable = <T extends Record<string, any>>({
 
             {/* Hidden Printable Section */}
             <div ref={printRef} style={{ display: "none" }}>
-                <div className="header">
+                <div className="header" style={{ textAlign: 'center' }}>
                     <h1>{title}</h1>
                     {subtitle && <p>{subtitle}</p>}
                     <p>Printed on: {formattedDate} {formattedTime}</p>
@@ -203,7 +204,7 @@ const PrintTable = <T extends Record<string, any>>({
                     </tbody>
 
                     {/* ✅ Totals Row */}
-                    {showTotal && (
+                    {(showTotal || main) && (
                         <tfoot>
                             <tr className="footer">
                                 <td
@@ -243,7 +244,7 @@ const PrintTable = <T extends Record<string, any>>({
                             </tr>
                         </tfoot>
                     )}
-                   
+
                 </table>
             </div>
         </div>

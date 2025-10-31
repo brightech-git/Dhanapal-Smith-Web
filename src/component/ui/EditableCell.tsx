@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "@/context/smith/ToastContext";
 import { formatDateForAPI } from "@/utils/formatDateForAPI";
+import { Calendar } from "lucide-react";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 interface EditableCellProps {
@@ -22,13 +23,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
 }) => {
     const [isEditing, setIsEditing] = useState(false);
 
-    const parseDate = (val: any) => {
-        if (!val) return null;
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? null : d;
-    };
     const [editValue, setEditValue] = useState<any>(
-        type === "date" ? parseDate(value) :
+        type === "date" && value ? new Date(value) :
             (type === "number" || type === "numbers") && value != null ? String(value) :
                 value ?? ""
     );
@@ -38,13 +34,12 @@ const EditableCell: React.FC<EditableCellProps> = ({
     const { addToast } = useToast();
 
     useEffect(() => {
-        if (isEditing && inputRef.current) {
-            inputRef.current.focus();
-            if (type !== "date") inputRef.current.select();
-        }
-    }, [isEditing, type]);
+        if (isEditing && inputRef.current) inputRef.current.focus();
+    }, [isEditing]);
 
-    const handleClick = () => setIsEditing(true);
+    const handleClick = () => {
+        setIsEditing(true);
+    };
 
     const handleBlur = async () => {
         if (isEditing && !isSaving) await saveValue();
@@ -55,7 +50,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
         else if (e.key === "Escape") {
             setIsEditing(false);
             setEditValue(
-                type === "date" ? (value ? new Date(value) : null) :
+                type === "date" && value ? new Date(value) :
                     (type === "number" || type === "numbers") && value != null ? String(value) :
                         value ?? ""
             );
@@ -103,7 +98,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
         if (val == null || val === "") return "-";
         if (type === "date") {
             const d = new Date(val);
-            if (isNaN(d.getTime())) return "-";
+            if (isNaN(d.getTime())) return val;
             const dd = String(d.getDate()).padStart(2, "0");
             const mm = String(d.getMonth() + 1).padStart(2, "0");
             const yyyy = d.getFullYear();
@@ -118,23 +113,23 @@ const EditableCell: React.FC<EditableCellProps> = ({
         if (type === "date") {
             return (
                 <DatePicker
-                    selected={editValue} // editValue is either Date or null
+                    selected={editValue}
                     onChange={(date: Date | null) => setEditValue(date)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     dateFormat="dd-MM-yyyy"
                     placeholderText="dd-mm-yyyy"
-                    todayButton="Today"
+                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+                    showPopperArrow={false}
                     minDate={new Date("2000-01-01")}
                     maxDate={new Date("2100-12-31")}
-                    className="w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    todayButton="Today"
                 />
-
             );
         }
 
         return (
-            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full">
+            <div className="flex items-center  rounded px-2 py-1 w-full">
                 <input
                     ref={inputRef}
                     type={type === "numbers" ? "text" : type}
@@ -143,23 +138,24 @@ const EditableCell: React.FC<EditableCellProps> = ({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={isSaving}
-                    className={`flex-1 px-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+                    className={` px-1 py-1 text-sm border border-blue-500  ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
                 />
-                <CalendarTodayIcon className="ml-2 text-black" fontSize="small" />
+               
             </div>
+
         );
     }
 
-    // Display mode
+    // Display mode with calendar icon for date fields
     if (type === "date") {
         return (
             <div
                 onClick={handleClick}
-                className={`flex items-center px-2 py-1 cursor-pointer w-full rounded hover:bg-blue-50 dark:hover:bg-gray-700 ${className}`}
+                className={`flex items-center px-2 py-1 cursor-pointer w-full  rounded hover:bg-blue-50 dark:hover:bg-gray-700 ${className}`}
                 title="Click to edit"
             >
                 <span className="flex-1">{formatDisplayValue(value)}</span>
-                <CalendarTodayIcon className="ml-2 text-black" fontSize="small" />
+                
             </div>
         );
     }
