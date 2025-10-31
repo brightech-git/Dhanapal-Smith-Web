@@ -777,6 +777,7 @@ export default function SmithsPage() {
                                     // subtitle="Summary of balances"
                                     columns={mainTableColumns}
                                     data={transactions || []}
+                                    main={true}
                                 />
                             </h2>
                             <div className="flex  items-center space-x-1">

@@ -132,7 +132,7 @@ const Table: React.FC<TableProps> = ({
     const getTextSizeClass = () => {
         if (responsive.isMobile) return 'text-xs';
         if (responsive.isTablet) return 'text-sm';
-        return 'text-sm';
+        return 'text-xs';
     };
 
     const sortedData = useMemo(() => {
