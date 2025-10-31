@@ -23,7 +23,9 @@ body {
   font-family: 'Inter', sans-serif;
   scroll-behavior: smooth;
 }
-
+.custom-datepicker-popper{
+  z-index: 2000 !important;
+}
 /* Custom scrollbar for light theme */
 ::-webkit-scrollbar {
   width: 3px;
@@ -42,3 +44,4 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
