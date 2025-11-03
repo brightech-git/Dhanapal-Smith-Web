@@ -1,11 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import authService from "@/service/authService";
 
 interface AuthContextType {
     isAuthenticated: boolean;
     user: string | null;
-    login: (username: string) => void;
+    isLoading: boolean;
+    login: (username: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -13,9 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (!context) throw new Error("useAuth must be used within an AuthProvider");
     return context;
 };
 
@@ -24,57 +24,56 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
+    // ✅ Check session storage when app loads
     useEffect(() => {
-        // Check session storage on mount
-        if (typeof window !== 'undefined') {
-            const authToken = sessionStorage.getItem('authToken');
-            const sessionExpiry = sessionStorage.getItem('sessionExpiry');
-            const storedUser = sessionStorage.getItem('user');
+        if (typeof window !== "undefined") {
+            const token = sessionStorage.getItem("authToken");
+            const expiry = sessionStorage.getItem("sessionExpiry");
+            const storedUser = sessionStorage.getItem("user");
 
-            if (authToken && sessionExpiry) {
-                const expiryTime = parseInt(sessionExpiry);
-                if (Date.now() < expiryTime) {
-                    setIsAuthenticated(true);
-                    setUser(storedUser);
-                } else {
-                    // Session expired
-                    sessionStorage.removeItem('authToken');
-                    sessionStorage.removeItem('sessionExpiry');
-                    sessionStorage.removeItem('user');
-                }
+            if (token && expiry && Date.now() < parseInt(expiry)) {
+                setIsAuthenticated(true);
+                setUser(storedUser);
+            } else {
+                sessionStorage.clear();
             }
         }
+        setIsLoading(false);
     }, []);
 
-    const login = (username: string) => {
-        setIsAuthenticated(true);
-        setUser(username);
+    // ✅ Login with backend
+    const login = async (username: string, password: string) => {
+        try {
+            const response = await authService.login({ userName: username, password });
 
-        // Set session storage
-        if (typeof window !== 'undefined') {
-            sessionStorage.setItem('authToken', 'authenticated');
-            sessionStorage.setItem('user', username);
-            sessionStorage.setItem('sessionExpiry', (Date.now() + 30 * 60 * 1000).toString()); // 30 minutes
+            // If backend sends token, save it
+            const token = "authenticated"; // replace with response.token if your API returns one
+
+            setIsAuthenticated(true);
+            setUser(response.userName);
+
+            // Save session info
+            sessionStorage.setItem("authToken", token);
+            sessionStorage.setItem("user", response.userName);
+            sessionStorage.setItem("sessionExpiry", (Date.now() + 30 * 60 * 1000).toString());
+        } catch (error: any) {
+            throw new Error(error.message || "Login failed");
         }
     };
 
+    // ✅ Logout clears everything
     const logout = () => {
         setIsAuthenticated(false);
         setUser(null);
-
-        // Clear session storage
-        if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('authToken');
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('sessionExpiry');
-        }
+        sessionStorage.clear();
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

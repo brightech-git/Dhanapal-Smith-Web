@@ -11,7 +11,7 @@ import {
     Container,
     Avatar,
     CircularProgress,
-    Fade
+    Fade,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth/AuthContext";
@@ -21,92 +21,70 @@ import { LockOutlined, Visibility, VisibilityOff } from "@mui/icons-material";
 const LoginForm: React.FC = () => {
     const theme = useTheme();
     const router = useRouter();
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, isLoading } = useAuth();
     const { addToast } = useToast();
 
-    const [identifier, setIdentifier] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
 
+<<<<<<< Updated upstream
     // ✅ Hardcoded credentials
     const VALID_USERNAME = "admin";
     const VALID_PASSWORD = "ee@123";
 
     // Redirect if already authenticated
+=======
+>>>>>>> Stashed changes
     useEffect(() => {
-        if (isAuthenticated ) {
-            router.push("/");
-        }
-    }, [isAuthenticated,  router]);
+        if (isAuthenticated) router.push("/");
+    }, [isAuthenticated, router]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoggingIn(true);
         setLocalError(null);
 
-        if (!identifier.trim() || !password.trim()) {
+        if (!username || !password) {
             setLocalError("Please fill in all fields");
             addToast({
-                type: 'error',
-                title: 'Missing Information',
-                message: 'Please enter both username and password'
+                type: "error",
+                title: "Missing Information",
+                message: "Please enter both username and password",
             });
-            setIsLoggingIn(false);
             return;
         }
 
+        setIsLoggingIn(true);
+
         try {
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await login(username, password);
 
-            if (identifier === VALID_USERNAME && password === VALID_PASSWORD) {
-                login(identifier);
-
-                addToast({
-                    type: 'success',
-                    title: 'Welcome Back!',
-                    message: 'Successfully logged in to your account'
-                });
-
-                // Redirect to main page
-                setTimeout(() => {
-                    router.push("/");
-                }, 500);
-            } else {
-                throw new Error("Invalid credentials");
-            }
-        } catch (error) {
-            setLocalError("Invalid username or password");
             addToast({
-                type: 'error',
-                title: 'Authentication Failed',
-                message: 'Please check your username and password'
+                type: "success",
+                title: "Welcome Back!",
+                message: "Successfully logged in to your account",
+            });
+
+            router.push("/");
+        } catch (error: any) {
+            setLocalError(error.message || "Invalid username or password");
+            addToast({
+                type: "error",
+                title: "Authentication Failed",
+                message: error.message || "Please check your credentials",
             });
         } finally {
             setIsLoggingIn(false);
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleLogin(e);
-        }
-    };
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
-
-    // Don't render if already authenticated or loading auth state
-    if (isAuthenticated ) {
+    if (isLoading) {
         return (
-            <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-            >
+            <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
                 <CircularProgress size={60} />
             </Box>
         );
@@ -115,11 +93,11 @@ const LoginForm: React.FC = () => {
     return (
         <Box
             sx={{
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                minHeight: "100vh",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 padding: 2,
             }}
         >
@@ -129,150 +107,78 @@ const LoginForm: React.FC = () => {
                         elevation={24}
                         sx={{
                             padding: 2,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
                             borderRadius: 3,
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            background: "rgba(255, 255, 255, 0.95)",
+                            backdropFilter: "blur(10px)",
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
                         }}
                     >
-                        {/* Header Section */}
-                        <Box
+                        <Avatar
                             sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
+                                m: 1,
+                                bgcolor: "primary.main",
+                                width: 60,
+                                height: 60,
                                 mb: 1,
-                                width: '100%',
                             }}
                         >
-                            <Avatar
-                                sx={{
-                                    m: 1,
-                                    bgcolor: 'primary.main',
-                                    width: 60,
-                                    height: 60,
-                                    mb: 1,
-                                }}
-                            >
-                                <LockOutlined sx={{ fontSize: 30 }} />
-                            </Avatar>
-                            <Typography
-                                component="h1"
-                                variant="h4"
-                                fontWeight="bold"
-                                color="primary"
-                                gutterBottom
-                            >
-                                Welcome Back
-                            </Typography>
-                            <Typography
-                                variant="body1"
-                                color="text.secondary"
-                                textAlign="center"
-                            >
-                                Sign in to access your account
-                            </Typography>
-                        </Box>
+                            <LockOutlined sx={{ fontSize: 30 }} />
+                        </Avatar>
+                        <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
+                            Welcome Back
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" textAlign="center">
+                            Sign in to access your account
+                        </Typography>
 
-                        {/* Login Form */}
-                        <Box
-                            component="form"
-                            onSubmit={handleLogin}
-                            onKeyPress={handleKeyPress}
-                            sx={{
-                                width: '100%',
-                                mt: 1,
-                            }}
-                        >
-                            {/* Error Message */}
+                        <Box component="form" onSubmit={handleLogin} sx={{ width: "100%", mt: 2 }}>
                             {localError && (
                                 <Paper
                                     elevation={1}
                                     sx={{
                                         p: 2,
                                         mb: 3,
-                                        backgroundColor: 'error.light',
-                                        border: '1px solid',
-                                        borderColor: 'error.main',
+                                        backgroundColor: "error.light",
+                                        border: "1px solid",
+                                        borderColor: "error.main",
                                         borderRadius: 2,
                                     }}
                                 >
-                                    <Typography
-                                        variant="body2"
-                                        color="error.main"
-                                        textAlign="center"
-                                        fontWeight="medium"
-                                    >
+                                    <Typography color="error.main" textAlign="center">
                                         {localError}
                                     </Typography>
                                 </Paper>
                             )}
 
-                            {/* Username Field */}
                             <TextField
                                 fullWidth
                                 label="Username"
-                                variant="outlined"
-                                value={identifier}
-                                onChange={(e) => setIdentifier(e.target.value)}
-                                autoComplete="username"
-                              
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 disabled={isLoggingIn}
-                                sx={{
-                                    mb: 2,
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 2,
-                                        '&:hover fieldset': {
-                                            borderColor: 'primary.main',
-                                        },
-                                    },
-                                }}
+                                sx={{ mb: 2 }}
                             />
 
-                            {/* Password Field */}
                             <TextField
                                 fullWidth
                                 label="Password"
                                 type={showPassword ? "text" : "password"}
-                                variant="outlined"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="current-password"
-                               
                                 disabled={isLoggingIn}
                                 InputProps={{
                                     endAdornment: (
-                                        <Button
-                                            onClick={togglePasswordVisibility}
-                                            sx={{
-                                                minWidth: 'auto',
-                                                padding: '4px',
-                                                color: 'text.secondary',
-                                                '&:hover': {
-                                                    backgroundColor: 'transparent',
-                                                    color: 'primary.main',
-                                                },
-                                            }}
-                                        >
+                                        <Button onClick={togglePasswordVisibility} sx={{ minWidth: "auto" }}>
                                             {showPassword ? <VisibilityOff /> : <Visibility />}
                                         </Button>
                                     ),
                                 }}
-                                sx={{
-                                    mb: 2,
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 2,
-                                        '&:hover fieldset': {
-                                            borderColor: 'primary.main',
-                                        },
-                                    },
-                                }}
+                                sx={{ mb: 2 }}
                             />
 
-                            {/* Login Button */}
                             <Button
                                 type="submit"
                                 fullWidth
@@ -281,15 +187,8 @@ const LoginForm: React.FC = () => {
                                 sx={{
                                     py: 1.5,
                                     borderRadius: 2,
-                                    fontSize: '1.1rem',
-                                    fontWeight: 'bold',
-                                    textTransform: 'none',
-                                    boxShadow: 4,
-                                    '&:hover': {
-                                        boxShadow: 6,
-                                        transform: 'translateY(-1px)',
-                                    },
-                                    transition: 'all 0.2s ease-in-out',
+                                    fontWeight: "bold",
+                                    textTransform: "none",
                                 }}
                             >
                                 {isLoggingIn ? (
@@ -301,50 +200,6 @@ const LoginForm: React.FC = () => {
                                     "Sign In"
                                 )}
                             </Button>
-
-                            {/* Demo Credentials Hint */}
-                            {/* <Box
-                                sx={{
-                                    mt: 3,
-                                    p: 2,
-                                    backgroundColor: 'grey.50',
-                                    borderRadius: 2,
-                                    border: '1px solid',
-                                    borderColor: 'grey.200',
-                                }}
-                            >
-                                <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                    textAlign="center"
-                                >
-                                    <strong>Demo Credentials:</strong>
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                    textAlign="center"
-                                >
-                                    Username: <strong>{VALID_USERNAME}</strong>
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                    textAlign="center"
-                                >
-                                    Password: <strong>{VALID_PASSWORD}</strong>
-                                </Typography>
-                            </Box> */}
-                        </Box>
-
-                        {/* Footer */}
-                        <Box sx={{ mt: 2, textAlign: 'center' }}>
-                            <Typography variant="caption" color="text.secondary">
-                                Secure access to your workspace
-                            </Typography>
                         </Box>
                     </Paper>
                 </Fade>
