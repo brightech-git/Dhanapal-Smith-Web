@@ -30,14 +30,6 @@ const LoginForm: React.FC = () => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
 
-<<<<<<< Updated upstream
-    // ✅ Hardcoded credentials
-    const VALID_USERNAME = "admin";
-    const VALID_PASSWORD = "ee@123";
-
-    // Redirect if already authenticated
-=======
->>>>>>> Stashed changes
     useEffect(() => {
         if (isAuthenticated) router.push("/");
     }, [isAuthenticated, router]);
