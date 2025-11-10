@@ -127,13 +127,20 @@ const Table: React.FC<TableProps> = ({
         right: 'text-right',
     }[alignment]);
 
-    const getPaddingClass = () => isCompact ? 'px-2 py-1.5' : 'px-2 py-1.5';
+    const getPaddingClass = () => isCompact ? 'px-0.5 py-0.7' : 'px-1 py-1';
 
     const getTextSizeClass = () => {
         if (responsive.isMobile) return 'text-xs';
-        if (responsive.isTablet) return 'text-sm';
+        if (responsive.isTablet) return 'text-xs';  
         return 'text-xs';
     };
+
+    const getHeadTextSizeClass = () => {
+        if (responsive.isMobile) return 'text-xs';
+        if (responsive.isTablet) return 'text-xs';
+        return 'text-xs';
+    };
+
 
     const sortedData = useMemo(() => {
         if (!sortKey) return data;
@@ -277,7 +284,7 @@ const Table: React.FC<TableProps> = ({
                             {visibleColumns.map((column, colIndex) => (
                                 <th
                                     key={column.key}
-                                    className={`${getPaddingClass()} ${getTextSizeClass()} font-semibold ${tableStyles.headerText} uppercase tracking-wider whitespace-nowrap bg-[var(--primary-background-color)] border-b border-r ${tableStyles.border} ${getHeadAlignmentClass(column.headalign)} ${colIndex < visibleColumns.length - 1 || hasActions ? `border-r ${tableStyles.border}` : ''} cursor-pointer select-none`}
+                                    className={`${getPaddingClass()} ${getHeadTextSizeClass()} font-semibold ${tableStyles.headerText} uppercase tracking-wider whitespace-nowrap bg-[var(--primary-background-color)] border-b border-r ${tableStyles.border} ${getHeadAlignmentClass(column.headalign)} ${colIndex < visibleColumns.length - 1 || hasActions ? `border-r ${tableStyles.border}` : ''} cursor-pointer select-none`}
                                     style={getResponsiveWidth(column.width) ? { width: getResponsiveWidth(column.width), minWidth: getResponsiveWidth(column.width) } : {}}
                                     scope="col"
                                 >

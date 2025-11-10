@@ -58,7 +58,7 @@ const Footer = () => {
                         width={20}
                         alt="logo"
                     />
-                    <span>Brightech Software Solutions</span>
+                    <span>BrightechSoftwareSolutions</span>
                 </p>
             </div>
 

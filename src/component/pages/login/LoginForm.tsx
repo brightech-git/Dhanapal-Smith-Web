@@ -24,7 +24,7 @@ const LoginForm: React.FC = () => {
     const { login, isAuthenticated, isLoading } = useAuth();
     const { addToast } = useToast();
 
-    const [username, setUsername] = useState("");
+    const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -38,7 +38,7 @@ const LoginForm: React.FC = () => {
         e.preventDefault();
         setLocalError(null);
 
-        if (!username || !password) {
+        if (!userName || !password) {
             setLocalError("Please fill in all fields");
             addToast({
                 type: "error",
@@ -51,7 +51,7 @@ const LoginForm: React.FC = () => {
         setIsLoggingIn(true);
 
         try {
-            await login(username, password);
+            await login(userName, password);
 
             addToast({
                 type: "success",
@@ -148,8 +148,8 @@ const LoginForm: React.FC = () => {
                             <TextField
                                 fullWidth
                                 label="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={userName}
+                                onChange={(e) => setUserName(e.target.value)}
                                 disabled={isLoggingIn}
                                 sx={{ mb: 2 }}
                             />

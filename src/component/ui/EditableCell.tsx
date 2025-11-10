@@ -1,11 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "@/context/smith/ToastContext";
 import { formatDateForAPI } from "@/utils/formatDateForAPI";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 interface EditableCellProps {
     value: any;
@@ -116,24 +113,22 @@ const EditableCell: React.FC<EditableCellProps> = ({
 
     if (isEditing) {
         if (type === "date") {
+            const formatDateForInput = (date: Date | null) => {
+                if (!date) return "";
+                return date.toISOString().split('T')[0];
+            };
+            
             return (
-                <DatePicker
-                    selected={editValue} // editValue is either Date or null
-                    onChange={(date: Date | null) => setEditValue(date)}
+                <input
+                    ref={inputRef}
+                    type="date"
+                    value={formatDateForInput(editValue)}
+                    onChange={(e) => setEditValue(e.target.value ? new Date(e.target.value) : null)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    dateFormat="dd-MM-yyyy"
-                    placeholderText="dd-mm-yyyy"
-                    todayButton="Today"
-                    minDate={new Date("2000-01-01")}
-                    maxDate={new Date("2100-12-31")}
-                    
-                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
-               
                     disabled={isSaving}
-                    popperClassName="custom-datepicker-popper"
+                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
                 />
-
             );
         }
 

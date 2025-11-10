@@ -1,5 +1,5 @@
-import axiosInstance from "@/api/axiosInstance";
-
+import { getAxiosInstance } from "@/api/axiosInstance";
+import { useAuth } from "@/context/auth/AuthContext";
 // ✅ API endpoint for Smith full details
 const SMITH_FULL_DETAILS_URL = "/fullDetails";
 
@@ -8,7 +8,8 @@ const SMITH_FULL_DETAILS_URL = "/fullDetails";
  */
 export const getSmithFullDetails = async (): Promise<any> => {
     try {
-        
+        const axiosInstance = getAxiosInstance();
+        //console.log(axiosInstance,'base at smithFullDetail')
         const response = await axiosInstance.get(SMITH_FULL_DETAILS_URL);
         return response.data;
     } catch (error: any) {

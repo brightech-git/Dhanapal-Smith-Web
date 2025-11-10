@@ -1,4 +1,5 @@
-import axiosInstance from "@/api/axiosInstance";
+import { getAxiosInstance } from "@/api/axiosInstance";
+import { useAuth } from "@/context/auth/AuthContext";
 
 export interface SoftControl {
     id: number;
@@ -8,6 +9,7 @@ export interface SoftControl {
 }
 
 export const fetchSoftControls = async (): Promise<SoftControl[]> => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.get('/softcontrol');
     return response.data;
 }

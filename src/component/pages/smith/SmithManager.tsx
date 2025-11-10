@@ -204,14 +204,14 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     Smith Management
                 </Typography>
 
-                {smiths.length > 5 && (
+                {smiths.length > 0 && (
                     <div className="flex justify-center mt-2">
                         <Button
                             variant="outlined"
                             size="small"
                             onClick={() => setShowAll((prev) => !prev)}
                         >
-                            {showAll ? "Show Less" : "See All"}
+                            {showAll ? "Show Less" : "Show All"}
                         </Button>
                     </div>
                 )}

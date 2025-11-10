@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { fetchSoftControls, SoftControl } from "@/service/softControlService";
+import { useAuth } from "../auth/AuthContext";
 
 interface SoftControlContextProps {
     softControls: SoftControl[];
@@ -25,6 +26,7 @@ interface SoftControlProviderProps {
 }
 
 export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  children }) => {
+    const { isAuthenticated ,isLoading: authLoading} = useAuth();
     const [softControls, setSoftControls] = useState<SoftControl[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -44,8 +46,10 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
     };
 
     useEffect(() => {
-            loadSoftControls();  
-    }, []);
+        if (!authLoading && isAuthenticated) {
+            loadSoftControls();
+        }
+    }, [isAuthenticated, authLoading]);
 
     return (
         <SoftControlContext.Provider

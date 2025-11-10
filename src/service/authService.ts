@@ -1,27 +1,26 @@
-// src/services/authService.ts
-import axiosInstance from "@/api/axiosInstance";
+import axios from "axios";
 
 export interface AuthRequest {
     userName: string;
     password: string;
 }
 
-export interface UserResponse {
-    userName: string;
-    message: string;
-}
-
 const authService = {
-    login: async ({ userName, password }: AuthRequest): Promise<UserResponse> => {
+    login: async ({ userName, password }: AuthRequest) => {
         try {
-            const { data } = await axiosInstance.post<UserResponse>('/users/login', {
-                userName,
-                password,
-            });
+            // ✅ Get MAIN_URL from config.json loaded at runtime
+            const MAIN_URL = window?.appConfig?.MAIN_URL;
+            if (!MAIN_URL) throw new Error("MAIN_URL not loaded from config.json");
+
+            // ✅ Append /user/login dynamically
+            const loginUrl = `${MAIN_URL.replace(/\/$/, "")}/users/login`;
+
+            const { data } = await axios.post(loginUrl, { userName, password });
+           
             return data;
         } catch (error: any) {
-            // Throw a clean error message
-            const message = error.response?.data?.message || error.message || 'Login failed';
+            const message =
+                error.response?.data?.message || error.message || "Login failed";
             throw new Error(message);
         }
     },

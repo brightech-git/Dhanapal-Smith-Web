@@ -2,12 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import authService from "@/service/authService";
+import { getAxiosInstance, resetAxiosInstance } from "@/api/axiosInstance";
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    user: string | null;
+    allDetails: any;
     isLoading: boolean;
-    login: (username: string, password: string) => Promise<void>;
+    login: (userName: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -19,25 +20,23 @@ export const useAuth = () => {
     return context;
 };
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<string | null>(null);
+    const [allDetails, setAllDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // ✅ Check session storage when app loads
+    // Restore session
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const token = sessionStorage.getItem("authToken");
-            const expiry = sessionStorage.getItem("sessionExpiry");
-            const storedUser = sessionStorage.getItem("user");
-
-            if (token && expiry && Date.now() < parseInt(expiry)) {
+        const savedSession = sessionStorage.getItem("authSession");
+        if (savedSession) {
+            const parsed = JSON.parse(savedSession);
+            if (Date.now() < parsed.expiry) {
                 setIsAuthenticated(true);
-                setUser(storedUser);
+                setAllDetails(parsed.allDetails);
+
+                // ✅ Initialize axios using base URL from config.json
+                const baseUrl = window?.appConfig?.MAIN_URL;
+                if (baseUrl) getAxiosInstance(baseUrl);
             } else {
                 sessionStorage.clear();
             }
@@ -45,36 +44,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
     }, []);
 
-    // ✅ Login with backend
-    const login = async (username: string, password: string) => {
-        try {
-            const response = await authService.login({ userName: username, password });
+    const login = async (userName: string, password: string) => {
+        const response = await authService.login({ userName, password });
 
-            // If backend sends token, save it
-            const token = "authenticated"; // replace with response.token if your API returns one
+        console.log("response", response);
+        
+        const session = {
+            expiry: Date.now() + 30 * 60 * 1000, // 30 min
+            allDetails: response,
+        };
 
-            setIsAuthenticated(true);
-            setUser(response.userName);
+        setAllDetails(response);
+        setIsAuthenticated(true);
 
-            // Save session info
-            sessionStorage.setItem("authToken", token);
-            sessionStorage.setItem("user", response.userName);
-            sessionStorage.setItem("sessionExpiry", (Date.now() + 30 * 60 * 1000).toString());
-        } catch (error: any) {
-            throw new Error(error.message || "Login failed");
-        }
+        // ✅ Initialize axios dynamically (use config base URL)
+        const baseUrl = window?.appConfig?.MAIN_URL;
+        if (baseUrl) getAxiosInstance(baseUrl);
+
+        sessionStorage.setItem("authSession", JSON.stringify(session));
     };
 
-    // ✅ Logout clears everything
     const logout = () => {
+        resetAxiosInstance();
         setIsAuthenticated(false);
-        setUser(null);
+        setAllDetails(null);
         sessionStorage.clear();
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ isAuthenticated, allDetails, isLoading, login, logout }}>
+            {!isLoading && children}
         </AuthContext.Provider>
     );
 };

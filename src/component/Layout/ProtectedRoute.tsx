@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children,
     requiredRole
 }) => {
-    const { isAuthenticated, user, } = useAuth();
+    const { isAuthenticated, } = useAuth();
     const router = useRouter();
 
     useEffect(() => {

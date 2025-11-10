@@ -21,6 +21,8 @@ import {
     NewSmithTransaction,
     deleteSmithTransaction
 } from "@/service/smithTransactionsService";
+import { useAuth } from "../auth/AuthContext";
+
 
 interface SmithTransactionContextType {
     transactions: SmithTransaction[];
@@ -43,6 +45,8 @@ interface SmithTransactionContextType {
 const SmithTransactionContext = createContext<SmithTransactionContextType | undefined>(undefined);
 
 export const SmithTransactionProvider = ({ children }: { children: ReactNode }) => {
+
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
     const [transactions, setTransactions] = useState<SmithTransaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -122,8 +126,11 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
 
 
     useEffect(() => {
-        loadTransactions();
-    }, []);
+        // ✅ Only run after login is complete and authenticated
+        if (!authLoading && isAuthenticated) {
+            loadTransactions();
+        }
+    }, [isAuthenticated, authLoading]);
 
     return (
         <SmithTransactionContext.Provider value={{

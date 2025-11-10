@@ -31,7 +31,9 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
     const { navigateWithAnimation, isNavigating } = useNavigation();
     const isMobile = useMediaQuery('(max-width: 1279px)');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { user } =useAuth();
+    const { allDetails } =useAuth();
+
+    console.log(allDetails ,'allDetials')
     // console.log('user',user);
     const {
             transactions,
@@ -172,7 +174,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                                             className="text-sm font-medium"
                                             style={{ color: styles.text.primary }}
                                         >   
-                                            {user}
+                                            {allDetails?.USERNAME || allDetails?.userName || 'admin'}
                                         </p>
                                     </div>
                                     <button
@@ -199,7 +201,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                                         }}
                                     >
                                         <User size={16} />
-                                        {isMobile && <span className="ml-2">{user}</span>}
+                                        {isMobile && <span className="ml-2">{allDetails?.USERNAME || allDetails?.userName ||'admin'}</span>}
 
                                     </button>
                                 </div>

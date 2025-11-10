@@ -14,6 +14,7 @@ import PrintTable from "@/component/printingOptions/PrintTable";
 import { useSoftControls } from "@/context/smith/SoftControlContext";
 import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
+import Register from "../register/Register";
 
 export default function SmithsPage() {
     const { mode, theme, responsive } = useTheme();
@@ -936,10 +937,17 @@ export default function SmithsPage() {
                     </div>
                     
                 </div>
-                <div className="flex flex-col lg:flex-row gap-2 w-full">
-                    <SmithManager onSelectSmith={handleSmithSelect} />
+                <div className="flex md:flex-row flex-col gap-5 sm:gap-10 md:gap-20 lg:gap-40">
+                    <div className="flex  lg:flex-row gap-2">
+                        <SmithManager onSelectSmith={handleSmithSelect} />
+
+                    </div>
+                    <div className="flex flex-col lg:flex-row gap-2 mt-3 ">
+                        <Register />
+                    </div>
                 </div>
-                {/* Smith Manager */}
+               
+        
                 
             </main>
         </div>

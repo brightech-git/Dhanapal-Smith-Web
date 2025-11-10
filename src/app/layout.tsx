@@ -11,8 +11,11 @@ import { SmithDetailsProvider } from '@/context/smith/useSmithDetails';
 import { AuthProvider } from '@/context/auth/AuthContext';
 import Head from 'next/head';
 import { SoftControlProvider } from '@/context/smith/SoftControlContext';
+import { ConfigProvider } from '@/context/Config/ConfigContext';
+
 
 const inter = Inter({ subsets: ['latin'] });
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -27,11 +30,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </Head>
       <body className={inter.className}>
         <ThemeProvider>
+
+      <ConfigProvider>
+          <AuthProvider>
           <ReactQueryProvider>
             <NavigationProvider>
               <ToastProvider>
                 <SoftControlProvider>
-                <AuthProvider>
+            
                
                   <SmithTransactionProvider>
                     <SmithDetailsProvider>
@@ -41,11 +47,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </SmithDetailsProvider>
                   </SmithTransactionProvider>
               
-                </AuthProvider>
+              
                 </SoftControlProvider>
               </ToastProvider>
             </NavigationProvider>
+ 
           </ReactQueryProvider>
+          </AuthProvider>
+
+      </ConfigProvider>
         </ThemeProvider>
       </body>
     </html>
