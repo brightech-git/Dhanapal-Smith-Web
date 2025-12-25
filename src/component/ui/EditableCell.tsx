@@ -1,14 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "@/context/smith/ToastContext";
 import { formatDateForAPI } from "@/utils/formatDateForAPI";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 interface EditableCellProps {
     value: any;
-    type: "text" | "number" | "date" | "numbers";
+    type: "text" | "number" | "date" | "numbers" | "password";
     onSave: (value: any) => Promise<void>;
     className?: string;
+    displayValue?: string;
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({
@@ -16,23 +20,26 @@ const EditableCell: React.FC<EditableCellProps> = ({
     type,
     onSave,
     className = "",
+    displayValue,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const { addToast } = useToast();
 
     const parseDate = (val: any) => {
         if (!val) return null;
         const d = new Date(val);
         return isNaN(d.getTime()) ? null : d;
     };
-    const [editValue, setEditValue] = useState<any>(
-        type === "date" ? parseDate(value) :
-            (type === "number" || type === "numbers") && value != null ? String(value) :
-                value ?? ""
-    );
 
-    const [isSaving, setIsSaving] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const { addToast } = useToast();
+    const [editValue, setEditValue] = useState<any>(
+        type === "date"
+            ? parseDate(value)
+            : (type === "number" || type === "numbers") && value != null
+                ? String(value)
+                : value ?? ""
+    );
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
@@ -52,9 +59,13 @@ const EditableCell: React.FC<EditableCellProps> = ({
         else if (e.key === "Escape") {
             setIsEditing(false);
             setEditValue(
-                type === "date" ? (value ? new Date(value) : null) :
-                    (type === "number" || type === "numbers") && value != null ? String(value) :
-                        value ?? ""
+                type === "date"
+                    ? value
+                        ? new Date(value)
+                        : null
+                    : (type === "number" || type === "numbers") && value != null
+                        ? String(value)
+                        : value ?? ""
             );
         }
     };
@@ -77,20 +88,10 @@ const EditableCell: React.FC<EditableCellProps> = ({
 
             await onSave(finalValue);
 
-            addToast({
-                type: "success",
-                title: "Updated",
-                message: "Value updated successfully",
-            });
-
             setIsEditing(false);
         } catch (error: any) {
             console.error("Error saving value:", error);
-            addToast({
-                type: "error",
-                title: "Update Failed",
-                message: error.message || "Failed to update value",
-            });
+          
         } finally {
             setIsSaving(false);
         }
@@ -107,33 +108,35 @@ const EditableCell: React.FC<EditableCellProps> = ({
             return `${dd}-${mm}-${yyyy}`;
         }
         if (type === "number") return parseFloat(val).toFixed(3);
-        if (type === "numbers") return new Intl.NumberFormat("en-IN").format(parseFloat(val));
+        if (type === "numbers")
+            return new Intl.NumberFormat("en-IN").format(parseFloat(val));
         return val;
     };
 
+    // ---- Edit Mode ----
     if (isEditing) {
         if (type === "date") {
-            const formatDateForInput = (date: Date | null) => {
-                if (!date) return "";
-                return date.toISOString().split('T')[0];
-            };
-            
             return (
-                <input
-                    ref={inputRef}
-                    type="date"
-                    value={formatDateForInput(editValue)}
-                    onChange={(e) => setEditValue(e.target.value ? new Date(e.target.value) : null)}
+                <DatePicker
+                    selected={editValue}
+                    onChange={(date: Date | null) => setEditValue(date)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="dd-mm-yyyy"
+                    todayButton="Today"
+                    minDate={new Date("2000-01-01")}
+                    maxDate={new Date("2100-12-31")}
+                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""
+                        } ${className}`}
                     disabled={isSaving}
-                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+                    popperClassName="custom-datepicker-popper"
                 />
             );
         }
 
         return (
-            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full">
+            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-white">
                 <input
                     ref={inputRef}
                     type={type === "numbers" ? "text" : type}
@@ -142,35 +145,22 @@ const EditableCell: React.FC<EditableCellProps> = ({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={isSaving}
-                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""
+                    className={`w-full px-1 py-1 border-none outline-none focus:outline-none focus:ring-0 focus:border-none ${isSaving ? "opacity-50 cursor-not-allowed" : ""
                         } ${className}`}
                 />
-               
             </div>
         );
     }
 
-    // Display mode
-    if (type === "date") {
-        return (
-            <div
-                onClick={handleClick}
-                className={`flex items-center px-2 py-1 cursor-pointer w-full rounded hover:bg-blue-50 dark:hover:bg-gray-700 ${className}`}
-                title="Click to edit"
-            >
-                <span className="flex-1">{formatDisplayValue(value)}</span>
-                
-            </div>
-        );
-    }
-
+    // ---- View Mode ----
     return (
         <div
             onClick={handleClick}
             className={`w-full px-1 py-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors ${className}`}
             title="Click to edit"
         >
-            {formatDisplayValue(value)}
+            {/* ✅ Show displayValue (masked password) if available */}
+            {displayValue ?? formatDisplayValue(value)}
         </div>
     );
 };

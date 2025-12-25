@@ -774,11 +774,12 @@ export default function SmithsPage() {
                                 <Wallet size={18} className="text-blue-600 dark:text-blue-400" />
                                 <span>Smith Transactions</span>
                                 <PrintTable
-                                    title="Details"
+                                    title="Smith Transactions"
                                     // subtitle="Summary of balances"
                                     columns={mainTableColumns}
                                     data={transactions || []}
                                     main={true}
+                                    showTotal={showTotal}
                                 />
                             </h2>
                             <div className="flex  items-center space-x-1">
@@ -857,7 +858,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                       <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} />
+                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} />
                                         </div>
                                         <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
                                             Add New
@@ -901,7 +902,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} /></div>
+                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} /></div>
                                        
                                         <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
                                             Add New

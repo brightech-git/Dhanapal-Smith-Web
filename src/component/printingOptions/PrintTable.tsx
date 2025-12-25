@@ -40,7 +40,43 @@ const PrintTable = <T extends Record<string, any>>({
     data,
 }: PrintTableProps<T>) => {
     const printRef = useRef<HTMLDivElement>(null);
+console.log(showTotal ,'showTotal')
+    const columnsToUse = showTotal === false
+        ? columns.map((col) => {
+            console.log(col.key, 'col.key')
+            // You can customize the header label here for "short" names
+            const shortLabels: Record<string, string> = {
+                smith: "Smith",
+                weightBalance: "W/B",
+                cashBalance: "Mc/B",
+            };
+            return {
+                ...col,
+                label: shortLabels[col.key] || col.label,
+            };
+        })
+        : columns;
+    const tableStyle: React.CSSProperties = {
+        width: showTotal === false ? "auto" : "100%", // auto width if showTotal is false
+        tableLayout: "auto",
+        borderCollapse: "collapse",
+        marginTop: 10,
+    };
+    const headerStyle: React.CSSProperties = {
+        textAlign: showTotal === false ? "left" : "center",
+        fontSize: showTotal === false ? "0.85rem" : "1rem", // smaller if showTotal is false
+        marginBottom: 10,
+    };
 
+    const titleStyle: React.CSSProperties = {
+        fontSize: showTotal === false ? "1rem" : "1.5rem",
+        margin: 0,
+    };
+
+    const subtitleStyle: React.CSSProperties = {
+        fontSize: showTotal === false ? "0.85rem" : "1rem",
+        margin: 0,
+    };
     const handlePrint = () => {
         const printContents = printRef.current?.innerHTML;
         if (!printContents) return;
@@ -74,7 +110,6 @@ const PrintTable = <T extends Record<string, any>>({
   }
 
   table {
-    width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
   }
@@ -100,6 +135,11 @@ const PrintTable = <T extends Record<string, any>>({
     font-weight: bold;
     color:red !important; 
 
+  }
+     /* ✅ Show header every page, totals only at end */
+  @media print {
+    thead { display: table-header-group; }
+    tfoot { display: table-row-group; }
   }
 
   /* Dynamic column font sizes */
@@ -160,16 +200,20 @@ const PrintTable = <T extends Record<string, any>>({
 
             {/* Hidden Printable Section */}
             <div ref={printRef} style={{ display: "none" }}>
-                <div className="header" style={{textAlign:'center'}}>
-                    <h1>{title}</h1>
-                    {subtitle && <p>{subtitle}</p>}
-                    <p>Printed on: {formattedDate} {formattedTime}</p>
+
+                <div className="header" style={headerStyle}>
+                    <h1 style={titleStyle}>{title}</h1>
+                    {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
+                    <p style={{ fontSize: showTotal === false ? "0.75rem" : "0.9rem", margin: 0 }}>
+                        Printed on: {formattedDate} {formattedTime}
+                    </p>
                 </div>
 
-                <table>
+
+                <table style={tableStyle}>
                     <thead>
                         <tr>
-                            {columns.map((col) => (
+                            {columnsToUse.map((col) => (
                                 <th
                                     key={col.key}
                                     style={{
@@ -186,7 +230,7 @@ const PrintTable = <T extends Record<string, any>>({
                     <tbody>
                         {data.map((row, rowIndex) => (
                             <tr key={rowIndex}>
-                                {columns.map((col) => (
+                                {columnsToUse.map((col) => (
                                     <td
                                         key={col.key}
                                         style={{
@@ -194,14 +238,13 @@ const PrintTable = <T extends Record<string, any>>({
                                             fontSize: getFontSize(col.bodySize),
                                         }}
                                     >
-                                        {col.render
-                                            ? col.render(row[col.key], row, rowIndex)
-                                            : row[col.key] ?? ""}
+                                        {col.render ? col.render(row[col.key], row, rowIndex) : row[col.key] ?? ""}
                                     </td>
                                 ))}
                             </tr>
                         ))}
                     </tbody>
+
 
                     {/* ✅ Totals Row */}
                     {(showTotal || main) && (
