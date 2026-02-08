@@ -1,14 +1,23 @@
-// src/service/orderService.ts
+// Update your orderService.ts
 import { getAxiosInstance } from "@/api/axiosInstance";
 
-export const OrderService = {
+export type OrderPatchPayload = Record<string, any>;
 
+export const OrderService = {
+    /**
+     * Fetch orders by smith
+     */
     fetchOrdersBySmith: async (smithId: string) => {
         const axios = getAxiosInstance();
-        const res = await axios.get(`/smith/ordermaster?smithId=${smithId}`);
+        const res = await axios.get(
+            `/smith/ordermaster?smithId=${smithId}`
+        );
         return res.data;
     },
 
+    /**
+     * Add new order
+     */
     addOrder: async (smithId: string, order: any) => {
         const axios = getAxiosInstance();
         const res = await axios.post(
@@ -16,17 +25,29 @@ export const OrderService = {
             order
         );
         return res.data;
-    }
+    },
+
+    /**
+     * Update order
+     */
+    updateOrder: async (
+        orderId: number,
+        updates: OrderPatchPayload
+    ) => {
+        const axios = getAxiosInstance();
+        const res = await axios.patch(
+            `/smith/ordermaster/${orderId}`,
+            updates
+        );
+        return res.data;
+    },
+
+    /**
+     * Delete order
+     */
+deleteOrder: async (orderId: number) => {
+  const axios = getAxiosInstance();
+  const res = await axios.delete(`/smith/ordermaster/${orderId}`);
+  return res.data;
+},
 };
-
-    // updateOrder: async (order: any) => {
-    //     const axiosInstance = getAxiosInstance();
-    //     const response = await axiosInstance.put('/smith/ordermaster', order);
-    //     return response.data;
-    // },
-
-    // deleteOrder: async (orderId: number) => {
-    //     const axiosInstance = getAxiosInstance();
-    //     const response = await axiosInstance.delete(`/smith/ordermaster/${orderId}`);
-    //     return response.data;
-    // },

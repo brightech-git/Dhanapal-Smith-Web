@@ -64,14 +64,14 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
         <div className={`flex flex-col transition-colors duration-200 ${mode === 'dark' ? 'dark' : ''}`}>
           
            
-            <EnhancedHeader
+            {/* <EnhancedHeader
                 title={headerTitle}
                 subtitle={headerSubtitle}
                 showSearch={showSearch}
                 showUserMenu={showUserMenu}
                 onSearch={onSearch}
                 className="mb-1"
-            />
+            /> */}
 
             {/* Main Content */}
             <main className='min-h-100vh' style={{

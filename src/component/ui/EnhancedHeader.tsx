@@ -1,7 +1,8 @@
+// component/ui/EnhancedHeader.tsx
 'use client';
 
 import React, { useRef, useEffect, useState } from "react";
-import { Sun, Moon, User, Menu, X, Home, Users } from "lucide-react";
+import { Sun, Moon, User as UserIcon, Menu, X, Home, Users } from "lucide-react";
 import { useTheme } from "@/context/theme/ThemeContext";
 import { useNavigation } from "@/context/transition/NavigationContext";
 import { gsap } from "gsap";
@@ -32,7 +33,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   const { navigateWithAnimation, isNavigating } = useNavigation();
   const isMobile = useMediaQuery("(max-width: 1279px)");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { allDetails } = useAuth();
+  const { allDetails } = useAuth(); // Get allDetails from auth context
   const NAV_ITEMS = [
     { label: "Dashboard", path: "/", icon: Home },
     { label: "Orders", path: "/smiths/order", icon: Menu },
@@ -204,13 +205,15 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                       className="text-sm font-medium"
                       style={{ color: styles.text.primary }}
                     >
-                      {allDetails?.USERNAME || allDetails?.userName || "admin"}
+                      {/* Get username from allDetails */}
+                      {allDetails?.userName || allDetails?.USERNAME || "admin"}
                     </p>
                     <span 
                       className="text-xs"
                       style={{ color: styles.text.secondary }}
                     >
-                      Administrator
+                      {/* Check if user is admin */}
+                      {allDetails?.admin ? "Administrator" : "User"}
                     </span>
                   </div>
                   <button
@@ -221,10 +224,10 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                       backgroundColor: "transparent",
                     }}
                   >
-                    <User size={18} />
+                    <UserIcon size={18} />
                     {isMobile && (
                       <span className="ml-1 text-sm">
-                        {allDetails?.USERNAME || allDetails?.userName || "admin"}
+                        {allDetails?.userName || allDetails?.USERNAME || "admin"}
                       </span>
                     )}
                   </button>

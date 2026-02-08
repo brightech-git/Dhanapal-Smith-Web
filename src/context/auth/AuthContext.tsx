@@ -4,6 +4,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import authService from "@/service/authService";
 import { getAxiosInstance, resetAxiosInstance } from "@/api/axiosInstance";
 
+
+interface UserDetails {
+  userName: string;
+  admin: boolean;
+  sno: number;
+  sessionToken: string;
+  USERNAME?: string; // Some APIs use uppercase
+  role?: string;
+}
 interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;

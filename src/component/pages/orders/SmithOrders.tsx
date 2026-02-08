@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import Table from '@/component/ui/table/Table';
 import { OrderService } from '@/service/orderService';
 import { SmithDetailsService } from '@/service/smithDetailsService';
-import { Search, X, ChevronDown, User } from 'lucide-react';
-import { EditIcon } from "@chakra-ui/icons";
-import { IconButton, Tooltip } from "@chakra-ui/react";
+import { Search, X, User, Check, Pencil, Trash2, Menu, Sun, Moon } from 'lucide-react';
+import { useAuth } from "@/context/auth/AuthContext";
+import { useTheme } from "@/context/theme/ThemeContext";
+
 type Smith = {
   smithId: number;
   pname: string;
@@ -19,6 +19,22 @@ type OrderRow = {
   oldWeight: string;
   oldValue: string;
   cashReceived: string;
+  balance: string;
+};
+
+type Order = {
+  id: number;
+  orderDate: string;
+  orderItems: string;
+  weight: number;
+  oldWeight: number;
+  oldValue: number;
+  cashReceived: number;
+  balance: number;
+  smithId: string;
+  sno?: number;
+  name?: string;
+  [key: string]: any;
 };
 
 const emptyRow: OrderRow = {
@@ -28,28 +44,123 @@ const emptyRow: OrderRow = {
   oldWeight: '',
   oldValue: '',
   cashReceived: '',
+  balance: '',
 };
 
 const SmithOrders: React.FC = () => {
+  const { allDetails } = useAuth();
+  const { mode, theme, toggleMode } = useTheme();
+  const isAdmin = allDetails?.admin || false;
+  
   const [smiths, setSmiths] = useState<Smith[]>([]);
-  const [smithQuery, setSmithQuery] = useState('');
   const [selectedSmith, setSelectedSmith] = useState<Smith | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<OrderRow[]>([{ ...emptyRow }]);
   const [isSaving, setIsSaving] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingRow, setEditingRow] = useState<Partial<OrderRow>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSmithList, setShowSmithList] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  
+  // Theme colors function from header
+  const getThemeColors = () => {
+    if (mode === "dark") {
+      return {
+        background: {
+          primary: theme.colors?.dark?.background?.primary || "#1a1a1a",
+          sidebar: theme.colors?.dark?.background?.primary || "#1a1a1a",
+          card: "#1a1a1a",
+          hover: "#2a4365",
+          active: "#2c5282",
+          header: "#1a1a1a",
+          tableHeader: "#2a4365",
+          input: "#1a1a1a",
+          tableRowHover: "rgba(42, 67, 101, 0.3)",
+          totals: "rgba(42, 67, 101, 0.8)"
+        },
+        border: {
+          primary: "#374151",
+          secondary: "#4a5568",
+          light: "#2d3748"
+        },
+        text: {
+          primary: theme.colors?.dark?.text?.primary || "#ffffff",
+          secondary: theme.colors?.dark?.text?.secondary || "#a0a0a0",
+          muted: "#718096"
+        },
+        button: {
+          primary: "#2a4365",
+          hover: "#2c5282",
+          active: "#3182ce",
+          save: "#2c5282",
+          cancel: "#4a5568",
+          delete: "#9d174d"
+        },
+        gradient: {
+          header: "linear-gradient(to right, #1a365d, #2a4365)"
+        }
+      };
+    }
 
-  // Calculate totals for GET table
-  const getTotals = orders.reduce(
+    // Light theme with blue theme
+    return {
+      background: {
+        primary: "#ffffff",
+        sidebar: "#ffffff",
+        card: "#f8fafc",
+        hover: "#2563eb",
+        active: "#3b82f6",
+        header: "#1e3a8a",
+        tableHeader: "#1e3a8a",
+        input: "#ffffff",
+        tableRowHover: "#f1f5f9",
+        totals: "rgba(248, 250, 252, 0.8)"
+      },
+      border: {
+        primary: "#1d4ed8",
+        secondary: "#3b82f6",
+        light: "#e2e8f0"
+      },
+      text: {
+        primary: "#1e293b",
+        secondary: "#64748b",
+        muted: "#94a3b8"
+      },
+      button: {
+        primary: "#1e40af",
+        hover: "#2563eb",
+        active: "#3b82f6",
+        save: "#16a34a",
+        cancel: "#dc2626",
+        delete: "#be123c"
+      },
+      gradient: {
+        header: "linear-gradient(to right, #1e3a8a, #1d4ed8)"
+      }
+    };
+  };
+
+  const themeColors = getThemeColors();
+
+  // Reverse orders array to show recent transactions first
+  const reversedOrders = [...orders].reverse();
+
+  // Filter smiths based on search
+  const filteredSmiths = smiths.filter(smith =>
+    smith.pname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    smith.smithId.toString().includes(searchQuery)
+  );
+
+  // Calculate totals
+  const getTotals = reversedOrders.reduce(
     (acc, order) => ({
       weight: acc.weight + (Number(order.weight) || 0),
       oldWeight: acc.oldWeight + (Number(order.oldWeight) || 0),
       oldValue: acc.oldValue + (Number(order.oldValue) || 0),
       cashReceived: acc.cashReceived + (Number(order.cashReceived) || 0),
-      balance: acc.balance + ((Number(order.oldValue) || 0) - (Number(order.cashReceived) || 0)),
+      balance: acc.balance + (Number(order.balance) || 0),
     }),
     { weight: 0, oldWeight: 0, oldValue: 0, cashReceived: 0, balance: 0 }
   );
@@ -75,12 +186,21 @@ const SmithOrders: React.FC = () => {
     setLoading(false);
   };
 
+  // Handle smith selection
+  const handleSmithSelect = (smith: Smith) => {
+    setSelectedSmith(smith);
+    loadOrders(smith.smithId);
+    setEditingId(null);
+    setEditingRow({});
+    setIsDeleting(null);
+  };
+
   // Add row
   const addRow = () => {
     setRows([...rows, { ...emptyRow }]);
   };
 
-  // Remove row
+  // Remove row from input table
   const removeRow = (index: number) => {
     if (rows.length === 1) {
       setRows([{ ...emptyRow }]);
@@ -90,14 +210,14 @@ const SmithOrders: React.FC = () => {
     setRows(updated);
   };
 
-  // Update row
+  // Update row in input table
   const updateRow = (index: number, key: keyof OrderRow, value: string) => {
     const updated = [...rows];
     updated[index][key] = value;
     setRows(updated);
   };
 
-  // Save all
+  // Save all new orders
   const saveAll = async () => {
     if (!selectedSmith) {
       alert('Select Smith');
@@ -118,6 +238,7 @@ const SmithOrders: React.FC = () => {
             oldWeight: Number(r.oldWeight) || 0,
             oldValue: Number(r.oldValue) || 0,
             cashReceived: Number(r.cashReceived) || 0,
+            balance: Number(r.balance) || 0,
           }
         );
       }
@@ -127,451 +248,1161 @@ const SmithOrders: React.FC = () => {
       
     } catch (error) {
       console.error('Error saving orders:', error);
+      alert('Error saving orders');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Filter smiths
-  const filteredSmiths = smiths.filter(s =>
-    s.pname.toLowerCase().includes(smithQuery.toLowerCase())
-  );
-
-  // Table columns for GET table
-  const getColumns = [
-    { 
-      key: 'sno', 
-      label: 'S.No',
-      width: '60px',
-      render: (row: any, index: number) => (
-        <div className="text-center text-xs">{index + 1}</div>
-      )
-    },
-    { 
-      key: 'orderDate', 
-      label: 'Date',
-      width: '90px',
-      render: (row: any) => (
-        <div className="text-xs">
-          {row.orderDate ? new Date(row.orderDate).toLocaleDateString() : '-'}
-        </div>
-      )
-    },
-    {
-      key: 'orderItems',
-      label: 'Order Items',
-      width: '250px',
-      render: (row: any) => (
-        <div 
-          className="text-xs max-h-10 overflow-y-auto cursor-help" 
-          title={row.orderItems}
-        >
-          {row.orderItems}
-        </div>
-      ),
-    },
-    { 
-      key: 'weight', 
-      label: 'Weight (g)',
-      width: '80px',
-      render: (row: any) => (
-        <div className="text-xs text-right">{row.weight || '0'}</div>
-      )
-    },
-    { 
-      key: 'oldWeight', 
-      label: 'Old Wt (g)',
-      width: '80px',
-      render: (row: any) => (
-        <div className="text-xs text-right">{row.oldWeight || '0'}</div>
-      )
-    },
-    { 
-      key: 'oldValue', 
-      label: 'Old Value',
-      width: '90px',
-      render: (row: any) => (
-        <div className="text-xs text-right">₹{row.oldValue || '0'}</div>
-      )
-    },
-    { 
-      key: 'cashReceived', 
-      label: 'Cash',
-      width: '90px',
-      render: (row: any) => (
-        <div className="text-xs text-right">₹{row.cashReceived || '0'}</div>
-      )
-    },
-    {
-      key: 'balance',
-      label: 'Balance',
-      width: '90px',
-      render: (row: any) => {
-        const balance = (Number(row.oldValue) || 0) - (Number(row.cashReceived) || 0);
-        return (
-          <div className={`text-xs text-right font-medium ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            ₹{balance}
-          </div>
-        );
-      }
-    },
-        { 
-      key: '', 
-      label: 'Edit',
-      width: '40px',
-      render: (row: any) => (
-        <div className="text-xs text-right"><i><EditIcon boxSize={4} /></i>
-</div>
-      )
-    }
-  ];
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Focus input when dropdown opens
-  useEffect(() => {
-    if (showDropdown && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showDropdown]);
-
-  const handleSmithSelect = (smith: Smith) => {
-    setSelectedSmith(smith);
-    setSmithQuery(smith.pname);
-    setShowDropdown(false);
-    loadOrders(smith.smithId);
+  // Handle edit click
+  const handleEditClick = (order: Order) => {
+    setEditingId(order.id);
+    setEditingRow({
+      orderDate: order.orderDate.split('T')[0],
+      orderItems: order.orderItems,
+      weight: order.weight.toString(),
+      oldWeight: order.oldWeight.toString(),
+      oldValue: order.oldValue.toString(),
+      cashReceived: order.cashReceived.toString(),
+      balance: order.balance.toString(),
+    });
   };
 
-  const handleClearSmith = () => {
-    setSelectedSmith(null);
-    setSmithQuery('');
-    setOrders([]);
-    setShowDropdown(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
+  // Handle update
+  const handleUpdate = async (orderId: number) => {
+    if (!selectedSmith || !editingRow.orderItems?.trim()) {
+      alert('Order items cannot be empty');
+      return;
     }
+
+    try {
+      const updates: Record<string, any> = {};
+      
+      if (editingRow.orderDate) updates.orderDate = editingRow.orderDate;
+      if (editingRow.orderItems) updates.orderItems = editingRow.orderItems;
+      if (editingRow.weight !== undefined) updates.weight = Number(editingRow.weight) || 0;
+      if (editingRow.oldWeight !== undefined) updates.oldWeight = Number(editingRow.oldWeight) || 0;
+      if (editingRow.oldValue !== undefined) updates.oldValue = Number(editingRow.oldValue) || 0;
+      if (editingRow.cashReceived !== undefined) updates.cashReceived = Number(editingRow.cashReceived) || 0;
+      if (editingRow.balance !== undefined) updates.balance = Number(editingRow.balance) || 0;
+
+      await OrderService.updateOrder(orderId, updates);
+      
+      await loadOrders(selectedSmith.smithId);
+      
+      setEditingId(null);
+      setEditingRow({});
+      
+      alert('Order updated successfully!');
+      
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Failed to update order');
+    }
+  };
+
+  // Handle delete order
+  const handleDeleteOrder = async (orderId: number) => {
+    if (!selectedSmith || !window.confirm('Are you sure you want to delete this order?')) {
+      return;
+    }
+
+    setIsDeleting(orderId);
+    try {
+      await OrderService.deleteOrder(orderId);
+      
+      await loadOrders(selectedSmith.smithId);
+      
+      alert('Order deleted successfully!');
+      
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Failed to delete order');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  // Cancel edit
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingRow({});
+  };
+
+  // Handle editing row change
+  const handleEditingRowChange = (key: keyof OrderRow, value: string) => {
+    setEditingRow(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Theme toggle handler
+  const handleThemeToggle = () => {
+    toggleMode();
   };
 
   return (
-    <div className="p-3 min-h-screen bg-white dark:bg-gray-900">
-      <div className="space-y-4">
-        {/* Smith Selection - Compact Header */}
-        <div className="flex items-center justify-between">
-          <div className="relative w-72" ref={dropdownRef}>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              </div>
-              
-              <input
-                ref={inputRef}
-                type="text"
-                value={smithQuery}
-                onChange={(e) => {
-                  setSmithQuery(e.target.value);
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search smith..."
-                className={`w-full pl-10 pr-10 py-2 text-sm rounded-lg border transition-colors
-                  ${selectedSmith 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200' 
-                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100'
-                  }
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600`}
-              />
-              
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                {selectedSmith && (
-                  <button
-                    onClick={handleClearSmith}
-                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                  >
-                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  </button>
-                )}
-                <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''} text-gray-500 dark:text-gray-400`} />
-              </div>
-            </div>
-            
-            {showDropdown && !selectedSmith && (
-              <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {filteredSmiths.length > 0 ? (
-                  filteredSmiths.map(smith => (
-                    <div
-                      key={smith.smithId}
-                      onClick={() => handleSmithSelect(smith)}
-                      className="px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer border-b dark:border-gray-700 last:border-b-0 flex items-center gap-2"
-                    >
-                      <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <span>{smith.pname}</span>
-                      <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-                        ID: {smith.smithId}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                    No smiths found
-                  </div>
-                )}
-              </div>
-            )}
+    <div 
+      className="flex min-h-screen transition-colors duration-200"
+      style={{ 
+        backgroundColor: themeColors.background.primary,
+        color: themeColors.text.primary
+      }}
+    >
+      {/* Left Sidebar - Smith List */}
+      <div 
+        className={`w-72 border-r flex flex-col transition-all duration-300 ${showSmithList ? 'block' : 'hidden'} md:block`}
+        style={{ 
+          backgroundColor: themeColors.background.sidebar,
+          borderColor: themeColors.border.primary
+        }}
+      >
+        {/* Sidebar Header */}
+        <div 
+          className="p-4 border-b"
+          style={{ borderColor: themeColors.border.primary }}
+        >
+          <div className="flex items-center justify-between">
+            <h2 
+              className="text-sm font-semibold"
+              style={{ color: themeColors.text.primary }}
+            >
+              Smiths
+            </h2>
+            <button
+              onClick={() => setShowSmithList(false)}
+              className="md:hidden p-1 transition-colors"
+              style={{ color: themeColors.text.secondary }}
+            >
+              <X size={18} />
+            </button>
           </div>
+          <div className="relative mt-2">
+            <Search 
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4"
+              style={{ color: themeColors.text.secondary }}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search smiths..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs border rounded transition-colors"
+              style={{
+                backgroundColor: themeColors.background.input,
+                borderColor: themeColors.border.primary,
+                color: themeColors.text.primary
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Smith List - 90% height with scroll */}
+        <div className="flex-1 overflow-y-auto" style={{ maxHeight: '90vh' }}>
+          {filteredSmiths.length > 0 ? (
+            filteredSmiths.map(smith => (
+              <div
+                key={smith.smithId}
+                onClick={() => handleSmithSelect(smith)}
+                className={`px-4 py-3 border-b cursor-pointer transition-colors ${
+                  selectedSmith?.smithId === smith.smithId
+                    ? 'border-l-4'
+                    : ''
+                }`}
+                style={{
+                  borderBottomColor: themeColors.border.light,
+                  borderLeftColor: selectedSmith?.smithId === smith.smithId 
+                    ? themeColors.button.primary 
+                    : 'transparent',
+                  backgroundColor: selectedSmith?.smithId === smith.smithId 
+                    ? themeColors.background.hover + '20'
+                    : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 
+                    selectedSmith?.smithId === smith.smithId 
+                      ? themeColors.background.hover + '20'
+                      : themeColors.background.hover + '10';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 
+                    selectedSmith?.smithId === smith.smithId 
+                      ? themeColors.background.hover + '20'
+                      : 'transparent';
+                }}
+              >
+                <div className="flex items-center">
+                  <User 
+                    className="w-4 h-4 mr-2"
+                    style={{ color: themeColors.text.secondary }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p 
+                      className="text-sm font-medium truncate"
+                      style={{ color: themeColors.text.primary }}
+                    >
+                      {smith.pname}
+                    </p>
+                    <p 
+                      className="text-xs"
+                      style={{ color: themeColors.text.secondary }}
+                    >
+                      ID: {smith.smithId}
+                    </p>
+                  </div>
+                  {selectedSmith?.smithId === smith.smithId && (
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: themeColors.button.primary }}
+                    ></div>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-8 text-center">
+              <p style={{ color: themeColors.text.secondary }}>No smiths found</p>
+            </div>
+          )}
+        </div>
+
+        {/* Selected Smith Info */}
+        {selectedSmith && (
+          <div 
+            className="p-4 border-t"
+            style={{ 
+              backgroundColor: themeColors.background.hover + '10',
+              borderColor: themeColors.border.primary
+            }}
+          >
+            <p 
+              className="text-xs font-medium"
+              style={{ color: themeColors.text.secondary }}
+            >
+              Selected:
+            </p>
+            <p 
+              className="text-sm font-semibold mt-1"
+              style={{ color: themeColors.text.primary }}
+            >
+              {selectedSmith.pname}
+            </p>
+            <p 
+              className="text-xs"
+              style={{ color: themeColors.text.secondary }}
+            >
+              ID: {selectedSmith.smithId}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-4">
+        {/* Header with Theme Toggle */}
+        <div className="flex items-center justify-between mb-6">
+          {/* <div>
+            <h1 
+              className="text-2xl font-bold"
+              style={{ color: themeColors.text.primary }}
+            >
+              Smith Orders Management
+            </h1>
+            <p style={{ color: themeColors.text.secondary }}>
+              {selectedSmith ? `Managing orders for ${selectedSmith.pname}` : 'Select a smith to get started'}
+            </p>
+            {isAdmin && (
+              <span 
+                className="inline-block mt-1 px-2 py-0.5 text-xs rounded"
+                style={{ 
+                  backgroundColor: mode === "dark" ? "#9d174d20" : "#fecaca",
+                  color: mode === "dark" ? "#f472b6" : "#dc2626"
+                }}
+              >
+                Admin Mode
+              </span>
+            )}
+          </div> */}
           
-          <div className="flex items-center gap-2">
+          {/* Theme Toggle Button */}
+          {/* <button
+            onClick={handleThemeToggle}
+            className="p-2 rounded-lg transition-all duration-200 hover:bg-opacity-20"
+            style={{
+              color: themeColors.text.primary,
+              backgroundColor: themeColors.button.primary + '20',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = themeColors.button.primary + '40';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = themeColors.button.primary + '20';
+            }}
+            title={`Switch to ${mode === "light" ? "dark" : "light"} mode`}
+          >
+            {mode === "light" ? <Moon size={20} /> : <Sun size={20} />}
+          </button> */}
+        </div>
+
+        {/* Mobile toggle for smith list */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => setShowSmithList(true)}
+            className="px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors flex items-center gap-2"
+            style={{ backgroundColor: themeColors.button.primary }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.button.hover}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = themeColors.button.primary}
+          >
+            <Menu size={16} />
+            Show Smith List
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2">
             <button
               onClick={addRow}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2"
+              style={{ backgroundColor: themeColors.button.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.button.hover}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = themeColors.button.primary}
             >
-              + Add Row
+              <span>+</span>
+              Add Row
             </button>
             <button
               onClick={saveAll}
               disabled={!selectedSmith || isSaving}
-              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                !selectedSmith || isSaving
-                  ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white'
-              }`}
+              className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+              style={{
+                backgroundColor: !selectedSmith || isSaving 
+                  ? themeColors.text.muted 
+                  : mode === "dark" 
+                    ? themeColors.button.save 
+                    : themeColors.button.save,
+                cursor: !selectedSmith || isSaving ? 'not-allowed' : 'pointer'
+              }}
             >
-              {isSaving ? 'Saving...' : 'Save All'}
+              {isSaving ? 'Saving...' : 'Save All Orders'}
             </button>
           </div>
-        </div>
 
-        {/* INPUT TABLE */}
-        <div className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-800 to-blue-900 dark:from-blue-900 dark:to-blue-950 px-4 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-                <h2 className="text-sm font-semibold text-white">New Orders</h2>
+          {/* INPUT TABLE */}
+          <div 
+            className="border rounded-lg overflow-hidden shadow-sm"
+            style={{ borderColor: themeColors.border.primary }}
+          >
+            <div 
+              className="px-6 py-3"
+              style={{ 
+                background: themeColors.gradient.header
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <h2 className="text-base font-semibold text-white">New Orders Input</h2>
+                </div>
+                <span 
+                  className="text-xs px-3 py-1 rounded-full"
+                  style={{ 
+                    color: mode === "dark" ? "#bfdbfe" : "#eff6ff",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)"
+                  }}
+                >
+                  {rows.length} row(s)
+                </span>
               </div>
-              <span className="text-xs text-blue-200 bg-white/10 px-2 py-0.5 rounded">
-                {rows.length} row(s)
-              </span>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ 
+                    backgroundColor: themeColors.background.tableHeader + '20'
+                  }}>
+                    {['Date', 'Order Items', 'Weight (g)', 'Old Wt (g)', 'Old Value', 'Cash', 'Balance', ''].map((header, index) => (
+                      <th 
+                        key={header}
+                        className={`p-3 text-left font-medium border-b ${index < 7 ? 'border-r' : ''}`}
+                        style={{ 
+                          color: themeColors.text.primary,
+                          borderColor: themeColors.border.light,
+                          width: index === 1 ? '220px' : index === 7 ? '40px' : 'auto'
+                        }}
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => (
+                    <tr 
+                      key={index} 
+                      className="border-b transition-colors"
+                      style={{ 
+                        borderColor: themeColors.border.light
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = themeColors.background.tableRowHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <input
+                          type="date"
+                          value={row.orderDate}
+                          onChange={e => updateRow(index, 'orderDate', e.target.value)}
+                          className="w-full px-3 py-2 text-sm border rounded transition-colors focus:outline-none focus:ring-2"
+                          style={{
+                            backgroundColor: themeColors.background.input,
+                            borderColor: themeColors.border.primary,
+                            color: themeColors.text.primary,
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <textarea
+                          value={row.orderItems}
+                          onChange={e => updateRow(index, 'orderItems', e.target.value)}
+                          placeholder="Enter order description..."
+                          rows={2}
+                          className="w-full px-3 py-2 text-sm border rounded resize-none transition-colors focus:outline-none focus:ring-2"
+                          style={{
+                            backgroundColor: themeColors.background.input,
+                            borderColor: themeColors.border.primary,
+                            color: themeColors.text.primary,
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <input
+                          type="number"
+                          value={row.weight}
+                          onChange={e => updateRow(index, 'weight', e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 text-sm border rounded text-right transition-colors focus:outline-none focus:ring-2"
+                          style={{
+                            backgroundColor: themeColors.background.input,
+                            borderColor: themeColors.border.primary,
+                            color: themeColors.text.primary,
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <input
+                          type="number"
+                          value={row.oldWeight}
+                          onChange={e => updateRow(index, 'oldWeight', e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 text-sm border rounded text-right transition-colors focus:outline-none focus:ring-2"
+                          style={{
+                            backgroundColor: themeColors.background.input,
+                            borderColor: themeColors.border.primary,
+                            color: themeColors.text.primary,
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <div className="relative">
+                          <span 
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm"
+                            style={{ color: themeColors.text.secondary }}
+                          >
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            value={row.oldValue}
+                            onChange={e => updateRow(index, 'oldValue', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-8 pr-3 py-2 text-sm border rounded text-right transition-colors focus:outline-none focus:ring-2"
+                            style={{
+                              backgroundColor: themeColors.background.input,
+                              borderColor: themeColors.border.primary,
+                              color: themeColors.text.primary,
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <div className="relative">
+                          <span 
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm"
+                            style={{ color: themeColors.text.secondary }}
+                          >
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            value={row.cashReceived}
+                            onChange={e => updateRow(index, 'cashReceived', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-8 pr-3 py-2 text-sm border rounded text-right transition-colors focus:outline-none focus:ring-2"
+                            style={{
+                              backgroundColor: themeColors.background.input,
+                              borderColor: themeColors.border.primary,
+                              color: themeColors.text.primary,
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                        <div className="relative">
+                          <span 
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm"
+                            style={{ color: themeColors.text.secondary }}
+                          >
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            value={row.balance}
+                            onChange={e => updateRow(index, 'balance', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-8 pr-3 py-2 text-sm border rounded text-right transition-colors focus:outline-none focus:ring-2"
+                            style={{
+                              backgroundColor: themeColors.background.input,
+                              borderColor: themeColors.border.primary,
+                              color: themeColors.text.primary,
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => removeRow(index)}
+                          disabled={rows.length === 1}
+                          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                          style={{
+                            color: rows.length === 1 ? themeColors.text.muted : themeColors.button.cancel,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (rows.length > 1) {
+                              e.currentTarget.style.backgroundColor = mode === "dark" 
+                                ? themeColors.button.cancel + '20' 
+                                : '#fef2f2';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-blue-50 dark:bg-gray-800">
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700">Date</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700 w-[220px]">Order Items</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700">Weight (g)</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700">Old Wt (g)</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700">Old Value</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700">Cash</th>
-                  <th className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-gray-300 dark:border-gray-700 w-[40px]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr 
-                    key={index} 
-                    className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <input
-                        type="date"
-                        value={row.orderDate}
-                        onChange={e => updateRow(index, 'orderDate', e.target.value)}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                      />
-                    </td>
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <textarea
-                        value={row.orderItems}
-                        onChange={e => updateRow(index, 'orderItems', e.target.value)}
-                        placeholder="Enter order description..."
-                        rows={1}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-none overflow-y-auto max-h-16 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                      />
-                    </td>
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <input
-                        type="number"
-                        value={row.weight}
-                        onChange={e => updateRow(index, 'weight', e.target.value)}
-                        placeholder="0"
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                      />
-                    </td>
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <input
-                        type="number"
-                        value={row.oldWeight}
-                        onChange={e => updateRow(index, 'oldWeight', e.target.value)}
-                        placeholder="0"
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                      />
-                    </td>
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">₹</span>
-                        <input
-                          type="number"
-                          value={row.oldValue}
-                          onChange={e => updateRow(index, 'oldValue', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-6 pr-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                        />
-                      </div>
-                    </td>
-                    <td className="p-1 border-r border-gray-200 dark:border-gray-700">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">₹</span>
-                        <input
-                          type="number"
-                          value={row.cashReceived}
-                          onChange={e => updateRow(index, 'cashReceived', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-6 pr-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-right focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-600"
-                        />
-                      </div>
-                    </td>
-                    <td className="p-1">
-                      <button
-                        onClick={() => removeRow(index)}
-                        disabled={rows.length === 1}
-                        className="w-6 h-6 flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        {/* GET TABLE */}
-        <div className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-800 to-blue-900 dark:from-blue-900 dark:to-blue-950 px-4 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-                <h2 className="text-sm font-semibold text-white">Order History</h2>
-                {selectedSmith && (
-                  <span className="text-xs text-blue-200 ml-2">
-                    {selectedSmith.pname}
+          {/* GET TABLE - Order History */}
+          <div 
+            className="border rounded-lg overflow-hidden shadow-sm"
+            style={{ borderColor: themeColors.border.primary }}
+          >
+            <div 
+              className="px-6 py-3"
+              style={{ 
+                background: themeColors.gradient.header
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <h2 className="text-base font-semibold text-white">Order History</h2>
+                  {selectedSmith && (
+                    <span 
+                      className="text-sm ml-2"
+                      style={{ color: mode === "dark" ? "#bfdbfe" : "#eff6ff" }}
+                    >
+                      {selectedSmith.pname}
+                    </span>
+                  )}
+                </div>
+                {selectedSmith && orders.length > 0 && (
+                  <span 
+                    className="text-xs px-3 py-1 rounded-full"
+                    style={{ 
+                      color: mode === "dark" ? "#bfdbfe" : "#eff6ff",
+                      backgroundColor: "rgba(255, 255, 255, 0.15)"
+                    }}
+                  >
+                    {orders.length} orders
                   </span>
                 )}
               </div>
-              {selectedSmith && orders.length > 0 && (
-                <span className="text-xs text-blue-200 bg-white/10 px-2 py-0.5 rounded">
-                  {orders.length} orders
-                </span>
-              )}
             </div>
-          </div>
-          
-          <div className="overflow-x-auto max-h-80">
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-500"></div>
-              </div>
-            ) : !selectedSmith ? (
-              <div className="text-center py-12">
-                <div className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-600">
-                  <User className="w-full h-full opacity-50" />
+            
+            <div className="overflow-x-auto max-h-[400px]">
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div 
+                    className="animate-spin rounded-full h-8 w-8 border-b-2"
+                    style={{ borderColor: themeColors.button.primary }}
+                  ></div>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select a smith to view order history
-                </p>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-600">
-                  <div className="w-full h-full flex items-center justify-center border-2 border-dashed rounded-full">
-                    <span className="text-2xl">0</span>
+              ) : !selectedSmith ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4">
+                    <User 
+                      className="w-full h-full opacity-50"
+                      style={{ color: themeColors.text.secondary }}
+                    />
                   </div>
+                  <p className="text-sm" style={{ color: themeColors.text.secondary }}>
+                    Select a smith to view order history
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  No orders found for this smith
-                </p>
-              </div>
-            ) : (
-              <>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-blue-50 dark:bg-gray-800">
-                      {getColumns.map(col => (
+              ) : orders.length === 0 ? (
+                <div className="text-center py-12">
+                  <div 
+                    className="w-16 h-16 mx-auto mb-4 flex items-center justify-center border-2 border-dashed rounded-full"
+                    style={{ 
+                      borderColor: themeColors.text.secondary,
+                      color: themeColors.text.secondary
+                    }}
+                  >
+                    <span className="text-3xl">0</span>
+                  </div>
+                  <p className="text-sm" style={{ color: themeColors.text.secondary }}>
+                    No orders found for this smith
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ 
+                        backgroundColor: themeColors.background.tableHeader + '20'
+                      }}>
                         <th 
-                          key={col.key} 
-                          className="p-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-r border-gray-300 dark:border-gray-700"
-                          style={{ width: col.width }}
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '60px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
                         >
-                          {col.label}
+                          S.No
                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order, index) => (
-                      <tr 
-                        key={order.id || index} 
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        {getColumns.map(col => (
-                          <td 
-                            key={col.key} 
-                            className="p-2 border-r border-gray-200 dark:border-gray-700 last:border-r-0"
-                          >
-                            {col.render ? col.render(order, index) : order[col.key]}
-                          </td>
-                        ))}
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '90px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Date
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '250px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Order Items
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '80px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Weight (g)
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '80px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Old Wt (g)
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '90px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Old Value
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '90px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Cash
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b border-r"
+                          style={{ 
+                            width: '90px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Balance
+                        </th>
+                        <th 
+                          className="p-3 text-left font-medium border-b"
+                          style={{ 
+                            width: isAdmin ? '120px' : '80px',
+                            color: themeColors.text.primary,
+                            borderColor: themeColors.border.light
+                          }}
+                        >
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* GET TOTALS ROW */}
-                <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800/80 border-t border-gray-300 dark:border-gray-700 backdrop-blur-sm">
-                  <table className="w-full text-xs">
+                    </thead>
                     <tbody>
-                      <tr className="font-semibold">
-                        <td className="p-2 text-center border-r border-gray-300 dark:border-gray-700" style={{ width: '60px' }}>
-                          Total
-                        </td>
-                        <td className="p-2 border-r border-gray-300 dark:border-gray-700" style={{ width: '90px' }}></td>
-                        <td className="p-2 border-r border-gray-300 dark:border-gray-700" style={{ width: '250px' }}></td>
-                        <td className="p-2 text-right border-r border-gray-300 dark:border-gray-700" style={{ width: '80px' }}>
-                          {getTotals.weight.toFixed(2)}
-                        </td>
-                        <td className="p-2 text-right border-r border-gray-300 dark:border-gray-700" style={{ width: '80px' }}>
-                          {getTotals.oldWeight.toFixed(2)}
-                        </td>
-                        <td className="p-2 text-right border-r border-gray-300 dark:border-gray-700" style={{ width: '90px' }}>
-                          ₹{getTotals.oldValue.toFixed(2)}
-                        </td>
-                        <td className="p-2 text-right border-r border-gray-300 dark:border-gray-700" style={{ width: '90px' }}>
-                          ₹{getTotals.cashReceived.toFixed(2)}
-                        </td>
-                        <td className="p-2 text-right" style={{ width: '90px' }}>
-                          <span className={`font-medium ${getTotals.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                            ₹{getTotals.balance.toFixed(2)}
-                          </span>
-                        </td>
-                      </tr>
+                      {reversedOrders.map((order, index) => (
+                        <tr 
+                          key={order.id || index} 
+                          className="border-b transition-colors"
+                          style={{ 
+                            borderColor: themeColors.border.light,
+                            backgroundColor: editingId === order.id 
+                              ? (mode === "dark" ? 'rgba(251, 191, 36, 0.1)' : '#fefce8')
+                              : 'transparent'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (editingId !== order.id) {
+                              e.currentTarget.style.backgroundColor = themeColors.background.tableRowHover;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (editingId !== order.id) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
+                        >
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div 
+                              className="text-center text-sm"
+                              style={{ color: themeColors.text.primary }}
+                            >
+                              {reversedOrders.length - index}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <input
+                                  type="date"
+                                  value={editingRow.orderDate || ''}
+                                  onChange={(e) => handleEditingRowChange('orderDate', e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                  style={{
+                                    backgroundColor: themeColors.background.input,
+                                    borderColor: themeColors.border.primary,
+                                    color: themeColors.text.primary
+                                  }}
+                                />
+                              ) : (
+                                <div style={{ color: themeColors.text.primary }}>
+                                  {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '-'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div>
+                              {editingId === order.id ? (
+                                <textarea
+                                  value={editingRow.orderItems || ''}
+                                  onChange={(e) => handleEditingRowChange('orderItems', e.target.value)}
+                                  rows={2}
+                                  className="w-full px-2 py-1 text-sm border rounded resize-none"
+                                  style={{
+                                    backgroundColor: themeColors.background.input,
+                                    borderColor: themeColors.border.primary,
+                                    color: themeColors.text.primary
+                                  }}
+                                />
+                              ) : (
+                                <div 
+                                  className="text-sm max-h-16 overflow-y-auto cursor-help" 
+                                  title={order.orderItems}
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  {order.orderItems}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <input
+                                  type="number"
+                                  value={editingRow.weight || ''}
+                                  onChange={(e) => handleEditingRowChange('weight', e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border rounded text-right"
+                                  style={{
+                                    backgroundColor: themeColors.background.input,
+                                    borderColor: themeColors.border.primary,
+                                    color: themeColors.text.primary
+                                  }}
+                                />
+                              ) : (
+                                <div 
+                                  className="text-right"
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  {order.weight || '0'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <input
+                                  type="number"
+                                  value={editingRow.oldWeight || ''}
+                                  onChange={(e) => handleEditingRowChange('oldWeight', e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border rounded text-right"
+                                  style={{
+                                    backgroundColor: themeColors.background.input,
+                                    borderColor: themeColors.border.primary,
+                                    color: themeColors.text.primary
+                                  }}
+                                />
+                              ) : (
+                                <div 
+                                  className="text-right"
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  {order.oldWeight || '0'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <div className="relative">
+                                  <span 
+                                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-sm"
+                                    style={{ color: themeColors.text.secondary }}
+                                  >
+                                    ₹
+                                  </span>
+                                  <input
+                                    type="number"
+                                    value={editingRow.oldValue || ''}
+                                    onChange={(e) => handleEditingRowChange('oldValue', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-sm border rounded text-right"
+                                    style={{
+                                      backgroundColor: themeColors.background.input,
+                                      borderColor: themeColors.border.primary,
+                                      color: themeColors.text.primary
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  className="text-right"
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  ₹{order.oldValue || '0'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <div className="relative">
+                                  <span 
+                                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-sm"
+                                    style={{ color: themeColors.text.secondary }}
+                                  >
+                                    ₹
+                                  </span>
+                                  <input
+                                    type="number"
+                                    value={editingRow.cashReceived || ''}
+                                    onChange={(e) => handleEditingRowChange('cashReceived', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-sm border rounded text-right"
+                                    style={{
+                                      backgroundColor: themeColors.background.input,
+                                      borderColor: themeColors.border.primary,
+                                      color: themeColors.text.primary
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  className="text-right"
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  ₹{order.cashReceived || '0'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2 border-r" style={{ borderColor: themeColors.border.light }}>
+                            <div className="text-sm">
+                              {editingId === order.id ? (
+                                <div className="relative">
+                                  <span 
+                                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-sm"
+                                    style={{ color: themeColors.text.secondary }}
+                                  >
+                                    ₹
+                                  </span>
+                                  <input
+                                    type="number"
+                                    value={editingRow.balance || ''}
+                                    onChange={(e) => handleEditingRowChange('balance', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-1 text-sm border rounded text-right"
+                                    style={{
+                                      backgroundColor: themeColors.background.input,
+                                      borderColor: themeColors.border.primary,
+                                      color: themeColors.text.primary
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  className="text-right"
+                                  style={{ color: themeColors.text.primary }}
+                                >
+                                  ₹{order.balance || '0'}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          
+                          <td className="p-2">
+                            <div className="text-right">
+                              {editingId === order.id ? (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleUpdate(order.id)}
+                                    className="p-2 rounded-full transition-colors"
+                                    style={{
+                                      color: themeColors.button.save,
+                                      backgroundColor: themeColors.button.save + '20'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.save + '40';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.save + '20';
+                                    }}
+                                    title="Update"
+                                  >
+                                    <Check size={18} />
+                                  </button>
+                                  <button
+                                    onClick={cancelEdit}
+                                    className="p-2 rounded-full transition-colors"
+                                    style={{
+                                      color: themeColors.button.cancel,
+                                      backgroundColor: themeColors.button.cancel + '20'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.cancel + '40';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.cancel + '20';
+                                    }}
+                                    title="Cancel"
+                                  >
+                                    <X size={18} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleEditClick(order)}
+                                    className="p-2 rounded-full transition-colors"
+                                    style={{
+                                      color: themeColors.button.primary,
+                                      backgroundColor: themeColors.button.primary + '20'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.primary + '40';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = themeColors.button.primary + '20';
+                                    }}
+                                    title="Edit"
+                                  >
+                                    <Pencil size={18} />
+                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleDeleteOrder(order.id)}
+                                      disabled={isDeleting === order.id}
+                                      className="p-2 rounded-full transition-colors"
+                                      style={{
+                                        color: themeColors.button.delete,
+                                        backgroundColor: themeColors.button.delete + '20',
+                                        opacity: isDeleting === order.id ? 0.5 : 1
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        if (isDeleting !== order.id) {
+                                          e.currentTarget.style.backgroundColor = themeColors.button.delete + '40';
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = themeColors.button.delete + '20';
+                                      }}
+                                      title="Delete"
+                                    >
+                                      {isDeleting === order.id ? (
+                                        <div 
+                                          className="w-4 h-4 border-2 rounded-full animate-spin"
+                                          style={{ 
+                                            borderColor: themeColors.button.delete,
+                                            borderTopColor: 'transparent'
+                                          }}
+                                        ></div>
+                                      ) : (
+                                        <Trash2 size={18} />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-              </>
-            )}
+
+                  {/* GET TOTALS ROW */}
+                  <div 
+                    className="sticky bottom-0 border-t backdrop-blur-sm"
+                    style={{ 
+                      backgroundColor: themeColors.background.totals,
+                      borderColor: themeColors.border.primary
+                    }}
+                  >
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr className="font-semibold">
+                          <td 
+                            className="p-3 text-center border-r"
+                            style={{ 
+                              width: '60px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            Total
+                          </td>
+                          <td 
+                            className="p-3 border-r"
+                            style={{ 
+                              width: '90px',
+                              borderColor: themeColors.border.light
+                            }}
+                          ></td>
+                          <td 
+                            className="p-3 border-r"
+                            style={{ 
+                              width: '250px',
+                              borderColor: themeColors.border.light
+                            }}
+                          ></td>
+                          <td 
+                            className="p-3 text-right border-r"
+                            style={{ 
+                              width: '80px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            {getTotals.weight.toFixed(2)}
+                          </td>
+                          <td 
+                            className="p-3 text-right border-r"
+                            style={{ 
+                              width: '80px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            {getTotals.oldWeight.toFixed(2)}
+                          </td>
+                          <td 
+                            className="p-3 text-right border-r"
+                            style={{ 
+                              width: '90px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            ₹{getTotals.oldValue.toFixed(2)}
+                          </td>
+                          <td 
+                            className="p-3 text-right border-r"
+                            style={{ 
+                              width: '90px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            ₹{getTotals.cashReceived.toFixed(2)}
+                          </td>
+                          <td 
+                            className="p-3 text-right border-r"
+                            style={{ 
+                              width: '90px',
+                              color: themeColors.text.primary,
+                              borderColor: themeColors.border.light
+                            }}
+                          >
+                            ₹{getTotals.balance.toFixed(2)}
+                          </td>
+                          <td style={{ width: isAdmin ? '120px' : '80px' }}></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
