@@ -2,7 +2,7 @@
 
 'use client';
 import ProtectedRoute from '@/component/Layout/ProtectedRoute';
-import SmithOrders from '@/component/pages/orders/SmithOrders';
+import SmithOrder1 from '@/component/pages/orders/SmithOrder1';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
@@ -36,5 +36,5 @@ export default function OrdersPage() {
     return null;
   }
 
-  return <ProtectedRoute><SmithOrders /></ProtectedRoute>;
+  return <ProtectedRoute><SmithOrder1 /></ProtectedRoute>;
 }

@@ -13,6 +13,14 @@ interface UserDetails {
   USERNAME?: string; // Some APIs use uppercase
   role?: string;
 }
+interface User {
+
+  sno: number;
+  date: string;
+  order?: string; // Some APIs use uppercase
+
+}
+
 interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;

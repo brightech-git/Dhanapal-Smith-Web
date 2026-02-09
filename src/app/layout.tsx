@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <SoftControlProvider>
                       <SmithTransactionProvider>
                         <SmithDetailsProvider>
-                          <HeaderWrapper />
+                          {/* <HeaderWrapper /> */}
                           <LayoutWrapper>
                             {children}
                           </LayoutWrapper>

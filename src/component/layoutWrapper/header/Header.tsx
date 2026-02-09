@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from "react";
-import { Sun, Moon, User, Menu, X, Home, Users } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  User,
+  Menu,
+  X,
+  Home,
+  Users
+} from "lucide-react";
 import { useTheme } from "@/context/theme/ThemeContext";
 import { useNavigation } from "@/context/transition/NavigationContext";
 import { gsap } from "gsap";
@@ -9,142 +17,164 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth/AuthContext";
 import { useMediaQuery } from "@mui/material";
 
-import { useSmithTransactionsContext } from "@/context/smith/SmithTransactionsContext";
-
 interface EnhancedHeaderProps {
-  title?: string;
-  subtitle?: string;
-  showSearch?: boolean;
-  showUserMenu?: boolean;
-  onSearch?: (query: string) => void;
   className?: string;
 }
 
-const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
-  title = "Dashboard",
-  subtitle = "Welcome to your Dashboard",
-  showSearch = true,
-  showUserMenu = true,
-  onSearch,
-  className = "",
-}) => {
+const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const { mode, toggleMode, theme } = useTheme();
   const { navigateWithAnimation, isNavigating } = useNavigation();
+  const { allDetails } = useAuth();
+  const pathname = usePathname();
+
   const isMobile = useMediaQuery("(max-width: 1279px)");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { allDetails } = useAuth();
+
+  const headerRef = useRef<HTMLElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
   const NAV_ITEMS = [
     { label: "Dashboard", path: "/", icon: Home },
     { label: "Orders", path: "/smiths/order", icon: Menu },
     { label: "Users", path: "/smiths/create", icon: Users },
   ];
-  const pathname = usePathname();
 
-  const { transactions } = useSmithTransactionsContext();
-
-  const headerRef = useRef<HTMLElement>(null);
-  const navRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  // Safe theme access with fallbacks
-  const getHeaderStyles = () => {
-    if (mode === "dark") {
-      return {
-        background: theme.colors?.dark?.background?.primary || "#1a1a1a",
-        borderColor: "#374151",
-        text: {
-          primary: theme.colors?.dark?.text?.primary || "#ffffff",
-          secondary: theme.colors?.dark?.text?.secondary || "#a0a0a0",
-        },
-        hover: {
-          background: "#2a4365",
-        },
-        active: {
-          background: "#2c5282",
+  const styles =
+    mode === "dark"
+      ? {
+          bg: "#1a1a1a",
+          text: "#fff",
+          subText: "#9ca3af",
+          hover: "#2d3748",
+          active: "#374151",
         }
-      };
-    }
+      : {
+          bg: "#1e3a8a",
+          text: "#fff",
+          subText: "#bfdbfe",
+          hover: "#2563eb",
+          active: "#3b82f6",
+        };
 
-    // Light theme with blue theme
-    return {
-      background: "#1e3a8a",
-      borderColor: "#1d4ed8",
-      text: {
-        primary: "#ffffff",
-        secondary: "#bfdbfe",
-      },
-      hover: {
-        background: "#2563eb",
-      },
-      active: {
-        background: "#3b82f6",
-      }
-    };
-  };
-
-  const styles = getHeaderStyles();
-
-  // Subtle header entrance animation
   useEffect(() => {
-    if (headerRef.current) {
-      gsap.fromTo(
-        headerRef.current,
-        { y: -50, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
-      );
-    }
+    gsap.fromTo(
+      headerRef.current,
+      { y: -40, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.5 }
+    );
   }, []);
 
-  // Navigation handler
-  const handleNavigation = (path: string) => {
-    navigateWithAnimation(path, {
-      direction: "forward",
-      duration: 0.8,
-      ease: "power2.inOut",
-    });
-    setIsMenuOpen(false);
-  };
+  useEffect(() => {
+    if (!mobileMenuRef.current || !overlayRef.current) return;
 
-  // Simplified theme toggle
-  const handleThemeToggle = () => {
-    toggleMode();
+    if (isMenuOpen) {
+      gsap.to(overlayRef.current, { opacity: 1, pointerEvents: "auto" });
+      gsap.fromTo(
+        mobileMenuRef.current,
+        { x: "-100%" },
+        { x: "0%", duration: 0.4, ease: "power3.out" }
+      );
+    } else {
+      gsap.to(mobileMenuRef.current, {
+        x: "-100%",
+        duration: 0.3,
+        ease: "power3.in",
+      });
+      gsap.to(overlayRef.current, { opacity: 0, pointerEvents: "none" });
+    }
+  }, [isMenuOpen]);
+
+  const handleNavigation = (path: string) => {
+    navigateWithAnimation(path, { direction: "forward" });
+    setIsMenuOpen(false);
   };
 
   return (
     <>
+      {/* Mobile Overlay */}
+      <div
+        ref={overlayRef}
+        onClick={() => setIsMenuOpen(false)}
+        className="fixed inset-0 bg-black/40 z-40 opacity-0 pointer-events-none"
+      />
+
+      {/* Mobile Drawer */}
+      <div
+        ref={mobileMenuRef}
+        className="fixed top-0 left-0 h-full w-64 z-50 shadow-xl"
+        style={{ background: styles.bg }}
+      >
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-white">
+              {allDetails?.USERNAME || "Admin"}
+            </p>
+            <span className="text-xs" style={{ color: styles.subText }}>
+              Administrator
+            </span>
+          </div>
+          <button onClick={() => setIsMenuOpen(false)}>
+            <X color="white" />
+          </button>
+        </div>
+
+        <nav className="p-2 space-y-1">
+          {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+            const isActive =
+              path === "/" ? pathname === "/" : pathname.startsWith(path);
+
+            return (
+              <button
+                key={path}
+                onClick={() => handleNavigation(path)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
+                style={{
+                  background: isActive ? styles.active : "transparent",
+                  color: styles.text,
+                }}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Header */}
       <header
         ref={headerRef}
-        className={`shadow-lg sticky top-0 z-50 ${className}`}
-        style={{
-          opacity: 0,
-          background: styles.background,
-          borderBottom: `1px solid ${styles.borderColor}`,
-        }}
+        className={`sticky top-0 z-30 shadow ${className}`}
+        style={{ background: styles.bg }}
       >
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Left Section - Menu & Title */}
-            <div className="flex items-center space-x-3 flex-1">
-              <div
-                className="cursor-pointer flex flex-col"
-                onClick={() => handleNavigation("/")}
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Left */}
+          <div className="flex items-center gap-3">
+            {isMobile && (
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 rounded-lg hover:bg-white/10"
               >
-                <h1
-                  className="text-lg font-bold tracking-wide"
-                  style={{ color: styles.text.primary }}
-                >
-                  Dhanapal Jewellery
-                </h1>
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: styles.text.secondary }}
-                >
-                  Smith Dashboard
-                </span>
-              </div>
+                <Menu color="white" />
+              </button>
+            )}
+            <div
+              className="cursor-pointer"
+              onClick={() => handleNavigation("/")}
+            >
+              <h1 className="text-white font-bold text-lg">
+                Dhanapal Jewellery
+              </h1>
+              <p className="text-xs" style={{ color: styles.subText }}>
+                Smith Dashboard
+              </p>
             </div>
+          </div>
 
-            <div className="hidden xl:flex items-center gap-1">
+          {/* Desktop Nav */}
+          {!isMobile && (
+            <div className="flex gap-2">
               {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
                 const isActive =
                   path === "/" ? pathname === "/" : pathname.startsWith(path);
@@ -153,24 +183,10 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                   <button
                     key={path}
                     onClick={() => handleNavigation(path)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
                     style={{
-                      backgroundColor: isActive
-                        ? styles.active.background
-                        : "transparent",
-                      color: isActive
-                        ? '#ffffff'
-                        : styles.text.secondary,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = styles.hover.background;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }
+                      background: isActive ? styles.active : "transparent",
+                      color: styles.text,
                     }}
                   >
                     <Icon size={18} />
@@ -179,58 +195,29 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
                 );
               })}
             </div>
+          )}
 
-            {/* Right Section - Actions */}
-            <div className="flex items-center justify-end space-x-3 flex-1">
-              {/* Theme Toggle */}
-              <button
-                onClick={handleThemeToggle}
-                disabled={isNavigating}
-                className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
-                style={{
-                  color: styles.text.primary,
-                  backgroundColor: "transparent",
-                }}
-                title={`Switch to ${mode === "light" ? "dark" : "light"} mode`}
-              >
-                {mode === "light" ? <Moon size={18} /> : <Sun size={18} />}
-              </button>
-
-              {/* User Menu */}
-              {showUserMenu && (
-                <div className="flex items-center space-x-2">
-                  <div className="text-right hidden xl:block">
-                    <p
-                      className="text-sm font-medium"
-                      style={{ color: styles.text.primary }}
-                    >
-                      {allDetails?.USERNAME || allDetails?.userName || "admin"}
-                    </p>
-                    <span 
-                      className="text-xs"
-                      style={{ color: styles.text.secondary }}
-                    >
-                      Administrator
-                    </span>
-                  </div>
-                  <button
-                    disabled={isNavigating}
-                    className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/10 transition-colors"
-                    style={{
-                      color: styles.text.primary,
-                      backgroundColor: "transparent",
-                    }}
-                  >
-                    <User size={18} />
-                    {isMobile && (
-                      <span className="ml-1 text-sm">
-                        {allDetails?.USERNAME || allDetails?.userName || "admin"}
-                      </span>
-                    )}
-                  </button>
-                </div>
+          {/* Right */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMode}
+              className="p-2 rounded-lg hover:bg-white/10"
+            >
+              {mode === "light" ? (
+                <Moon color="white" size={18} />
+              ) : (
+                <Sun color="white" size={18} />
               )}
-            </div>
+            </button>
+
+            {!isMobile && (
+              <div className="flex items-center gap-2">
+                <User color="white" size={18} />
+                <span className="text-sm text-white">
+                  {allDetails?.USERNAME || "Admin"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>
