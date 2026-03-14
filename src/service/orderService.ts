@@ -1,70 +1,67 @@
-// Update your orderService.ts
+// src/service/orderService.ts
 import { getAxiosInstance } from "@/api/axiosInstance";
-
-const SUB_URL = "smith/orders";
 
 export type Order = {
   id?: number;
-  // add your real fields here
-  // smithId?: number;
-  // description?: string;
-  // qty?: number;
+  orderDate: string;
+  orderItems: string;
+  isNew?: boolean; // frontend-only
+};
+
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
 };
 
 export const OrderService = {
-  /**
-   * Get all orders
-   */
   getAllOrders: async (): Promise<Order[]> => {
-    const axios = getAxiosInstance();
-    const res = await axios.get(`smith/orders`);
-    return res.data;
+    try {
+      const axios = getAxiosInstance();
+      const res = await axios.get<ApiResponse<Order[]>>("smith/orders");
+      return res.data.data;
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      throw error;
+    }
   },
 
-  /**
-   * Get order by ID
-   */
-  getOrderById: async (orderId: number): Promise<Order> => {
-    const axios = getAxiosInstance();
-    const res = await axios.get(`smith/orders/${orderId}`);
-    return res.data;
-  },
-
-  /**
-   * Create new order
-   */
   createOrder: async (order: Order): Promise<Order> => {
-    const axios = getAxiosInstance();
-    const res = await axios.post(`smith/orders`, order);
-    return res.data;
+    try {
+      const axios = getAxiosInstance();
+      const res = await axios.post<ApiResponse<Order>>("smith/orders", order);
+      return res.data.data;
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      // Check if response is HTML instead of JSON
+      if (error.response && typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE')) {
+        throw new Error("Server returned HTML. Check if API endpoint is correct.");
+      }
+      throw error;
+    }
   },
 
-  /**
-   * Update order (FULL UPDATE – PUT)
-   */
-  updateOrder: async (
-    orderId: number,
-    order: Order
-  ): Promise<Order> => {
-    const axios = getAxiosInstance();
-    const res = await axios.put(
-      `smith/orders/${orderId}`,
-      order
-    );
-    return res.data;
+  updateOrder: async (id: number, order: Order): Promise<Order> => {
+    try {
+      const axios = getAxiosInstance();
+      const res = await axios.put<ApiResponse<Order>>(`smith/orders/${id}`, order);
+      return res.data.data;
+    } catch (error) {
+      console.error("Error updating order:", error);
+      throw error;
+    }
   },
 
-  /**
-   * Delete order
-   */
-  deleteOrder: async (orderId: number): Promise<void> => {
-    const axios = getAxiosInstance();
-    await axios.delete(`smith/orders/${orderId}`);
+  deleteOrder: async (id: number): Promise<void> => {
+    try {
+      const axios = getAxiosInstance();
+      await axios.delete(`smith/orders/${id}`);
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      throw error;
+    }
   },
 };
-
-
-
 // // Update your orderService.ts
 // import { getAxiosInstance } from "@/api/axiosInstance";
 
