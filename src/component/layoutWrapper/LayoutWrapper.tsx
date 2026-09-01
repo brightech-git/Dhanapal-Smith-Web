@@ -81,7 +81,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             }}>
                 {children}
             </main>
-            <Footer />
+            {/* <Footer /> */}
            
         </div>
     );

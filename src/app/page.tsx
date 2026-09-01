@@ -7,7 +7,7 @@ export default function Home() {
   return (
 
     <div > 
-      <ProtectedRoute>
+      <ProtectedRoute requiredProject="SMITH">
           <SmithsPage />
       </ProtectedRoute>
     </div>

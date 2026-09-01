@@ -163,9 +163,9 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
               className="cursor-pointer"
               onClick={() => handleNavigation("/")}
             >
-              <h1 className="text-white font-bold text-lg">
+              {/* <h1 className="text-white font-bold text-lg">
                 Dhanapal Jewellery
-              </h1>
+              </h1> */}
               <p className="text-xs" style={{ color: styles.subText }}>
                 Smith Dashboard
               </p>

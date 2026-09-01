@@ -25,7 +25,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;
     isLoading: boolean;
-    login: (userName: string, password: string) => Promise<void>;
+    login: (userName: string, password: string, projectName:string) => Promise<void>;
     logout: () => void;
 }
 
@@ -61,8 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, []);
 
-    const login = async (userName: string, password: string) => {
-        const response = await authService.login({ userName, password });
+    const login = async (userName: string, password: string, projectName:string) => {
+        const response = await authService.login({ userName, password, projectName });
 
         console.log("response", response);
         

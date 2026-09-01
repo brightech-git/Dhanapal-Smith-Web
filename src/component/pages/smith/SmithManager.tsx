@@ -234,7 +234,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                                 Click "See All" to view and manage smiths
                             </div>
                         ) : (
-                            <Table columns={columns} data={visibleSmiths} />
+                                    <Table columns={columns} data={visibleSmiths} showRows={10} fixedHeight={"300px"} />
                         )}
                     </motion.div>
                 </>
