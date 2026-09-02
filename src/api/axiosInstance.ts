@@ -1,23 +1,28 @@
-// src/api/publicUrl.ts
 import axios, { AxiosInstance } from "axios";
 
-// ✅ Use NEXT_PUBLIC_ prefix so it's available in Next.js client-side
-const BASE_URL = process.env.REACT_APP_BASE_URL || "https://smith.dhanapaljewellery.com/api/v1";
+let axiosInstance: AxiosInstance | null = null;
+let currentBaseUrl: string | null = null;
 
+export const getAxiosInstance = (baseUrl?: string): AxiosInstance => {
+    if (!axiosInstance || (baseUrl && baseUrl !== currentBaseUrl)) {
+        // ✅ Use config.json’s MAIN_URL by default
+        const configBase = window?.appConfig?.MAIN_URL;
+        currentBaseUrl = baseUrl || configBase || "https://default-api.example.com/api/v1";
 
-const baseUrl ="http://localhost:8097/api/v1"
-console.log("BASE_URL:", BASE_URL)
-// const baseURL = 'https://app.bmgjewellers.com/api/v1';
+        const BASEURL = currentBaseUrl.trim().replace(/\/+$/, "");
+        axiosInstance = axios.create({
+            baseURL: BASEURL,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
 
-console.log("BASE_URL:", BASE_URL); // Debugging line
+        // console.log("🔗 Axios initialized with baseURL:", BASEURL);
+    }
+    return axiosInstance;
+};
 
-if (!BASE_URL) {
-    console.warn("⚠️ NEXT_PUBLIC_BASE_URL is not defined in .env file");
-}
-
-const axiosInstance: AxiosInstance = axios.create({
-    baseURL: BASE_URL
-}); 
-
-
-export default axiosInstance;
+export const resetAxiosInstance = () => {
+    axiosInstance = null;
+    currentBaseUrl = null;
+};

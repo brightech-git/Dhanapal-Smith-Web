@@ -3,16 +3,43 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTheme } from "@/context/theme/ThemeContext";
 import Table from "@/component/ui/table/Table";
-import { IndianRupee, Scale, Wallet } from "lucide-react";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { IndianRupee, Scale, Wallet, Plus } from "lucide-react";
+import { formatCurrency, } from "@/utils/format";
 import { useSmithTransactionsContext } from "@/context/smith/SmithTransactionsContext";
+import { useSmithDetails } from '@/context/smith/useSmithDetails'
 import SmithManager from "../smith/SmithManager";
 import EditableCell from "@/component/ui/EditableCell";
 import { useToast } from "@/context/smith/ToastContext";
+import PrintTable from "@/component/printingOptions/PrintTable";
+import { useSoftControls } from "@/context/smith/SoftControlContext";
+import { Delete } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
+import Register from "../register/Register";
 
 export default function SmithsPage() {
     const { mode, theme, responsive } = useTheme();
     const { addToast } = useToast();
+    const { createSmith, smiths: allSmiths } = useSmithDetails();
+    const { softControls } = useSoftControls();
+    const [showTotal, setShowTotal] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
+
+    const weightPrintRef = useRef<HTMLDivElement>(null);
+    const cashPrintRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (Array.isArray(softControls)) {
+            const grandTotalCtl = softControls.find(sc => sc.description === "GrandTotal");
+            const showRowDelete = softControls.find(sc => sc.description === "Delete");
+
+            setShowTotal(grandTotalCtl?.ctlid === "Y");
+            setShowDelete(showRowDelete?.ctlid === "Y");
+        } else {
+            setShowTotal(false);
+            setShowDelete(false);
+        }
+    }, [softControls]);
+
 
     const styles = useMemo(() => {
         const isDark = mode === "dark";
@@ -40,27 +67,48 @@ export default function SmithsPage() {
         getCashFlows,
         addCash,
         updateCash,
+        deleteCash,
         addWeight,
         updateWeight,
+        deleteWeight,
         addTransaction
     } = useSmithTransactionsContext();
 
     const [weightBalanceData, setWeightBalanceData] = useState<any[]>([]);
     const [cashBalanceData, setCashBalanceData] = useState<any[]>([]);
-
+  
     const [selectedSmithId, setSelectedSmithId] = useState<string>("");
     const [selectedSmithName, setSelectedSmithName] = useState<string>("");
     const [activeTable, setActiveTable] = useState<"weight" | "cash" | null>(null);
+    const [isCreatingSmith, setIsCreatingSmith] = useState(false);
+    const [newSmithName, setNewSmithName] = useState("");
 
-    const [newTransactionDate, setNewTransactionDate] = useState<string>(""); // yyyy-mm-dd
+    
 
-    const existingTransaction = transactions.find(
-        (transaction: any) =>
-            transaction.smithId === selectedSmithId
-    );
+    // Calculate totals for main table
+    const transactionTotals = useMemo(() => {
+        const weight = transactions?.reduce((sum, txn) => sum + (txn.weightBalance || 0), 0) || 0;
+        const cash = transactions?.reduce((sum, txn) => sum + (txn.cashBalance || 0), 0) || 0;
+        return { weight, cash };
+    }, [transactions]);
 
-    const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
+    // Totals for weight table
+    const weightTotals = useMemo(() => {
+        const receipts = weightBalanceData.reduce((sum, row) => sum + (row.receipts || 0), 0);
+        const payments = weightBalanceData.reduce((sum, row) => sum + (row.payments || 0), 0);
+        const balance = receipts - payments;
+        return { receipts, payments, balance };
+    }, [weightBalanceData]);
 
+    // Totals for cash table
+    const cashTotals = useMemo(() => {
+        const receipts = cashBalanceData.reduce((sum, row) => sum + (row.receipts || 0), 0);
+        const payments = cashBalanceData.reduce((sum, row) => sum + (row.payments || 0), 0);
+        const balance = receipts - payments;
+        return { receipts, payments, balance };
+    }, [cashBalanceData]);
+
+    // Rest of your functions remain the same...
     const refetchWeightFlows = async (smithId: string) => {
         try {
             const data = await getWeightFlows(smithId);
@@ -87,6 +135,89 @@ export default function SmithsPage() {
         }
     };
 
+    const convertDateToAPIFormat = (dateString: string) => {
+        if (!dateString) return '';
+        if (dateString.includes('-') && dateString.split('-')[0]?.length === 2) {
+            const [day, month, year] = dateString.split('-');
+            return `${year}-${month}-${day}`;
+        }
+        return dateString;
+    };
+
+    const handleCreateSmith = async () => {
+        const trimmedName = newSmithName.trim();
+
+        if (!trimmedName) {
+            addToast({
+                type: 'warning',
+                title: 'Name Required',
+                message: 'Please enter a Smith name.'
+            });
+            return;
+        }
+
+        // 🔍 Check if name already exists (case-insensitive)
+        const nameExists = allSmiths.some(
+            (smith) => smith.pname?.toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        if (nameExists) {
+            addToast({
+                type: 'warning',
+                title: 'Duplicate Name',
+                message: `The name "${trimmedName}" already exists. Please use another name.`
+            });
+            return;
+        }
+
+        try {
+            setIsCreatingSmith(true);
+
+            // 🆕 Create Smith
+            const newSmith = await createSmith({
+                pname: trimmedName,
+                active: "Y"
+            });
+
+            if (!newSmith.smithId) {
+                throw new Error('Smith ID not returned from creation');
+            }
+
+            // 🧾 Create initial empty transaction
+            const today = new Date().toISOString().split('T')[0];
+
+            await addTransaction({
+                smithId: newSmith.smithId.toString(),
+                name: newSmith.pname || trimmedName,
+                date: today,
+                cashBalance: 0,
+                weightBalance: 0,
+            });
+
+            // ✅ Update UI
+            setSelectedSmithId(newSmith.smithId.toString());
+            setSelectedSmithName(newSmith.pname || trimmedName);
+            setNewSmithName("");
+            setIsCreatingSmith(false);
+
+            addToast({
+                type: 'success',
+                title: 'Smith Created',
+                message: `Smith "${newSmith.pname}" created successfully with empty transaction!`
+            });
+
+        } catch (error: any) {
+            console.error("Error creating Smith:", error);
+            addToast({
+                type: 'error',
+                title: 'Creation Failed',
+                message: error.message || 'Failed to create Smith'
+            });
+            setIsCreatingSmith(false);
+        }
+    };
+
+
     const handleAddWeightRow = () => {
         if (!selectedSmithId) {
             addToast({
@@ -96,18 +227,21 @@ export default function SmithsPage() {
             });
             return;
         }
-        setWeightBalanceData(prev => [
-            ...prev,
-            {
-                id: null,
-                smithId: selectedSmithId,
-                date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
-                receipts: 0,
-                payments: 0,
-                weightDifference: 0
-            }
-        ]);
 
+        const today = new Date();
+        const displayDate = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+
+        const newRow = {
+            id: null,
+            smithId: selectedSmithId,
+            date: displayDate,
+            receipts: 0,
+            payments: 0,
+            weightDifference: 0,
+            isNew: true,
+        };
+
+        setWeightBalanceData(prev => [...prev, newRow]);
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -124,18 +258,21 @@ export default function SmithsPage() {
             });
             return;
         }
-        setCashBalanceData(prev => [
-            ...prev,
-            {
-                id: null,
-                smithId: selectedSmithId,
-                date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
-                receipts: 0,
-                payments: 0,
-                balance: 0
-            }
-        ]);
 
+        const today = new Date();
+        const formattedDate = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+
+        const newRow = {
+            id: null,
+            smithId: selectedSmithId,
+            date: formattedDate,
+            receipts: 0,
+            payments: 0,
+            balance: 0,
+            isNew: true,
+        };
+
+        setCashBalanceData(prev => [...prev, newRow]);
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -143,22 +280,13 @@ export default function SmithsPage() {
         });
     };
 
-    // ──────────── Double-click handlers ────────────
     const handleWeightDoubleClick = async (row: any) => {
         if (!row?.smithId) return;
         setSelectedSmithId(row.smithId);
         setSelectedSmithName(row.name || "");
         setActiveTable("weight");
-        
         await refetchWeightFlows(row.smithId);
         await refetchCashFlows(row.smithId);
-
-        addToast({
-            type: 'info',
-            title: 'Weight Table  and Cash Table Loaded',
-            message: `Weight data and Cash data loaded for ${row.name || 'selected Smith'}`
-        });
-       
     };
 
     const handleCashDoubleClick = async (row: any) => {
@@ -168,520 +296,660 @@ export default function SmithsPage() {
         setActiveTable("cash");
         await refetchCashFlows(row.smithId);
         await refetchWeightFlows(row.smithId);
-
-        addToast({
-            type: 'info',
-            title: 'Cash Table and Weight Table Loaded',
-            message: `Cash data and Weight data loaded for ${row.name || 'selected Smith'}`
-        });
-        
     };
 
-    // ──────────── Save handlers ────────────
     const handleWeightSave = async (row: any, field: string, newValue: any) => {
         if (!selectedSmithId) return;
-
-       
-
         try {
-
-            const formattedValue =
-                field === "date" && typeof newValue === "string" && newValue.includes("-")
-                    ? (() => {
-                        const parts = newValue.split("-");
-                        return parts[0].length === 2 ? parts.reverse().join("-") : newValue;
-                    })()
-                    : newValue;
+            const apiValue = field === 'date' ? convertDateToAPIFormat(newValue) : newValue;
             if (row.id) {
-                await updateWeight(row.id, { [field]: formattedValue });
-                addToast({
-                    type: 'success',
-                    title: 'Weight Updated',
-                    message: 'Weight data updated successfully'
-                });
+                await updateWeight(row.id, { [field]: apiValue });
             } else {
-                await addWeight(selectedSmithId, { ...row, [field]: formattedValue });
-                addToast({
-                    type: 'success',
-                    title: 'Weight Added',
-                    message: 'New weight entry added successfully'
-                });
+                const dataToSend: any = {
+                    smithId: selectedSmithId,
+                    date: field === 'date' ? convertDateToAPIFormat(newValue) : convertDateToAPIFormat(row.date || ''),
+                    receipts: field === 'receipts' ? parseFloat(newValue) : parseFloat(row.receipts) || 0,
+                    payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
+                };
+                await addWeight(selectedSmithId, dataToSend);
             }
             await refetchWeightFlows(selectedSmithId);
         } catch (error) {
             console.error("Error saving weight data:", error);
-            addToast({
-                type: 'error',
-                title: 'Save Failed',
-                message: 'Failed to save weight data'
-            });
         }
     };
 
     const handleCashSave = async (row: any, field: string, newValue: any) => {
         if (!selectedSmithId) return;
-
-        
-
         try {
-
-            const formattedValue =
-                field === "date" && typeof newValue === "string" && newValue.includes("-")
-                    ? (() => {
-                        const parts = newValue.split("-");
-                        return parts[0].length === 2 ? parts.reverse().join("-") : newValue;
-                    })()
-                    : newValue;
+            const apiValue = field === 'date' ? convertDateToAPIFormat(newValue) : newValue;
             if (row.id) {
-                await updateCash(row.id, { [field]: formattedValue });
-                addToast({
-                    type: 'success',
-                    title: 'Cash Updated',
-                    message: 'Cash data updated successfully'
-                });
+                await updateCash(row.id, { [field]: apiValue });
             } else {
-                await addCash(selectedSmithId, { ...row, [field]: formattedValue });
-                addToast({
-                    type: 'success',
-                    title: 'Cash Added',
-                    message: 'New cash entry added successfully'
-                });
+                const dataToSend: any = {
+                    smithId: selectedSmithId,
+                    date: field === 'date' ? convertDateToAPIFormat(newValue) : convertDateToAPIFormat(row.date || ''),
+                    receipts: field === 'receipts' ? parseFloat(newValue) : parseFloat(row.receipts) || 0,
+                    payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
+                };
+                await addCash(selectedSmithId, dataToSend);
             }
             await refetchCashFlows(selectedSmithId);
         } catch (error) {
             console.error("Error saving cash data:", error);
-            addToast({
-                type: 'error',
-                title: 'Save Failed',
-                message: 'Failed to save cash data'
-            });
         }
     };
 
-    const handleSmithSelect = (
-        smithId: string | number,
-        smithName: string = "",
-        showWeight = false,
-        showCash = false
-    ) => {
+    const handleSmithSelect = (smithId: string | number, smithName: string = "") => {
         const smithIdStr = String(smithId);
         setSelectedSmithId(smithIdStr);
         setSelectedSmithName(smithName);
-
-        addToast({
-            type: 'info',
-            title: 'Smith Selected',
-            message: `${smithName} selected`
-        });
     };
 
-    const handleAddTransaction = async () => {
-        if (!selectedSmithId || !selectedSmithName || !newTransactionDate) {
-            addToast({
-                type: 'warning',
-                title: 'Missing Information',
-                message: 'Please select a Smith and date.'
-            });
-            return;
-        }
+    // const handleAddTransaction = async () => {
+    //     if (!selectedSmithId || !selectedSmithName) return;
+    //     try {
+    //         const existing = transactions.find((t: any) => t.smithId === selectedSmithId);
+    //         if (existing) {
+    //             addToast({ type: 'warning', title: 'Transaction Exists', message: 'Transaction already exists!' });
+    //             return;
+    //         }
+    //         await addTransaction({
+    //             smithId: selectedSmithId,
+    //             name: selectedSmithName,
+    //             date: new Date().toISOString().split('T')[0],
+    //             cashBalance: 0,
+    //             weightBalance: 0,
+    //         });
+    //         addToast({ type: 'success', title: 'Transaction Added', message: 'Transaction added successfully!' });
+    //     } catch (err: any) {
+    //         addToast({ type: 'error', title: 'Failed to Add Transaction', message: err.message || "Unknown error" });
+    //     }
+    // };
+
+    // Prepare weight balance rows
+    // const displayWeightData = showDelete
+    //     ? weightBalanceData.slice(-2)  // last 2 entries
+    //     : weightBalanceData;
+
+    // Prepare cash balance rows
+    // const displayCashData = showDelete
+    //     ? cashBalanceData.slice(-2)  // last 2 entries
+    //     : cashBalanceData;
+
+    const handleDeleteCashRow = async (rowId: number) => {
+        if (!selectedSmithId) return;
+
+        // Ask for user confirmation
+        const confirmed = window.confirm("Are you sure you want to delete this row?");
+        if (!confirmed) return;
 
         try {
-            // Check if smithId already exists in transactions
-            const existingTransaction = transactions.find(
-                (transaction: any) =>
-                    transaction.smithId === selectedSmithId
-            );
+            // Call your delete API
+            await deleteCash(rowId);
 
-            if (existingTransaction) {
-                addToast({
-                    type: 'warning',
-                    title: 'Transaction Exists',
-                    message: 'A transaction for this Smith already exists!'
-                });
-                return;
-            }
+            // Remove row locally (optional if using React Query / state)
+            setCashBalanceData(prev => prev.filter(row => row.id !== rowId));
 
-            await addTransaction({
-                smithId: selectedSmithId,
-                name: selectedSmithName,
-                date: newTransactionDate,
-                cashBalance: 0,
-                weightBalance: 0,
-            });
-
+            // Show toast after successful delete
             addToast({
                 type: 'success',
-                title: 'Transaction Added',
-                message: 'Transaction added successfully!'
+                title: 'Deleted',
+                message: `Cash row with ID ${rowId} deleted successfully.`
             });
-
-            setNewTransactionDate(""); // reset date picker
-        } catch (err: any) {
-            console.error(err);
+        } catch (error) {
+            // Show error toast if delete fails
             addToast({
                 type: 'error',
-                title: 'Failed to Add Transaction',
-                message: err.message || "Unknown error occurred"
+                title: 'Delete Failed',
+                message: 'Failed to delete the row. Please try again.'
             });
+            console.error(error);
         }
     };
 
 
-    const formatDateForDisplay = (dateString: string) => {
-        console.log(dateString, 'date');
-        if (!dateString) return "";
+    const handleDeleteWeightRow = async (rowId: number) => {
+        if (!selectedSmithId) return;
 
-        // If already in dd-mm-yyyy format
-        if (dateString.includes('-') && dateString.split('-')[0]?.length === 2) {
-            return dateString;
-        }
+        // Ask for user confirmation
+        const confirmed = window.confirm("Are you sure you want to delete this weight row?");
+        if (!confirmed) return;
 
-        const parts = dateString.split('-').map((p) => p.trim());
+        try {
+            // Call your delete API
+            await deleteWeight(rowId);
 
-        // yyyy-mm-dd → dd-mm-yyyy
-        if (parts.length === 3 && parts[0].length === 4) {
-            const [year, month, day] = parts;
-            return `${day}-${month}-${year}`;
-        }
+            // Remove row locally if using state
+            setWeightBalanceData(prev => prev.filter(row => row.id !== rowId));
 
-        // mm-dd-yyyy → dd-mm-yyyy
-        if (parts.length === 3 && parts[2].length === 4) {
-            const [month, day, year] = parts;
-            return `${day}-${month}-${year}`;
-        }
-
-        // If unknown or already formatted, return as-is
-        return dateString;
-    };
-
-    // ──────────── Focus next cell ────────────
-    const focusNextCell = (rowIndex: number, colIndex: number, table: "weight" | "cash") => {
-        const currentRefs = cellRefs.current;
-        const tableRefs = table === "weight" ? currentRefs : currentRefs;
-        if (!tableRefs[rowIndex]) return;
-
-        const nextColIndex = colIndex + 1;
-        if (tableRefs[rowIndex][nextColIndex]) {
-            tableRefs[rowIndex][nextColIndex]?.focus();
-        } else if (tableRefs[rowIndex + 1]?.[0]) {
-            tableRefs[rowIndex + 1][0]?.focus();
+            // Show success toast
+            addToast({
+                type: 'success',
+                title: 'Deleted',
+                message: `Weight row with ID ${rowId} deleted successfully.`,
+            });
+        } catch (error) {
+            // Show error toast
+            addToast({
+                type: 'error',
+                title: 'Delete Failed',
+                message: 'Failed to delete the weight row. Please try again.',
+            });
+            console.error(error);
         }
     };
 
-    // ──────────── Main Table Columns ────────────
-    const mainTableColumns = useMemo(
-        () => [
-            {
-                key: "sno",
-                label: "S.No",
-                align: "center" as const,
-                width: "60px",
-                render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
-            },
-            {
-                key: "smithInfo",
-                label: "Smith",
-                align: "left" as const,
-                width: "200px",
-                render: (_v: any, row: any) => (
-                    <div>
-                        <span className="font-medium">{row.name}</span>
-                        <span className="text-gray-500 dark:text-gray-300 text-sm"> ({row.smithId})</span>
-                    </div>
-                ),
-            },
-            {
-                key: "date",
-                label: "Date",
-                align: "center" as const,
-                width: "100px",
-                render: (v: string) => (v ? formatDateForDisplay(v) : "-"),
-            },
-            {
-                key: "weightBalance",
-                label: "Weight Balance",
-                align: "right" as const,
-                width: "100px",
-                render: (v: number, row: any) => (
-                    <span
-                        onDoubleClick={() => handleWeightDoubleClick(row)}
-                        className="cursor-pointer hover:underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                        {v?.toFixed(3)}g
-                    </span>
-                ),
-            },
-            {
-                key: "cashBalance",
-                label: "M.C Balance",
-                align: "right" as const,
-                width: "110px",
-                render: (v: number, row: any) => (
-                    <span
-                        onDoubleClick={() => handleCashDoubleClick(row)}
-                        className="cursor-pointer hover:underline hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                    >
-                        {formatCurrency(v)}
-                    </span>
-                ),
-            },
-        ],
-        [responsive.isMobile]
-    );
 
-
-    // ──────────── Editable Weight Columns ────────────
-    const weightBalanceColumns = useMemo(() => {
-        const snoColumn = {
+    // Main Table Columns
+    const mainTableColumns = useMemo(() => [
+        {
             key: "sno",
             label: "S.No",
-            align: "center" as const,
-            width: responsive.isMobile ? "40px" : "50px",
-            render: (_v: any, _row: any, rowIndex: number) => <span className="font-semibold">{rowIndex + 1}</span>,
-        };
-
-        const dataColumns = ["date", "receipts", "payments"].map((field, colIndex) => {
-            const labelMap: Record<string, string> = {
-                date: "Date",
-                receipts: "Receipts",
-                payments: "Payments",
-            };
-            const typeMap: Record<string, "number" | "date"> = {
-                date: "date",
-                receipts: "number",
-                payments: "number",
-            };
-
-            return {
-                key: field,
-                label: labelMap[field],
-                align: field === "date" ? ("center" as const) : ("right" as const),
-                width: responsive.isMobile ? "80px" : "90px",
-                render: (value: any, row: any, rowIndex: number) => {
-                    const displayValue =
-                        typeMap[field] === "date"
-                            ? formatDateForDisplay(value)
-                            : value;
-                    return(
-
-                        <EditableCell
-                            value={displayValue}
-                            type={typeMap[field]}
-                            onSave={(newVal) => {
-                                const finalValue =
-                                    typeMap[field] === "date"
-                                        ? newVal.split("-").reverse().join("-") // dd-mm-yyyy → yyyy-mm-dd
-                                        : parseFloat(newVal);
-                                handleWeightSave(row, field, finalValue);
-                            }}
-                            onTabNext={() => focusNextCell(rowIndex, colIndex, "weight")}
-                            isMobile={responsive.isMobile}
-                        />
-                    );
-                },
-            };
-        });
-
-
-        const balanceColumn = {
-            key: "balance",
-            label: "Balance",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "30px",
+            render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
+        },
+        {
+            key: "smithInfo",
+            label: "Smith",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "100px",
+            render: (_v: any, row: any) => <span>{row.name}</span>,
+        },
+        {
+            key: "weightBalance",
+            label: "Weight Balance",
+            headalign: "right" as const,
             align: "right" as const,
-            width: responsive.isMobile ? "80px" : "90px",
-            render: (_v: any, row: any) => <span className="font-medium">{`${row.weightDifference?.toFixed(3)}g`}</span>,
-        };
+            width: "100px",
+            render: (v: number, row: any) => (
+                <span onDoubleClick={() => handleWeightDoubleClick(row)} className="cursor-pointer hover:underline">
+                    {v?.toFixed(3)}
+                </span>
+            ),
+        },
+        {
+            key: "cashBalance",
+            label: "M.C Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "110px",
+            render: (v: number, row: any) => (
+                <span onDoubleClick={() => handleCashDoubleClick(row)} className="cursor-pointer hover:underline">
+                    {formatCurrency(v)}
+                </span>
+            ),
+        },
+    ], [responsive.isMobile]);
 
-        return [snoColumn, ...dataColumns, balanceColumn];
-    }, [selectedSmithId, responsive.isMobile]);
-
-    // ──────────── Editable Cash Columns ────────────
-    const cashBalanceColumns = useMemo(() => {
-        const snoColumn = {
+    // Weight Table Columns
+    const weightBalanceColumns = useMemo(() => [
+        {
             key: "sno",
             label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    {showDelete  && <button
+                        className="text-red-500 hover:text-red-700 ml-1"
+                        onClick={() => handleDeleteWeightRow(row.id)}
+                        title="Delete row"
+                    >
+                        <Delete fontSize="small" />
+                    </button>} 
+                   
+                </div>
+            ),
+        },
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
             align: "center" as const,
-            width: responsive.isMobile ? "40px" : "50px",
-            render: (_v: any, _row: any, rowIndex: number) => <span className="font-semibold">{rowIndex + 1}</span>,
-        };
-
-        const dataColumns = ["date", "receipts", "payments"].map((field, colIndex) => {
-            const labelMap: Record<string, string> = {
-                date: "Date",
-                receipts: "Receipts",
-                payments: "Payments",
-            };
-            const typeMap: Record<string, "number" | "date"> = {
-                date: "date",
-                receipts: "number",
-                payments: "number",
-            };
-
-            return {
-                key: field,
-                label: labelMap[field],
-                align: field === "date" ? ("center" as const) : ("right" as const),
-                width: responsive.isMobile ? "80px" : "100px",
-                render: (value: any, row: any, rowIndex: number) => {
-                    const displayValue =
-                        typeMap[field] === "date"
-                            ? formatDateForDisplay(value)
-                            : value;
-                    return (
-
-                        <EditableCell
-                            value={displayValue}
-                            type={typeMap[field]}
-                            onSave={(newVal) => {
-                                const finalValue =
-                                    typeMap[field] === "date"
-                                        ? newVal.split("-").reverse().join("-") // dd-mm-yyyy → yyyy-mm-dd
-                                        : parseFloat(newVal);
-                                handleCashSave(row, field, finalValue);
-                            }}
-                            onTabNext={() => focusNextCell(rowIndex, colIndex, "weight")}
-                            isMobile={responsive.isMobile}
-                        />
-                    );
-                },
-            };
-        });
-
-        const balanceColumn = {
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleWeightSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "payments", newVal)} />
+            ),
+        },
+        {
             key: "balance",
             label: "Balance",
+            headalign: "right" as const,
             align: "right" as const,
-            width: responsive.isMobile ? "80px" : "100px",
-            render: (v: number) => <span className="font-medium">{formatCurrency(v)}</span>,
-        };
+            width: "70px",
+            render: (_v: any, row: any) => <span className="font-medium">{row.weightDifference?.toFixed(3)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+    const weightBalancePrintColumns = useMemo(() => [
+        {
+            key: "sno",
+            label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    
 
-        return [snoColumn, ...dataColumns, balanceColumn];
-    }, [selectedSmithId, responsive.isMobile]);
+                </div>
+            ),
+        },
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleWeightSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "payments", newVal)} />
+            ),
+        },
+        {
+            key: "balance",
+            label: "Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "70px",
+            render: (_v: any, row: any) => <span className="font-medium">{row.weightDifference?.toFixed(3)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
 
-    // ──────────── Render ────────────
+    // Cash Table Columns
+    const cashBalanceColumns = useMemo(() => [
+        {
+            key: "sno",
+            label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                    {showDelete   && <button
+                        className="text-red-500 hover:text-red-700 ml-2"
+                        onClick={() => handleDeleteCashRow(row.id)}
+                        title="Delete row"
+                    >
+                        <Delete fontSize="small" />
+                    </button>}
+                   
+                </div>
+            ),
+        },
+
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleCashSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "payments", newVal)} />
+            ),
+        },
+        {
+            key: "balance",
+            label: "Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "70px",
+            render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+    const cashBalancePrintColumns = useMemo(() => [
+        {
+            key: "sno",
+            label: "S.No",
+            headalign: "left" as const,
+            align: "left" as const,
+            width: "50px",
+            render: (_v: any, row: any, index: number) => (
+                <div className="flex items-center justify-between">
+                    <span>{index + 1}</span>
+                
+
+                </div>
+            ),
+        },
+
+        {
+            key: "date",
+            label: "Date",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="date" onSave={(newVal) => handleCashSave(row, "date", newVal)} />
+            ),
+        },
+        {
+            key: "receipts",
+            label: "Receipts",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "receipts", newVal)} />
+            ),
+        },
+        {
+            key: "payments",
+            label: "Payments",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "100px",
+            render: (value: any, row: any, rowIndex: number) => (
+                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "payments", newVal)} />
+            ),
+        },
+        {
+            key: "balance",
+            label: "Balance",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "70px",
+            render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            headalign: "center" as const,
+            align: "left" as const,
+            width: "110px",
+            render: (value: any, row: any) => (
+                <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
+            ),
+        },
+    ], [selectedSmithId, responsive.isMobile, showDelete]);
+
+
+
+
     return (
         <div style={{ background: styles.background.primary, color: styles.text.primary, minHeight: "100vh" }}>
             <main className="p-2 mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Smiths Table */}
-                    <div>
-                        <div className="p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                            <h2 className="text-base font-semibold flex items-center justify-center space-x-2">
+                {/* Fixed Flexbox Layout */}
+                <div className="flex flex-col lg:flex-row gap-4 w-full">
+                    {/* Left Side - Main Table (30% width) */}
+                    <div className="flex-1 lg:flex-[0_0_30%] max-w-full lg:max-w-[50%] flex flex-col gap-1">
+                        <div className="flex justify-between items-center p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
+                            <h2 className="text-base font-semibold flex items-center space-x-2">
                                 <Wallet size={18} className="text-blue-600 dark:text-blue-400" />
                                 <span>Smith Transactions</span>
+                                <PrintTable
+                                    title="Smith Transactions"
+                                    // subtitle="Summary of balances"
+                                    columns={mainTableColumns}
+                                    data={transactions || []}
+                                    main={true}
+                                    showTotal={showTotal}
+                                />
                             </h2>
-                            {selectedSmithId && selectedSmithName && !existingTransaction && (
-                                <div className="flex items-center gap-2 mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                                    <span className="text-sm font-medium">Selected: {selectedSmithName}</span>
-                                    <input
-                                        type="date"
-                                        value={newTransactionDate}
-                                        onChange={(e) => setNewTransactionDate(e.target.value)}
-                                        className="border px-2 py-1 rounded text-sm"
-                                    />
-                                    <button
-                                        onClick={handleAddTransaction}
-                                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors text-sm"
-                                    >
-                                        Add Transaction
-                                    </button>
-                                </div>
-                            )}
+                            <div className="flex  items-center space-x-1">
+                                <input
+                                    type="text"
+                                    value={newSmithName}
+                                    onChange={(e) => setNewSmithName(e.target.value)}
+                                    placeholder="Enter Smith name"
+                                    className="border border-gray-300 rounded px-2 py-1.5 text-xs w-32 sm:w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateSmith()}
+                                />
+                                <button
+                                    onClick={handleCreateSmith}
+                                    disabled={isCreatingSmith || !newSmithName.trim()}
+                                    className="bg-green-600 text-white px-2 py-1.5 rounded hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center text-xs"
+                                >
+                                    <Plus size={12} className="mr-1" />
+                                    Create
+                                </button>
+                            </div>
                         </div>
-                        <Table
-                            columns={mainTableColumns}
-                            data={transactions || []}
-                            striped
-                            hoverable
-                            compact="auto"
-                            className="border border-t-0 rounded-t-none"
-                            headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
-                            bodyClassName="border-0"
-                            fixedHeight={responsive.isMobile ? "400px" : "500px"}
-                            showRows={20}
-                        />
+
+                        {/* Main Table with Correct Footer */}
+                        <div className="flex">
+                            <Table
+                                columns={mainTableColumns}
+                                data={transactions || []}
+                                striped
+                                hoverable
+                                compact="auto"
+                                className="border border-t-0 w-full"
+                                headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                                bodyClassName="border-0"
+                                fixedHeight={responsive.isMobile ? "400px" : "500px"}
+                                showRows={20}
+                                renderFooter={() => (
+                                    <tfoot className="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 font-semibold">
+                                        <tr>
+                                            <td colSpan={2} className="text-right text-red-600  pr-2 border-r border-gray-300 dark:border-gray-600">
+                                                Total
+                                            </td>
+                                            <td className="text-right text-red-600 pr-1 dark:text-blue-400 border-r border-gray-300 dark:border-gray-600">
+                                                {transactionTotals.weight.toFixed(3)}
+                                            </td>
+                                            <td className="text-right text-red-600 pr-1  dark:text-green-400">
+                                                {formatCurrency(transactionTotals.cash)}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            />
+                        </div>
+
+                        {/* {selectedSmithId && selectedSmithName && !existingTransaction && (
+                            <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded border" style={{ borderColor: styles.border }}>
+                                <span className="text-sm font-medium">Selected: {selectedSmithName}</span>
+                                <button
+                                    onClick={handleAddTransaction}
+                                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors text-sm"
+                                >
+                                    Add Transaction
+                                </button>
+                            </div>
+                        )} */}
                     </div>
 
-                    {/* Weight + Cash Tables */}
-                    <div>
+                    {/* Right Side - Weight + Cash Tables (70% width) */}
+                    <div className="flex-1 lg:flex-[0_0_70%] max-w-full lg:max-w-[52%] flex flex-col gap-1">
                         {/* Weight Table */}
-                        <div className="mb-4">
-                            <div
-                                className="flex justify-between items-center p-3 border rounded-t"
-                                style={{ background: styles.background.card, borderColor: styles.border }}
-                            >
+                        <div className="flex-1 flex flex-col ">
+                            <div className="flex justify-between items-center px-3 py-4 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                                 <h2 className="text-base font-semibold flex items-center space-x-2">
                                     <Scale size={18} className="text-green-600 dark:text-green-400" />
                                     <span>Weight Balance</span>
-                                    {selectedSmithId && activeTable === "weight" && (
-                                        <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                            ({selectedSmithName})
-                                        </span>
-                                    )}
+                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
                                 </h2>
-                                {selectedSmithId && activeTable === "weight" && (
-                                    <button
-                                        onClick={handleAddWeightRow}
-                                        className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm"
-                                    >
-                                        Add New
-                                    </button>
+                                {selectedSmithId && (
+                                    <div className="flex items-center space-x-2">
+                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} />
+                                        </div>
+                                        <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
+                                            Add New
+                                        </button>
+                                    </div>
                                 )}
                             </div>
-                            <Table
-                                columns={weightBalanceColumns}
-                                data={weightBalanceData}
-                                striped
-                                hoverable
-                                compact="auto"
-                                className="border border-t-0 rounded-t-none"
-                                headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
-                                fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                showRows={5}
-                            />
+                            <div className="flex-1">
+                                <Table
+                                    columns={weightBalanceColumns}
+                                    data={weightBalanceData}
+                                    striped
+                                    hoverable
+                                    compact="auto"
+                                    className="border border-t-0 rounded-t-none w-full"
+                                    headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
+                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                    showRows={5}
+                                    renderFooter={showTotal ? () => (
+                                        <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-black font-semibold">
+                                            <tr>
+                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.receipts.toFixed(3)}</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.payments.toFixed(3)}</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.balance.toFixed(3)}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    ) : undefined}
+                                />
+                            </div>
                         </div>
 
                         {/* Cash Table */}
-                        <div>
-                            <div
-                                className="flex justify-between items-center p-3 border rounded-t"
-                                style={{ background: styles.background.card, borderColor: styles.border }}
-                            >
+                        <div className="flex-1 flex flex-col">
+                            <div className="flex justify-between items-center px-3 py-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                                 <h2 className="text-base font-semibold flex items-center space-x-2">
                                     <IndianRupee size={18} className="text-blue-600 dark:text-blue-400" />
                                     <span>Cash Balance</span>
-                                    {selectedSmithId && activeTable === "cash" && (
-                                        <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
-                                            ({selectedSmithName})
-                                        </span>
-                                    )}
+                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
                                 </h2>
-                                {selectedSmithId && activeTable === "cash" && (
-                                    <button
-                                        onClick={handleAddCashRow}
-                                        className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm"
-                                    >
-                                        Add New
-                                    </button>
+                                {selectedSmithId && (
+                                    <div className="flex items-center space-x-2">
+                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} /></div>
+                                       
+                                        <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
+                                            Add New
+                                        </button>
+                                    </div>
                                 )}
                             </div>
-                            <Table
-                                columns={cashBalanceColumns}
-                                data={cashBalanceData}
-                                striped
-                                hoverable
-                                compact="auto"
-                                className="border border-t-0 rounded-t-none"
-                                headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
-                                fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                showRows={5}
-                            />
+                            <div className="flex-1">
+                                <Table
+                                    columns={cashBalanceColumns}
+                                    data={cashBalanceData}
+                                    striped
+                                    hoverable
+                                    compact="auto"
+                                    className="border border-t-0 rounded-t-none w-full"
+                                    headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                    showRows={5}
+                                    renderFooter={showTotal ? () => (
+                                        <tfoot className=" sticky bottom-0 bg-blue-100 dark:bg-blue-800/30 text-black font-semibold">
+                                            <tr>
+                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.receipts)}</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.payments)}</td>
+                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.balance)}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    ) : undefined}
+                                />
+                            </div>
                         </div>
                     </div>
+                    
                 </div>
+                <div className="flex md:flex-row flex-col gap-5 sm:gap-10 md:gap-20 lg:gap-40">
+                    <div className="flex  lg:flex-row gap-2">
+                        <SmithManager onSelectSmith={handleSmithSelect} />
 
-                <div className="mt-4">
-                    <SmithManager onSelectSmith={handleSmithSelect} />
+                    </div>
+                    <div className="flex flex-col lg:flex-row gap-2 mt-3 ">
+                        <Register />
+                    </div>
                 </div>
+               
+        
+                
             </main>
         </div>
     );

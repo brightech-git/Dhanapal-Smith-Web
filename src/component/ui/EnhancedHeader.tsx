@@ -90,6 +90,8 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
     setIsMenuOpen(false);
   };
 
+  console.log()
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -118,30 +120,29 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
-        {allDetails?.projectName === "SMITH" && 
-          <nav className="p-2 space-y-1">
-            {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
-              const isActive =
-                path === "/" ? pathname === "/" : pathname.startsWith(path);
+        {allDetails?.projectName === "SMITH" && <nav className="p-2 space-y-1">
+          {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+            const isActive =
+              path === "/" ? pathname === "/" : pathname.startsWith(path);
 
-              return (
-                <button
-                  key={path}
-                  onClick={() => handleNavigation(path)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
-                  style={{
-                    background: isActive ? styles.active : "transparent",
-                    color: styles.text,
-                  }}
-                >
-                  <Icon size={18} />
-                  {label}
-                </button>
-              );
-            })}
-          </nav>
-          }
-     
+            return (
+              <button
+                key={path}
+                onClick={() => handleNavigation(path)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
+                style={{
+                  background: isActive ? styles.active : "transparent",
+                  color: styles.text,
+                }}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+        }
+       
       </div>
 
       {/* Header */}
@@ -165,9 +166,9 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
               className="cursor-pointer"
               onClick={() => handleNavigation("/")}
             >
-              {/* <h1 className="text-white font-bold text-lg">
+              <h1 className="text-white font-bold text-lg">
                 Dhanapal Jewellery
-              </h1> */}
+              </h1>
               <p className="text-xs" style={{ color: styles.subText }}>
                 Smith Dashboard
               </p>

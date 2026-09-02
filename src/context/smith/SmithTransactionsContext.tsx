@@ -10,18 +10,19 @@ import {
     fetchSmithTransactions,
     fetchSmithTransactionDetail,
     addCashFlow,
-    updateCashFlow,
     deleteCashFlow,
     addWeightFlow,
-    updateWeightFlow,
     deleteWeightFlow,
     fetchCashFlows,
     fetchWeightFlows,
     patchCashFlow,
     patchWeightFlow,
     addTransaction,
-    NewSmithTransaction
+    NewSmithTransaction,
+    deleteSmithTransaction
 } from "@/service/smithTransactionsService";
+import { useAuth } from "../auth/AuthContext";
+
 
 interface SmithTransactionContextType {
     transactions: SmithTransaction[];
@@ -38,11 +39,14 @@ interface SmithTransactionContextType {
     getCashFlows: (smithId: string) => Promise<CashFlow[]>;
     getWeightFlows: (smithId: string) => Promise<WeightFlow[]>;
     addTransaction: (data: NewSmithTransaction) => Promise<void>;
+    deleteTransaction: (id: number) => Promise<void>;
 }
 
 const SmithTransactionContext = createContext<SmithTransactionContextType | undefined>(undefined);
 
 export const SmithTransactionProvider = ({ children }: { children: ReactNode }) => {
+
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
     const [transactions, setTransactions] = useState<SmithTransaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,12 +79,10 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         return await fetchSmithTransactionDetail(id);
     };
     const getCashFlows = async (smithId: string) => {
-        console.log("Fetching cash flows for smithId:", smithId);
         return await fetchCashFlows(smithId);
     };
 
     const getWeightFlows = async (smithId: string) => {
-        console.log("Fetching weight flows for smithId:", smithId);
         return await fetchWeightFlows(smithId);
     };
     const addCash = async (smithId: string, data: Partial<any>) => {
@@ -96,7 +98,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
 
     const deleteCash = async (id: number) => {
         await deleteCashFlow(id);
-        await loadTransactions();
+         await loadTransactions();
     };
 
     const addWeight = async (smithId: string, data: Partial<any>) => {
@@ -105,8 +107,11 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
     };
 
     const updateWeight = async (id: number, data: Partial<WeightFlow>) => {
+       
         await patchWeightFlow(id, data);
+       
         await loadTransactions();
+       
     };
 
     const deleteWeight = async (id: number) => {
@@ -114,13 +119,18 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     };
 
-    
+    const deleteTransaction =async(id:number)=>{
+        await deleteSmithTransaction(id);
+        await loadTransactions();
+    }
 
-    
 
     useEffect(() => {
-        loadTransactions();
-    }, []);
+        // ✅ Only run after login is complete and authenticated
+        if (!authLoading && isAuthenticated) {
+            loadTransactions();
+        }
+    }, [isAuthenticated, authLoading]);
 
     return (
         <SmithTransactionContext.Provider value={{
@@ -138,6 +148,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
             getCashFlows,
             getWeightFlows,
             addTransaction: addTransactionContext, // ← add here
+            deleteTransaction
         }}>
             {children}
         </SmithTransactionContext.Provider>

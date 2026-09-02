@@ -2,7 +2,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import EnhancedHeader from './header/Header';
+import EnhancedHeader from '../ui/HeaderWrapper';
 import { useTheme } from '@/context/theme/ThemeContext';
 import Footer from './footer/Footer';
 import AnimatedPage from '../Layout/AnimatedPage';
@@ -25,7 +25,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     onSearch,
 }) => {
     const { mode ,theme} = useTheme();
-    console.log(mode ,'mode')
+    // console.log(mode ,'mode')
     // Safe theme access with fallbacks
     const getThemeStyles = () => {
         if (mode === 'dark') {
@@ -63,14 +63,14 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
     return (
         <div className={`flex flex-col transition-colors duration-200 ${mode === 'dark' ? 'dark' : ''}`}>
           
-            {/* Header */}
+           
             <EnhancedHeader
-                title={headerTitle}
-                subtitle={headerSubtitle}
-                showSearch={showSearch}
-                showUserMenu={showUserMenu}
-                onSearch={onSearch}
-                className="mb-1"
+                // title={headerTitle}
+                // subtitle={headerSubtitle}
+                // showSearch={showSearch}
+                // showUserMenu={showUserMenu}
+                // onSearch={onSearch}
+                // className="mb-1"
             />
 
             {/* Main Content */}
@@ -81,7 +81,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({
             }}>
                 {children}
             </main>
-            <Footer />
+            {/* <Footer /> */}
            
         </div>
     );

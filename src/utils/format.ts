@@ -1,20 +1,11 @@
 // Date formatting
-export const formatDate = (date: Date | string, options: Intl.DateTimeFormatOptions = {}): string => {
-    const defaultOptions: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        ...options,
-    };
-
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('en-US', defaultOptions);
-};
 
 // Number formatting
 export const formatCurrency = (amount: number, currency: string = 'INR'): string => {
     return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
+        style: "decimal",
+        notation: "standard", // ✅ ensures full number, not compact (like 123K)
+        useGrouping: true, // ✅ adds Indian commas (e.g. 1,23,456)
         currency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,

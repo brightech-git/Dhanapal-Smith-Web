@@ -1,11 +1,31 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import authService from "@/service/authService";
+import { getAxiosInstance, resetAxiosInstance } from "@/api/axiosInstance";
+
+
+interface UserDetails {
+  userName: string;
+  admin: boolean;
+  sno: number;
+  sessionToken: string;
+  USERNAME?: string; // Some APIs use uppercase
+  role?: string;
+}
+interface User {
+
+  sno: number;
+  date: string;
+  order?: string; // Some APIs use uppercase
+
+}
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    user: string | null;
-    login: (username: string) => void;
+    allDetails: any;
+    isLoading: boolean;
+    login: (userName: string, password: string, projectName:string) => Promise<void>;
     logout: () => void;
 }
 
@@ -13,69 +33,67 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (!context) throw new Error("useAuth must be used within an AuthProvider");
     return context;
 };
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [allDetails, setAllDetails] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [user, setUser] = useState<string | null>(null);
+    console.log(allDetails,'allDetails')
 
+    // Restore session
     useEffect(() => {
-        // Check session storage on mount
-        if (typeof window !== 'undefined') {
-            const authToken = sessionStorage.getItem('authToken');
-            const sessionExpiry = sessionStorage.getItem('sessionExpiry');
-            const storedUser = sessionStorage.getItem('user');
+        const savedSession = sessionStorage.getItem("authSession");
+        if (savedSession) {
+            const parsed = JSON.parse(savedSession);
+            if (Date.now() < parsed.expiry) {
+                setIsAuthenticated(true);
+                setAllDetails(parsed.allDetails);
 
-            if (authToken && sessionExpiry) {
-                const expiryTime = parseInt(sessionExpiry);
-                if (Date.now() < expiryTime) {
-                    setIsAuthenticated(true);
-                    setUser(storedUser);
-                } else {
-                    // Session expired
-                    sessionStorage.removeItem('authToken');
-                    sessionStorage.removeItem('sessionExpiry');
-                    sessionStorage.removeItem('user');
-                }
+                // ✅ Initialize axios using base URL from config.json
+                const baseUrl = window?.appConfig?.MAIN_URL;
+                if (baseUrl) getAxiosInstance(baseUrl);
+            } else {
+                sessionStorage.clear();
             }
         }
+        setIsLoading(false);
     }, []);
 
-    const login = (username: string) => {
-        setIsAuthenticated(true);
-        setUser(username);
+    const login = async (userName: string, password: string, projectName:string) => {
+        const response = await authService.login({ userName, password, projectName });
 
-        // Set session storage
-        if (typeof window !== 'undefined') {
-            sessionStorage.setItem('authToken', 'authenticated');
-            sessionStorage.setItem('user', username);
-            sessionStorage.setItem('sessionExpiry', (Date.now() + 30 * 60 * 1000).toString()); // 30 minutes
-        }
+        console.log("response", response);
+        
+        const session = {
+            expiry: Date.now() + 30 * 60 * 1000, // 30 min
+            allDetails: response,
+        };
+        console.log(session ,"session")
+
+        setAllDetails(response);
+        setIsAuthenticated(true);
+
+        // ✅ Initialize axios dynamically (use config base URL)
+        const baseUrl = window?.appConfig?.MAIN_URL;
+        if (baseUrl) getAxiosInstance(baseUrl);
+
+        sessionStorage.setItem("authSession", JSON.stringify(session));
     };
 
     const logout = () => {
+        resetAxiosInstance();
         setIsAuthenticated(false);
-        setUser(null);
-
-        // Clear session storage
-        if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('authToken');
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('sessionExpiry');
-        }
+        setAllDetails(null);
+        sessionStorage.clear();
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ isAuthenticated, allDetails, isLoading, login, logout }}>
+            {!isLoading && children}
         </AuthContext.Provider>
     );
 };

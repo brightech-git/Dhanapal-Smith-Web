@@ -1,5 +1,5 @@
-// src/service/smithTransactionService.ts
-import axiosInstance from "@/api/axiosInstance";
+import { getAxiosInstance } from "@/api/axiosInstance";
+import { useAuth } from "@/context/auth/AuthContext";
 
 export interface SmithTransaction {
     id: number;
@@ -7,7 +7,7 @@ export interface SmithTransaction {
     name: string;
     date: string;
     cashBalance: number;
-    weightBalance: number;
+    weightBalance: number ;
 }
 
 export interface NewSmithTransaction {
@@ -50,14 +50,18 @@ export interface WeightFlow {
 }
 
 export const addTransaction = async (payload: NewSmithTransaction) => {
-    console.log("smith Payload:", payload);
+    const axiosInstance = getAxiosInstance();
+    //console.log(axiosInstance, 'base at smithFullDetail')
     const response = await axiosInstance.post("/smith/transactions", payload);
     return response.data as NewSmithTransaction;
 };
 // Fetch all smith transactions
 export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.get("/smith/transactions");
-    return response.data.map((item: any) => ({
+    const data = Array.isArray(response.data) ? response.data : [];
+
+    return data.map((item: any) => ({
         id: item.id,
         smithId: item.smithId,
         name: item.name,
@@ -67,64 +71,85 @@ export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
     }));
 };
 
+
 // Fetch one smith transaction with flows
 export const fetchSmithTransactionDetail = async (id: number): Promise<SmithTransactionDetail> => {
-    const response = await axiosInstance.get(`/smithTransactions/${id}`);
+    const axiosInstance = getAxiosInstance();
+    const response = await axiosInstance.get(`/smith/transactions/${id}`);
     return response.data;
 };
 
 // Cash Flow APIs
 export const addCashFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.post(`smith/cash?smithId=${smithId}`, payload);
     return response.data;
 };
 
 export const updateCashFlow = async (id: number, payload: Partial<SmithFlow>) => {
+
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.put(`smith/cash/${id}`, payload);
     return response.data;
 };
 
 export const deleteCashFlow = async (id: number) => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.delete(`smith/cash/${id}`);
     return response.data;
 };
 
 // Weight Flow APIs
 export const addWeightFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.post(`smith/weight?smithId=${smithId}`, payload);
     return response.data;
 };
 
 export const updateWeightFlow = async (id: number, payload: Partial<SmithFlow>) => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.put(`smith/weight/${id}`, payload);
     return response.data;
 };
 
 export const deleteWeightFlow = async (id: number) => {
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.delete(`smith/weight/${id}`);
     return response.data;
 };
 
 export const fetchCashFlows = async (smithId: string): Promise<CashFlow[]> => {
-    console.log("Fetching cash flows for smithId:", smithId);
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.get(`/smith/cash?smithId=${smithId}`);
     return response.data;
 };
 
 export const fetchWeightFlows = async (smithId: string): Promise<WeightFlow[]> => {
-    console.log("Fetching cash flows for smithId:", smithId);
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.get(`/smith/weight?smithId=${smithId}`);
     return response.data;
 };
 export const patchCashFlow = async (id: number, payload: Partial<CashFlow>) => {
-    console.log(payload,id, 'smithcashpayload')
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.patch(`smith/cash/${id}`, payload);
     return response.data;
 };
 
 // Weight Flow partial update
 export const patchWeightFlow = async (id: number, payload: Partial<WeightFlow>) => {
-    console.log(payload,id,'smithweightpayload')
+    const axiosInstance = getAxiosInstance();
     const response = await axiosInstance.patch(`smith/weight/${id}`, payload);
     return response.data;
+};
+
+export const deleteSmithTransaction = async (id: number) => {
+    try {
+
+        const axiosInstance = getAxiosInstance();
+        const response = await axiosInstance.delete(`/smith/transactions/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Delete transaction failed:", error);
+        throw error;
+    }
 };

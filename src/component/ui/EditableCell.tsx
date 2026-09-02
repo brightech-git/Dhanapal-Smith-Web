@@ -1,135 +1,168 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useState, useRef, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { useToast } from "@/context/smith/ToastContext";
 import { formatDateForAPI } from "@/utils/formatDateForAPI";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 interface EditableCellProps {
     value: any;
-    type?: "text" | "number" | "date";
-    onSave: (newValue: any) => void | Promise<void>;
-    onTabNext?: () => void;
-    isMobile?: boolean;
+    type: "text" | "number" | "date" | "numbers" | "password";
+    onSave: (value: any) => Promise<void>;
+    className?: string;
+    displayValue?: string;
 }
 
-
-export default function EditableCell({ value, type = "text", onSave, onTabNext, isMobile }: EditableCellProps) {
-    const [editing, setEditing] = useState(false);
-    const [tempValue, setTempValue] = useState(value ?? "");
+const EditableCell: React.FC<EditableCellProps> = ({
+    value,
+    type,
+    onSave,
+    className = "",
+    displayValue,
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { addToast } = useToast();
 
-    // Sync with parent value
+    const parseDate = (val: any) => {
+        if (!val) return null;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    const [editValue, setEditValue] = useState<any>(
+        type === "date"
+            ? parseDate(value)
+            : (type === "number" || type === "numbers") && value != null
+                ? String(value)
+                : value ?? ""
+    );
+
     useEffect(() => {
-        setTempValue(value ?? "");
-    }, [value]);
-
-    useEffect(() => {
-        if (editing) {
-            inputRef.current?.focus();
-            // Select all text for better mobile experience
-            if (type !== "date") {
-                inputRef.current?.select();
-            }
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            if (type !== "date") inputRef.current.select();
         }
-    }, [editing, type]);
+    }, [isEditing, type]);
 
-    const handleSave = async () => {
-        if (tempValue !== value) {
-            try {
-                let formattedValue = tempValue;
+    const handleClick = () => setIsEditing(true);
 
-                if (type === "number") {
-                    formattedValue = tempValue === "" ? 0 : parseFloat(tempValue);
-                    if (isNaN(formattedValue)) formattedValue = 0;
-                } else if (type === "date") {
-                    formattedValue = formatDateForAPI(tempValue);
-                }
-
-                await onSave(formattedValue);
-            } catch (err) {
-                console.error("Save failed:", err);
-                // Revert on error
-                setTempValue(value ?? "");
-            }
-        }
-        setEditing(false);
+    const handleBlur = async () => {
+        if (isEditing && !isSaving) await saveValue();
     };
 
     const handleKeyDown = async (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            await handleSave();
-        } else if (e.key === "Escape") {
-            setEditing(false);
-            setTempValue(value ?? "");
-        } else if (e.key === "Tab") {
-            e.preventDefault();
-            await handleSave();
-            onTabNext?.();
+        if (e.key === "Enter") await saveValue();
+        else if (e.key === "Escape") {
+            setIsEditing(false);
+            setEditValue(
+                type === "date"
+                    ? value
+                        ? new Date(value)
+                        : null
+                    : (type === "number" || type === "numbers") && value != null
+                        ? String(value)
+                        : value ?? ""
+            );
         }
     };
 
-    const handleClick = () => {
-        setEditing(true);
+    const saveValue = async () => {
+        if (isSaving) return;
+        try {
+            setIsSaving(true);
+            let finalValue: any = editValue;
+
+            if (type === "date" && editValue) {
+                finalValue = formatDateForAPI(editValue);
+            }
+
+            if ((type === "number" || type === "numbers") && editValue !== "") {
+                const numValue = parseFloat(editValue);
+                if (isNaN(numValue) || numValue < 0) throw new Error("Invalid number");
+                finalValue = numValue;
+            }
+
+            await onSave(finalValue);
+
+            setIsEditing(false);
+        } catch (error: any) {
+            console.error("Error saving value:", error);
+          
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleBlur = () => {
-        handleSave();
+    const formatDisplayValue = (val: any) => {
+        if (val == null || val === "") return "-";
+        if (type === "date") {
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return "-";
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
+        }
+        if (type === "number") return parseFloat(val).toFixed(3);
+        if (type === "numbers")
+            return new Intl.NumberFormat("en-IN").format(parseFloat(val));
+        return val;
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTempValue(e.target.value);
-    };
+    // ---- Edit Mode ----
+    if (isEditing) {
+        if (type === "date") {
+            return (
+                <DatePicker
+                    selected={editValue}
+                    onChange={(date: Date | null) => setEditValue(date)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="dd-mm-yyyy"
+                    todayButton="Today"
+                    minDate={new Date("2000-01-01")}
+                    maxDate={new Date("2100-12-31")}
+                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""
+                        } ${className}`}
+                    disabled={isSaving}
+                    popperClassName="custom-datepicker-popper"
+                />
+            );
+        }
 
-    if (editing) {
         return (
-            <input
-                ref={inputRef}
-                type={type === "date" ? "date" : type === "number" ? "number" : "text"}
-                value={tempValue ?? ""}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                onKeyDown={handleKeyDown}
-                className="w-full bg-white dark:bg-gray-800 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 px-1 py-0.5 text-sm"
-                step={type === "number" ? "0.001" : undefined}
-                min={type === "number" ? "0" : undefined}
-                // Better mobile experience
-                inputMode={type === "number" ? "decimal" : "text"}
-                style={{
-                    fontSize: isMobile ? '14px' : '12px',
-                    minHeight: isMobile ? '32px' : 'auto'
-                }}
-            />
+            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-white">
+                <input
+                    ref={inputRef}
+                    type={type === "numbers" ? "text" : type}
+                    value={editValue ?? ""}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    disabled={isSaving}
+                    className={`w-full px-1 py-1 border-none outline-none focus:outline-none focus:ring-0 focus:border-none ${isSaving ? "opacity-50 cursor-not-allowed" : ""
+                        } ${className}`}
+                />
+            </div>
         );
     }
 
-    // Format display value
-    let displayValue = "";
-    if (type === "date" && tempValue) {
-        const d = new Date(tempValue);
-        displayValue = !isNaN(d.getTime()) ? d.toLocaleDateString() : "";
-    } else if (type === "number") {
-        displayValue = tempValue !== undefined && tempValue !== null && tempValue !== ""
-            ? type === "number"
-                ? parseFloat(tempValue).toFixed(3)
-                : tempValue.toString()
-            : "0.000";
-    } else {
-        displayValue = tempValue ?? "";
-    }
-
+    // ---- View Mode ----
     return (
         <div
             onClick={handleClick}
-            onDoubleClick={handleClick}
-            className="cursor-pointer select-none px-1 py-0.5 min-h-[32px] flex items-center justify-end"
-            style={{
-                justifyContent: type === "number" ? "flex-end" : "center",
-                fontSize: isMobile ? '14px' : '12px'
-            }}
+            className={`w-full px-1 py-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors ${className}`}
+            title="Click to edit"
         >
-            {type === "number" ? (
-                <span className="font-mono">{displayValue}</span>
-            ) : (
-                displayValue || "—"
-            )}
+            {/* ✅ Show displayValue (masked password) if available */}
+            {displayValue ?? formatDisplayValue(value)}
         </div>
     );
-}
+};
+
+export default EditableCell;

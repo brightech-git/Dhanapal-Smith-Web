@@ -34,7 +34,7 @@ const Footer = () => {
         >
             <div
                 className="
-    pt-2 
+    p-3 
     flex flex-col sm:flex-row  /* stack on small, row on ≥640px */
     justify-center items-center 
     mx-auto max-w-7xl 
@@ -58,7 +58,7 @@ const Footer = () => {
                         width={20}
                         alt="logo"
                     />
-                    <span>Brightech Software Solutions</span>
+                    <span>BrightechSoftwareSolutions</span>
                 </p>
             </div>
 

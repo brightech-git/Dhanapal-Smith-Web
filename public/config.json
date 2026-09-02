@@ -1,0 +1,15 @@
+{
+            "COMPANYID": 3,
+            "COMPANYNAME": "JAIGURU JEWELLERS",
+            "LOGO": "/uploads/companyLogo/1a4c07f1-927b-4bb7-ab54-662924ab8053_icon.png",
+            "LINK": "https://jaigurujewellers.com/",
+            "BASEURL": "https://est.brightechsoftware.com/api/v1",
+
+            "MAIN_URL": "https://www.eezab.com/api/v1/",
+
+            "MAIN_URLs": "http://localhost:8097/api/v1/",
+            "USERNAME": "JAIGURU",
+            "PASSWORD": "jaiguru@123",
+            "CREATED_AT": "2025-11-03T11:51:48.620+00:00",
+            "LOGOBASEURL": "https://app.bmgjewellers.com"
+}
