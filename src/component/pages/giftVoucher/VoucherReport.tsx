@@ -76,7 +76,7 @@ const VoucherReport: React.FC = () => {
             { key: "introducerName", label: "Introducer", align: "left", headalign: "center", width: "160px" },
             { key: "voucherCode", label: "Voucher Code", align: "left", headalign: "center", width: "140px" },
             { key: "issuePiece", label: "Issue Pcs", align: "center", headalign: "center", width: "90px" },
-            { key: "returnPiece", label: "Return Pcs", align: "center", headalign: "center", width: "90px" },
+            { key: "returnPiece", label: "Receipt Pcs", align: "center", headalign: "center", width: "90px" },
             { key: "balancePiece", label: "Balance Pcs", align: "center", headalign: "center", width: "100px" },
             {
                 key: "issueAmount",
@@ -88,7 +88,7 @@ const VoucherReport: React.FC = () => {
             },
             {
                 key: "returnAmount",
-                label: "Return Amt",
+                label: "Receipt Amt",
                 align: "right",
                 headalign: "center",
                 width: "110px",
@@ -130,7 +130,7 @@ const VoucherReport: React.FC = () => {
                                 >
                                     <MenuItem value="">All</MenuItem>
                                     <MenuItem value="I">Issue</MenuItem>
-                                    <MenuItem value="R">Return</MenuItem>
+                                    <MenuItem value="R">Receipt</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>

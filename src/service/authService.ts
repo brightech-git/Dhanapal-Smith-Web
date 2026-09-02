@@ -19,6 +19,8 @@ const authService = {
             console.log({userName , password ,projectName},"payload request")
 
             const { data } = await axios.post(loginUrl, { userName, password, projectName });
+
+            console.log(data ,"loginresponse");
            
             return data;
         } catch (error: any) {

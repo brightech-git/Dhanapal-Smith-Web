@@ -90,6 +90,8 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
     setIsMenuOpen(false);
   };
 
+  console.log()
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -118,8 +120,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
-
-        <nav className="p-2 space-y-1">
+        {allDetails?.projectName === "SMITH" && <nav className="p-2 space-y-1">
           {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
             const isActive =
               path === "/" ? pathname === "/" : pathname.startsWith(path);
@@ -140,6 +141,8 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             );
           })}
         </nav>
+        }
+       
       </div>
 
       {/* Header */}

@@ -77,7 +77,7 @@ const VoucherGenerateForm: React.FC = () => {
         try {
             const request: GenerateVoucherRequest = {
                 introducerId: selectedIntroducer!.introducerId!,
-                prefix: selectedPrefix!.prefix,
+                prefix: "GV",
                 piece: Number(piece),
                 amount: Number(amount),
             };
@@ -87,8 +87,8 @@ const VoucherGenerateForm: React.FC = () => {
 
             addToast({
                 type: "success",
-                title: "Vouchers Generated",
-                message: `${result.length} voucher(s) generated successfully`,
+                title: "Vouchers Issued",
+                message: `${result.length} voucher(s) issued successfully`,
             });
 
             setPiece("");
@@ -97,7 +97,7 @@ const VoucherGenerateForm: React.FC = () => {
             addToast({
                 type: "error",
                 title: "Error",
-                message: error?.response?.data?.message || "Failed to generate vouchers",
+                message: error?.response?.data?.message || "Failed to issue vouchers",
             });
         } finally {
             setSubmitting(false);
@@ -128,7 +128,7 @@ const VoucherGenerateForm: React.FC = () => {
                 className="font-semibold mb-3"
                 sx={{ fontSize: { xs: "1rem", md: "1.3rem" }, fontWeight: 600 }}
             >
-                Generate Vouchers
+                Issue Vouchers
             </Typography>
 
             <Paper elevation={1} className="p-3 mb-3">
@@ -168,7 +168,7 @@ const VoucherGenerateForm: React.FC = () => {
                             />
                         </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        {/* <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <Autocomplete
                                 options={prefixes}
                                 getOptionLabel={(option) => option.prefix}
@@ -200,7 +200,7 @@ const VoucherGenerateForm: React.FC = () => {
                                     />
                                 )}
                             />
-                        </Grid>
+                        </Grid> */}
 
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <TextField
@@ -238,7 +238,7 @@ const VoucherGenerateForm: React.FC = () => {
 
                         <Grid size={{ xs: 12 }} className="flex justify-end">
                             <Button variant="contained" color="primary" type="submit" disabled={submitting}>
-                                {submitting ? "Generating..." : "Generate"}
+                                {submitting ? "Issuing..." : "Issue"}
                             </Button>
                         </Grid>
                     </Grid>

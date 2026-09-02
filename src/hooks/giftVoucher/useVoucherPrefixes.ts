@@ -13,3 +13,11 @@ export const useVoucherPrefixes = () => {
         retry: 2,
     });
 };
+
+export const useVoucherById = (id: number , type:string) => {
+    return useQuery({
+        queryKey: ["voucherDetails", id],
+        queryFn: () => VoucherPrefixService.getByVoucherNumber(id, type),
+    });
+};
+

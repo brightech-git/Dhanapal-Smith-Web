@@ -9,12 +9,12 @@ import VoucherGenerateForm from "./VoucherGenerateForm";
 import VoucherReturnForm from "./VoucherReturnForm";
 import VoucherReport from "./VoucherReport";
 
-type TabKey = "introducers" | "generate" | "return" | "report";
+type TabKey = "introducers" | "issue" | "receipt" | "report";
 
 const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: "introducers", label: "Introducers", icon: <Users size={16} /> },
-    { key: "generate", label: "Generate", icon: <TicketPlus size={16} /> },
-    { key: "return", label: "Return", icon: <Undo2 size={16} /> },
+    { key: "issue", label: "Issue", icon: <TicketPlus size={16} /> },
+    { key: "receipt", label: "Receipt", icon: <Undo2 size={16} /> },
     { key: "report", label: "Report", icon: <BarChart3 size={16} /> },
 ];
 
@@ -51,8 +51,8 @@ const GiftVoucherPage: React.FC = () => {
                 </Paper>
 
                 {activeTab === "introducers" && <IntroducerManager />}
-                {activeTab === "generate" && <VoucherGenerateForm />}
-                {activeTab === "return" && <VoucherReturnForm />}
+                {activeTab === "issue" && <VoucherGenerateForm />}
+                {activeTab === "receipt" && <VoucherReturnForm />}
                 {activeTab === "report" && <VoucherReport />}
             </Box>
         </IntroducerProvider>

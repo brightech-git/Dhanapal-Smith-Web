@@ -10,21 +10,18 @@ import {
     Autocomplete,
     Paper,
     CircularProgress,
+    IconButton,
+    Tooltip,
 } from "@mui/material";
+import { Trash2 } from "lucide-react";
 import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useVoucherPrefixes } from "@/hooks/giftVoucher/useVoucherPrefixes";
 import { useToast } from "@/context/smith/ToastContext";
-import { VoucherService } from "@/service/voucherService";
-import { Introducer, ReturnVoucherRequest, VoucherPrefix } from "@/types/giftVoucher";
+import { VoucherService, VoucherPrefixService } from "@/service/voucherService";
+import { Introducer, ReturnVoucherRequest, VoucherDetails, VoucherPrefix } from "@/types/giftVoucher";
+import Table ,{TableColumn} from "@/component/ui/table/Table";
 
-const parseVoucherNos = (raw: string): number[] => {
-    return raw
-        .split(/[\s,]+/)
-        .map((part) => part.trim())
-        .filter(Boolean)
-        .map((part) => Number(part))
-        .filter((num) => !isNaN(num));
-};
+
 
 const VoucherReturnForm: React.FC = () => {
     const { activeIntroducers, fetchActive } = useIntroducers();
@@ -35,9 +32,11 @@ const VoucherReturnForm: React.FC = () => {
     const [selectedIntroducer, setSelectedIntroducer] = useState<Introducer | null>(null);
     const [selectedPrefix, setSelectedPrefix] = useState<VoucherPrefix | null>(null);
     const [batchNo, setBatchNo] = useState<string>("");
-    const [voucherNosRaw, setVoucherNosRaw] = useState<string>("");
+    const [voucherNo, setVoucherNo] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+
+    const [returnItems ,setReturnItems] = useState<VoucherDetails[] | []>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -56,59 +55,114 @@ const VoucherReturnForm: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const validate = (voucherNos: number[]): boolean => {
+    const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
 
-        if (!selectedIntroducer) newErrors.introducer = "Introducer is required";
-        if (!selectedPrefix) newErrors.prefix = "Prefix is required";
-
-        const batchNum = Number(batchNo);
-        if (!batchNo || isNaN(batchNum) || batchNum <= 0) {
-            newErrors.batchNo = "Batch No is required";
+        if(returnItems.length < 1){
+            newErrors.voucherNos = "Atleast One item required to receipt"
         }
+        const hasDuplicates = returnItems.some(
+            (item, index) =>
+                returnItems.findIndex(
+                    (x) => x.voucherNo === item.voucherNo
+                ) !== index
+        );
 
-        if (voucherNos.length === 0) {
-            newErrors.voucherNos = "Enter at least one voucher number";
-        }
-
+        if(hasDuplicates) newErrors.voucherNos = "having Duplicates"
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const voucherNos = parseVoucherNos(voucherNosRaw);
-        if (!validate(voucherNos)) return;
+        if (!validate()) return;
 
         setSubmitting(true);
         try {
             const request: ReturnVoucherRequest = {
-                batchNo: Number(batchNo),
-                introducerId: selectedIntroducer!.introducerId!,
-                prefix: selectedPrefix!.prefix,
-                voucherNos,
+                prefix : "GV" ,
+                receiptItems : returnItems.map((item)=>({
+                    introducerId : item.introducerId ,
+                    batchNo : item.batchNo ,
+                    voucherNo : item.voucherNo
+                    
+                })),
             };
+
 
             await VoucherService.returnVoucher(request);
 
             addToast({
                 type: "success",
-                title: "Vouchers Returned",
-                message: `${voucherNos.length} voucher(s) returned successfully`,
+                title: "Vouchers Receipt",
+                message: `voucher(s) receipt successfully`,
             });
 
             setBatchNo("");
-            setVoucherNosRaw("");
+            setVoucherNo("");
         } catch (error: any) {
             addToast({
                 type: "error",
                 title: "Error",
-                message: error?.response?.data?.message || "Failed to return vouchers",
+                message: error?.response?.data?.message || "Failed to receipt vouchers",
             });
         } finally {
             setSubmitting(false);
         }
     };
+
+    const handleClear = () => {
+        setReturnItems([]);
+        setErrors({});
+    };
+
+    const handleRemoveItem = (row: VoucherDetails) => {
+        setReturnItems((prev) => prev.filter((item) => item.voucherNo !== row.voucherNo));
+    };
+
+    const columns: TableColumn[] = [
+
+        { 
+            key: "sno", 
+            label: "Sno", 
+            align :"center",
+            headalign:"center",
+            render: (_v:any, _r:any, index:number) => <Typography> {index + 1} </Typography>
+        },
+        {
+            key:"voucherNo" , 
+            headalign: "center",
+            label:"Voucher No"
+        },
+        {
+            key:"batchNo",
+            headalign: "center",
+            label:"Batch No"
+        },
+        {
+            key:"introducerName",
+            headalign: "center",
+            label:"IntroducerName"
+        },
+        {
+            key: "actions",
+            label: "Actions",
+            align: "center",
+            headalign: "center",
+            render: (_v: any, row: VoucherDetails) => (
+                <Tooltip title="Remove">
+                    <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleRemoveItem(row)}
+                        aria-label="Remove voucher"
+                    >
+                        <Trash2 size={16} />
+                    </IconButton>
+                </Tooltip>
+            ),
+        },
+    ]
 
     return (
         <Box className="p-2">
@@ -117,117 +171,93 @@ const VoucherReturnForm: React.FC = () => {
                 className="font-semibold mb-3"
                 sx={{ fontSize: { xs: "1rem", md: "1.3rem" }, fontWeight: 600 }}
             >
-                Return Vouchers
+                Receipt Vouchers
             </Typography>
 
             <Paper elevation={1} className="p-3 mb-3">
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={2}>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <Autocomplete
-                                options={activeIntroducers}
-                                getOptionLabel={(option) => option.introducerName}
-                                value={selectedIntroducer}
-                                onChange={(_e, newValue) => {
-                                    setSelectedIntroducer(newValue);
-                                    if (errors.introducer) setErrors((prev) => ({ ...prev, introducer: "" }));
-                                }}
-                                loading={introducersLoading}
-                                disabled={submitting}
-                                size="small"
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label="Introducer"
-                                        error={!!errors.introducer}
-                                        helperText={errors.introducer}
-                                        InputProps={{
-                                            ...params.InputProps,
-                                            endAdornment: (
-                                                <>
-                                                    {introducersLoading ? (
-                                                        <CircularProgress color="inherit" size={16} />
-                                                    ) : null}
-                                                    {params.InputProps.endAdornment}
-                                                </>
-                                            ),
-                                        }}
-                                    />
-                                )}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <Autocomplete
-                                options={prefixes}
-                                getOptionLabel={(option) => option.prefix}
-                                value={selectedPrefix}
-                                onChange={(_e, newValue) => {
-                                    setSelectedPrefix(newValue);
-                                    if (errors.prefix) setErrors((prev) => ({ ...prev, prefix: "" }));
-                                }}
-                                loading={prefixesLoading}
-                                disabled={submitting}
-                                size="small"
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label="Prefix"
-                                        error={!!errors.prefix}
-                                        helperText={errors.prefix}
-                                        InputProps={{
-                                            ...params.InputProps,
-                                            endAdornment: (
-                                                <>
-                                                    {prefixesLoading ? (
-                                                        <CircularProgress color="inherit" size={16} />
-                                                    ) : null}
-                                                    {params.InputProps.endAdornment}
-                                                </>
-                                            ),
-                                        }}
-                                    />
-                                )}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <TextField
                                 fullWidth
                                 size="small"
-                                label="Batch No"
-                                type="number"
-                                value={batchNo}
+                                label="Voucher No"
+                                placeholder="Voucher No"
+                                value={voucherNo}
                                 onChange={(e) => {
-                                    setBatchNo(e.target.value);
-                                    if (errors.batchNo) setErrors((prev) => ({ ...prev, batchNo: "" }));
-                                }}
-                                error={!!errors.batchNo}
-                                helperText={errors.batchNo}
-                                disabled={submitting}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="Voucher Numbers"
-                                placeholder="e.g. 1001, 1002, 1003"
-                                value={voucherNosRaw}
-                                onChange={(e) => {
-                                    setVoucherNosRaw(e.target.value);
+                                    setVoucherNo(e.target.value);
                                     if (errors.voucherNos) setErrors((prev) => ({ ...prev, voucherNos: "" }));
                                 }}
+                                onKeyDown={async (e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        if (voucherNo.length < 1) {
+                                            return addToast(
+                                                {
+                                                    "type": "info",
+                                                    "title": "Required voucher number",
+                                                    "message": "Please Enter Voucher Number"
+                                                }
+
+                                            )
+                                        }
+                                        try {
+                                            const res = await VoucherPrefixService.getByVoucherNumber(Number(voucherNo) , "I");
+
+                                            if (res) {
+                                                setReturnItems((prev) => {
+                                                    // Check voucher number already exists
+                                                    const exists = returnItems.some(
+                                                        (item) => item.voucherNo === res.voucherNo
+                                                    );
+
+                                                    if (exists) {
+                                                        addToast({title : "Duplicate Entry" , message : "The Voucher already exists in list" , type:"info"})
+                                                        return prev;
+                                                    }
+
+                                                    // Add new voucher
+                                                    return [...prev, res];
+                                                });
+
+                                                setVoucherNo("");
+                                            }
+
+                                        } catch (error) {
+                                            console.error("Failed to get voucher:", error);
+                                            addToast({type:"info" , title : "Voucher Not Found" , message : "Voucher Not Found or already voucher was receipt"})
+                                        }
+                                    }
+                                }}
                                 error={!!errors.voucherNos}
-                                helperText={errors.voucherNos || "Comma or space separated"}
+                                helperText={errors.voucherNos || "Type a voucher number and press Enter to add"}
                                 disabled={submitting}
                             />
                         </Grid>
 
-                        <Grid size={{ xs: 12 }} className="flex justify-end">
-                            <Button variant="contained" color="primary" type="submit" disabled={submitting}>
-                                {submitting ? "Returning..." : "Return"}
+                        {returnItems.length > 0 && (
+                            <Grid size={{ xs: 12 }}>
+                                <Table
+                                    columns={columns}
+                                    data={returnItems}
+                                    showRows={0}
+                                    fixedHeight="420px"
+                                />
+                            </Grid>
+                        )}
+
+                        <Grid size={{ xs: 12 }} className="flex justify-end gap-2">
+                            <Button
+                                variant="outlined"
+                                color="secondary"
+                                type="button"
+                                onClick={handleClear}
+                                disabled={submitting || returnItems.length < 1}
+                            >
+                                Clear
+                            </Button>
+                            <Button variant="contained" color="primary" type="submit" disabled={ !returnItems || returnItems.length < 1 || submitting} >
+                                {submitting ? "Receipting..." : "Receipt"}
                             </Button>
                         </Grid>
                     </Grid>

@@ -21,10 +21,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     requiredRole,
     requiredProject,
 }) => {
+
+
     const { isAuthenticated, allDetails } = useAuth();
     const router = useRouter();
 
     const projectName: string | undefined = allDetails?.projectName;
+    console.log(projectName, allDetails, "projectName")
 
     useEffect(() => {
         if (!isAuthenticated) {

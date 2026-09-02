@@ -37,7 +37,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const NAV_ITEMS = [
     { label: "Dashboard", path: "/", icon: Home },
     { label: "Orders", path: "/smiths/order", icon: Menu },
-    { label: "Users", path: "/smiths/create", icon: Users },
+    { label: "Userss", path: "/smiths/create", icon: Users },
   ];
 
   const styles =
@@ -118,28 +118,30 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
+        {allDetails?.projectName === "SMITH" && 
+          <nav className="p-2 space-y-1">
+            {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+              const isActive =
+                path === "/" ? pathname === "/" : pathname.startsWith(path);
 
-        <nav className="p-2 space-y-1">
-          {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
-            const isActive =
-              path === "/" ? pathname === "/" : pathname.startsWith(path);
-
-            return (
-              <button
-                key={path}
-                onClick={() => handleNavigation(path)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
-                style={{
-                  background: isActive ? styles.active : "transparent",
-                  color: styles.text,
-                }}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            );
-          })}
-        </nav>
+              return (
+                <button
+                  key={path}
+                  onClick={() => handleNavigation(path)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
+                  style={{
+                    background: isActive ? styles.active : "transparent",
+                    color: styles.text,
+                  }}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
+          }
+     
       </div>
 
       {/* Header */}

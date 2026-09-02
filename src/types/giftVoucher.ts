@@ -20,6 +20,20 @@ export interface VoucherPrefix {
     isActive: boolean;
 }
 
+export interface VoucherDetails {
+    id: number;
+    batchNo : number;
+    introducerId :number;
+    introducerName :string;
+    mobileNo :string;
+    prefix : string;
+    voucherNo :number;
+    voucherCode :string;
+    amount :number ;
+    piece : number
+
+}
+
 export interface GenerateVoucherRequest {
     introducerId: number;
     prefix: string;
@@ -37,10 +51,14 @@ export interface VoucherGeneration {
 }
 
 export interface ReturnVoucherRequest {
-    batchNo: number;
-    introducerId: number;
+    
     prefix: string;
-    voucherNos: number[];
+    receiptItems : {
+        batchNo: number;
+        introducerId: number;
+        voucherNo: number;
+    }[];
+   
 }
 
 export interface VoucherReportRequest {

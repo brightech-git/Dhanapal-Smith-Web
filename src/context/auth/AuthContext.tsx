@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [allDetails, setAllDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    console.log(allDetails,'allDetails')
+
     // Restore session
     useEffect(() => {
         const savedSession = sessionStorage.getItem("authSession");
@@ -70,6 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             expiry: Date.now() + 30 * 60 * 1000, // 30 min
             allDetails: response,
         };
+        console.log(session ,"session")
 
         setAllDetails(response);
         setIsAuthenticated(true);

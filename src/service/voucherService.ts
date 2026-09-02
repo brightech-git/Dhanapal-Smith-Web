@@ -7,6 +7,7 @@ import {
     VoucherPrefix,
     VoucherReportRequest,
     VoucherReportResponse,
+    VoucherDetails
 } from "@/types/giftVoucher";
 
 export const VoucherPrefixService = {
@@ -15,6 +16,11 @@ export const VoucherPrefixService = {
         const response = await axiosInstance.get("/voucher-prefixes/active");
         return response.data;
     },
+    getByVoucherNumber: async (id: number ,type:string): Promise<VoucherDetails> =>{
+        const axiosInstance = getAxiosInstance();
+        const response = await axiosInstance.get(`/vouchers/search/${id}`,{params: {"issRec" :type}});
+        return response.data;
+    }
 };
 
 export const VoucherService = {
