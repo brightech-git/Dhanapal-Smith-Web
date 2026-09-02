@@ -8,12 +8,13 @@ import {
   Menu,
   X,
   Home,
-  Users
+  Users,
+  LogOut
 } from "lucide-react";
 import { useTheme } from "@/context/theme/ThemeContext";
 import { useNavigation } from "@/context/transition/NavigationContext";
 import { gsap } from "gsap";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth/AuthContext";
 import { useMediaQuery } from "@mui/material";
 
@@ -24,8 +25,11 @@ interface EnhancedHeaderProps {
 const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const { mode, toggleMode, theme } = useTheme();
   const { navigateWithAnimation, isNavigating } = useNavigation();
-  const { allDetails } = useAuth();
+  const { allDetails, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  const isSmithProject = allDetails?.projectName === "SMITH";
 
   const isMobile = useMediaQuery("(max-width: 1279px)");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -90,6 +94,12 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
     setIsMenuOpen(false);
   };
 
+  const handleLogout = () => {
+    setIsMenuOpen(false);
+    logout();
+    router.push("/login");
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -118,7 +128,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
-        {allDetails?.projectName === "SMITH" && 
+        {isSmithProject &&
           <nav className="p-2 space-y-1">
             {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
               const isActive =
@@ -141,7 +151,17 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             })}
           </nav>
           }
-     
+
+        <div className="p-2 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
+            style={{ color: styles.text }}
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Header */}
@@ -175,7 +195,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
           </div>
 
           {/* Desktop Nav */}
-          {!isMobile && (
+          {!isMobile && isSmithProject && (
             <div className="flex gap-2">
               {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
                 const isActive =
@@ -220,6 +240,15 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
                 </span>
               </div>
             )}
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10"
+              title="Logout"
+            >
+              <LogOut color="white" size={18} />
+              {!isMobile && <span className="text-sm text-white">Logout</span>}
+            </button>
           </div>
         </div>
       </header>

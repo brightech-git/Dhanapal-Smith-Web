@@ -103,12 +103,12 @@ const VoucherReturnForm: React.FC = () => {
             setReturnItems([]);
         } catch (error: any) {
 
-            
+            console.log(error?.response , "error")
 
             addToast({
                 type: "error",
                 title: "Error",
-                message: error?.response?.data?.message || "Failed to receipt vouchers",
+                message: error?.response?.data?.error || "Failed to receipt vouchers",
             });
         } finally {
             setSubmitting(false);

@@ -12,6 +12,7 @@ import {
     CircularProgress,
 } from "@mui/material";
 import Table, { TableColumn } from "@/component/ui/table/Table";
+import VoucherQrPrint from "./VoucherQrPrint";
 import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useVoucherPrefixes } from "@/hooks/giftVoucher/useVoucherPrefixes";
 import { useToast } from "@/context/smith/ToastContext";
@@ -31,6 +32,7 @@ const VoucherGenerateForm: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const [generated, setGenerated] = useState<VoucherGeneration[]>([]);
+    const [printBatch, setPrintBatch] = useState<VoucherGeneration[]>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -53,7 +55,7 @@ const VoucherGenerateForm: React.FC = () => {
         const newErrors: Record<string, string> = {};
 
         if (!selectedIntroducer) newErrors.introducer = "Introducer is required";
-        if (!selectedPrefix) newErrors.prefix = "Prefix is required";
+        // if (!selectedPrefix) newErrors.prefix = "Prefix is required";
 
         const pieceNum = Number(piece);
         if (!piece || isNaN(pieceNum) || pieceNum <= 0) {
@@ -82,8 +84,13 @@ const VoucherGenerateForm: React.FC = () => {
                 amount: Number(amount),
             };
 
+            console.log(request, 'request')
+
             const result = await VoucherService.generate(request);
+
+            console.log(result, 'result');
             setGenerated(result);
+            setPrintBatch(result);
 
             addToast({
                 type: "success",
@@ -247,6 +254,10 @@ const VoucherGenerateForm: React.FC = () => {
 
             {generated.length > 0 && (
                 <Table columns={columns} data={generated} showRows={0} fixedHeight="320px" />
+            )}
+
+            {printBatch.length > 0 && (
+                <VoucherQrPrint vouchers={printBatch} onDone={() => setPrintBatch([])} />
             )}
         </Box>
     );

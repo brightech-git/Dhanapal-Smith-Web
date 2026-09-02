@@ -15,12 +15,16 @@ import {
     InputLabel,
 } from "@mui/material";
 import Table, { TableColumn } from "@/component/ui/table/Table";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useToast } from "@/context/smith/ToastContext";
 import { VoucherService } from "@/service/voucherService";
+import { formatDateForAPI } from "@/utils/formatDateForAPI";
 import { Introducer, VoucherReportRequest, VoucherReportResponse } from "@/types/giftVoucher";
 
 const VoucherReport: React.FC = () => {
+    const today = new Date().toISOString().split("T")[0]
     const { activeIntroducers } = useIntroducers();
     const { addToast } = useToast();
 
@@ -29,8 +33,8 @@ const VoucherReport: React.FC = () => {
     const [batchNo, setBatchNo] = useState<string>("");
     const [voucherNo, setVoucherNo] = useState<string>("");
     const [mobileNo, setMobileNo] = useState<string>("");
-    const [fromDate, setFromDate] = useState<string>("");
-    const [toDate, setToDate] = useState<string>("");
+    const [fromDate, setFromDate] = useState<Date | null>(null);
+    const [toDate, setToDate] = useState<Date | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [rows, setRows] = useState<VoucherReportResponse[]>([]);
@@ -45,8 +49,8 @@ const VoucherReport: React.FC = () => {
                 batchNo: batchNo ? Number(batchNo) : undefined,
                 voucherNo: voucherNo ? Number(voucherNo) : undefined,
                 mobileNo: mobileNo || undefined,
-                fromDate: fromDate || undefined,
-                toDate: toDate || undefined,
+                fromDate: fromDate ? formatDateForAPI(fromDate) : undefined,
+                toDate: toDate ? formatDateForAPI(toDate) : undefined,
             };
 
             const result = await VoucherService.getTallyReport(request);
@@ -179,26 +183,44 @@ const VoucherReport: React.FC = () => {
                         </Grid>
 
                         <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="From Date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={fromDate}
-                                onChange={(e) => setFromDate(e.target.value)}
+                            <DatePicker
+                                selected={fromDate}
+                                onChange={(date: Date | null) => setFromDate(date)}
+                                dateFormat="dd-MM-yyyy"
+                                placeholderText="dd-mm-yyyy"
+                                isClearable
+                                maxDate={new Date()  ?? undefined}
+
+                                customInput={
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="From Date"
+                                        InputLabelProps={{ shrink: true }}
+
+                                    />
+                                }
                             />
                         </Grid>
 
                         <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="To Date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={toDate}
-                                onChange={(e) => setToDate(e.target.value)}
+                            <DatePicker
+                                selected={toDate}
+                                onChange={(date: Date | null) => setToDate(date)}
+                                dateFormat="dd-MM-yyyy"
+                                placeholderText="dd-mm-yyyy"
+                                
+                                isClearable
+                                minDate={fromDate ?? undefined}
+                                maxDate={new Date()}
+                                customInput={
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="To Date"
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                }
                             />
                         </Grid>
 

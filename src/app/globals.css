@@ -45,3 +45,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* DatePicker should appear above dialogs, dropdowns and tables */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}

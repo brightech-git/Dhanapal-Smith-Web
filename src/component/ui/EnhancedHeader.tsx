@@ -25,6 +25,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const { mode, toggleMode, theme } = useTheme();
   const { navigateWithAnimation, isNavigating } = useNavigation();
   const { allDetails } = useAuth();
+  console.log(allDetails ,"EnhancedHeader")
   const pathname = usePathname();
 
   const isMobile = useMediaQuery("(max-width: 1279px)");
@@ -120,7 +121,8 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
-        {allDetails?.projectName === "SMITH" && <nav className="p-2 space-y-1">
+        {allDetails?.projectName === "SMITH" && 
+        <nav className="p-2 space-y-1">
           {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
             const isActive =
               path === "/" ? pathname === "/" : pathname.startsWith(path);
