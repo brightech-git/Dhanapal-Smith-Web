@@ -63,8 +63,8 @@ const VoucherGenerateForm: React.FC = () => {
         }
 
         const amountNum = Number(amount);
-        if (!amount || isNaN(amountNum) || amountNum <= 0) {
-            newErrors.amount = "Amount must be greater than 0";
+        if (isNaN(amountNum) || amountNum < 0) {
+            newErrors.amount = "Amount must be greater or equal than 0";
         }
 
         setErrors(newErrors);
