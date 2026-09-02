@@ -19,6 +19,9 @@ import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useToast } from "@/context/smith/ToastContext";
 import { VoucherService } from "@/service/voucherService";
 import { Introducer, VoucherReportRequest, VoucherReportResponse } from "@/types/giftVoucher";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 const VoucherReport: React.FC = () => {
     const { activeIntroducers } = useIntroducers();
@@ -178,29 +181,40 @@ const VoucherReport: React.FC = () => {
                             />
                         </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="From Date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={fromDate}
-                                onChange={(e) => setFromDate(e.target.value)}
-                            />
-                        </Grid>
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <Grid container spacing={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <DatePicker
+                label="From Date"
+                format="DD-MM-YYYY"
+                value={fromDate}
+                onChange={(newValue) => setFromDate(newValue)}
+                slotProps={{
+                    textField: {
+                        fullWidth: true,
+                        size: "small",
+                    },
+                }}
+            />
+        </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="To Date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={toDate}
-                                onChange={(e) => setToDate(e.target.value)}
-                            />
-                        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <DatePicker
+                label="To Date"
+                format="DD-MM-YYYY"
+                value={toDate}
+                onChange={(newValue) => setToDate(newValue)}
+                slotProps={{
+                    textField: {
+                        fullWidth: true,
+                        size: "small",
+                    },
+                }}
+            />
+        </Grid>
+    </Grid>
+</LocalizationProvider>
+
 
                         <Grid size={{ xs: 12 }} className="flex justify-end">
                             <Button variant="contained" color="primary" type="submit" disabled={loading}>

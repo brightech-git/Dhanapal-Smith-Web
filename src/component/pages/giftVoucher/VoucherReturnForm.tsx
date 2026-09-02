@@ -25,36 +25,17 @@ import Table ,{TableColumn} from "@/component/ui/table/Table";
 
 const VoucherReturnForm: React.FC = () => {
     const { activeIntroducers, fetchActive } = useIntroducers();
-    const { data: prefixes = [], isLoading: prefixesLoading } = useVoucherPrefixes();
+   
     const { addToast } = useToast();
 
-    const [introducersLoading, setIntroducersLoading] = useState(true);
-    const [selectedIntroducer, setSelectedIntroducer] = useState<Introducer | null>(null);
-    const [selectedPrefix, setSelectedPrefix] = useState<VoucherPrefix | null>(null);
-    const [batchNo, setBatchNo] = useState<string>("");
+   
     const [voucherNo, setVoucherNo] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
 
     const [returnItems ,setReturnItems] = useState<VoucherDetails[] | []>([]);
 
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                await fetchActive();
-            } catch (error) {
-                addToast({ type: "error", title: "Error", message: "Failed to fetch Introducers" });
-            } finally {
-                if (mounted) setIntroducersLoading(false);
-            }
-        })();
-        return () => {
-            mounted = false;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
+    console.log(returnItems,'returnItems')
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
 
@@ -91,16 +72,21 @@ const VoucherReturnForm: React.FC = () => {
 
 
             await VoucherService.returnVoucher(request);
+            setVoucherNo("");
 
+            setReturnItems([]);
+            setErrors({});
             addToast({
                 type: "success",
                 title: "Vouchers Receipt",
                 message: `voucher(s) receipt successfully`,
             });
 
-            setBatchNo("");
-            setVoucherNo("");
+           
+            
         } catch (error: any) {
+            console.error("Failed to receipt vouchers:", error);
+            console.log(error?.response , "Error")
             addToast({
                 type: "error",
                 title: "Error",
