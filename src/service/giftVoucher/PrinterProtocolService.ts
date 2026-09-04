@@ -205,7 +205,7 @@ export function buildVoucherLabelContent(vouchers: VoucherGeneration[], copies: 
 
     for (const voucherCode of labelQueue) {
         allContent += header;
-        allContent += `${TEXT_FIELD_PREFIX}${TEXT_FIELD_OFFSET}Coupen: ${voucherCode}${EOL}`;
+        allContent += `${TEXT_FIELD_PREFIX}${TEXT_FIELD_OFFSET}Coupon: ${voucherCode}${EOL}`;
         allContent += `${BARCODE_FIELD_PREFIX}${BARCODE_FIELD_OFFSET},LA,${voucherCode}${EOL}`;
         allContent += `Q0001${EOL}`;
         allContent += `E${EOL}`;
