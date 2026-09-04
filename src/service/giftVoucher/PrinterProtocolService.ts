@@ -153,23 +153,24 @@ export function downloadSetupFiles(config: PrinterConfig): void {
 }
 
 // ─── Raw label command generation ────────────────────────────────────────
-// Same command language / label stock as RTM POS's tag printer (CAB-style
-// raw commands, 25.1mm pitch, 4 labels packed per physical page). The
-// printer's command set only supports a 1D barcode field (no QR), so the
-// voucher code is printed as a Code128-style barcode instead of a QR code.
+// Same command language as RTM POS's tag printer, updated to the exact
+// field-position codes and 15.1mm pitch confirmed working on the real
+// hardware: one label per physical page, a text field showing the voucher
+// code, and a 1D barcode encoding the same code (the printer's command
+// language doesn't support QR, so a barcode is used instead).
 const EOL = "\r\n";
 
-// X-offset table for the 4 label slots on one page.
-const LABEL_OFFSETS = [
-    { w: "00092", a: "0010", b: "0010", c: "0089", d: "0010" },
-    { w: "01082", a: "0108", b: "0108", c: "0188", d: "0108" },
-    { w: "02062", a: "0207", b: "0207", c: "0286", d: "0207" },
-    { w: "03052", a: "0305", b: "0305", c: "0384", d: "0305" },
-];
+// Fixed field-position codes (format code + offset) verified against a
+// working sample print — see PrinterProtocolService docs/commit history
+// for the raw sample this was derived from.
+const TEXT_FIELD_PREFIX = "1911C100039"; // format code for the code text field
+const TEXT_FIELD_OFFSET = "0030"; // y-position offset
+const BARCODE_FIELD_PREFIX = "1W1D440000009"; // format code for the barcode field
+const BARCODE_FIELD_OFFSET = "00600"; // y-position offset
 
 function buildPageHeader(): string {
     return (
-        `<xpml><page quantity='0' pitch='25.1 mm'></xpml>` +
+        `<xpml><page quantity='0' pitch='15.1 mm'></xpml>` +
         `\u0002\u001BG0${EOL}` +
         `\u0002n${EOL}` +
         `\u0002M0500${EOL}` +
@@ -177,69 +178,38 @@ function buildPageHeader(): string {
         `\u0002V0${EOL}` +
         `\u0002\u001Bt1${EOL}` +
         `\u0002Kf0070${EOL}` +
-        `<xpml></page></xpml><xpml><page quantity='1' pitch='25.1 mm'></xpml>` +
+        `<xpml></page></xpml><xpml><page quantity='1' pitch='15.1 mm'></xpml>` +
         `\u0002L${EOL}` +
         `D11${EOL}` +
+        `H19${EOL}` +
         `A2${EOL}`
     );
 }
 
-function formatRupees(amount: number): string {
-    return `Rs:${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 /**
  * Builds the raw printer-command text for the given vouchers, `copies`
- * labels per voucher, packing 4 labels per physical page (same layout as
- * RTM POS's tag printer).
+ * labels per voucher — one voucher tag per physical page. Each tag has two
+ * fields: the voucher code as text, and the same code as a barcode.
  */
-export function buildVoucherLabelContent(
-    vouchers: VoucherGeneration[],
-    copies: number = 1,
-    companyName: string = "GIFT VOUCHER"
-): string {
-    type LabelEntry = { voucherCode: string; introducerName: string; amountText: string };
-
-    const labelQueue: LabelEntry[] = [];
+export function buildVoucherLabelContent(vouchers: VoucherGeneration[], copies: number = 1): string {
+    const labelQueue: string[] = [];
     for (const voucher of vouchers) {
-        const entry: LabelEntry = {
-            voucherCode: String(voucher.voucherCode || ""),
-            introducerName: (voucher.introducerName || "").substring(0, 15),
-            amountText: formatRupees(voucher.amount ?? 0),
-        };
+        const voucherCode = String(voucher.voucherCode || "");
         for (let c = 0; c < Math.max(1, copies); c++) {
-            labelQueue.push(entry);
+            labelQueue.push(voucherCode);
         }
     }
 
     const header = buildPageHeader();
-    const brand = companyName.substring(0, 15);
-
     let allContent = "";
-    let idx = 0;
-    while (idx < labelQueue.length) {
-        const labelsInThisPage = Math.min(4, labelQueue.length - idx);
+
+    for (const voucherCode of labelQueue) {
         allContent += header;
-
-        for (let i = 0; i < labelsInThisPage; i++) {
-            const lbl = labelQueue[idx + i];
-            const off = LABEL_OFFSETS[i];
-            // Barcode field — voucher code encoded as a 1D barcode.
-            allContent += `1W1D330000050${off.w},LA,${lbl.voucherCode}${EOL}`;
-            // Human-readable voucher code under the barcode.
-            allContent += `1911C060039${off.a}${lbl.voucherCode}${EOL}`;
-            // Introducer / customer name.
-            allContent += `1911C050029${off.b}${lbl.introducerName}${EOL}`;
-            // Brand / company name.
-            allContent += `4911C050049${off.c}${brand}${EOL}`;
-            // Amount.
-            allContent += `1911C100003${off.d}${lbl.amountText}${EOL}`;
-        }
-
+        allContent += `${TEXT_FIELD_PREFIX}${TEXT_FIELD_OFFSET}Coupen: ${voucherCode}${EOL}`;
+        allContent += `${BARCODE_FIELD_PREFIX}${BARCODE_FIELD_OFFSET},LA,${voucherCode}${EOL}`;
         allContent += `Q0001${EOL}`;
         allContent += `E${EOL}`;
         allContent += `<xpml></page></xpml><xpml><end/></xpml>${EOL}`;
-        idx += labelsInThisPage;
     }
 
     return allContent;
@@ -251,12 +221,8 @@ export function buildVoucherLabelContent(
  * Requires the one-time setup (see VoucherPrinterSetup) to already be done
  * on this computer.
  */
-export function printVoucherTagsViaProtocol(
-    vouchers: VoucherGeneration[],
-    copies: number = 1,
-    companyName?: string
-): void {
-    const content = buildVoucherLabelContent(vouchers, copies, companyName);
+export function printVoucherTagsViaProtocol(vouchers: VoucherGeneration[], copies: number = 1): void {
+    const content = buildVoucherLabelContent(vouchers, copies);
     downloadFile(content, SRC_FILENAME);
     setTimeout(() => {
         window.location.href = `${PROTOCOL}://launch`;

@@ -16,7 +16,6 @@ import VoucherPrinterSetup from "./VoucherPrinterSetup";
 import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useVoucherPrefixes } from "@/hooks/giftVoucher/useVoucherPrefixes";
 import { useToast } from "@/context/smith/ToastContext";
-import { useConfig } from "@/context/Config/ConfigContext";
 import { VoucherService } from "@/service/voucherService";
 import { GenerateVoucherRequest, Introducer, VoucherGeneration, VoucherPrefix } from "@/types/giftVoucher";
 import { isPrinterConfigured, printVoucherTagsViaProtocol } from "@/service/giftVoucher/PrinterProtocolService";
@@ -25,8 +24,6 @@ const VoucherGenerateForm: React.FC = () => {
     const { activeIntroducers, fetchActive } = useIntroducers();
     const { data: prefixes = [], isLoading: prefixesLoading } = useVoucherPrefixes();
     const { addToast } = useToast();
-    const config = useConfig();
-    const companyName = config?.COMPANYNAME || config?.COMPANY_NAME || "Gift Voucher";
 
     const [introducersLoading, setIntroducersLoading] = useState(true);
     const [selectedIntroducer, setSelectedIntroducer] = useState<Introducer | null>(null);
@@ -107,7 +104,7 @@ const VoucherGenerateForm: React.FC = () => {
             });
 
             if (isPrinterConfigured()) {
-                printVoucherTagsViaProtocol(enrichedResult, 1, companyName);
+                printVoucherTagsViaProtocol(enrichedResult, 1);
             } else {
                 addToast({
                     type: "warning",
