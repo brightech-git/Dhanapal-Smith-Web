@@ -48,6 +48,8 @@ export interface VoucherGeneration {
     voucherNo: number;
     voucherCode: string;
     createdAt: string;
+    introducerName?: string;
+    amount?: number;
 }
 
 export interface ReturnVoucherRequest {

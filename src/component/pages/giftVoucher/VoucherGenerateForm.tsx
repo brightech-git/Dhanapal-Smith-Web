@@ -12,17 +12,21 @@ import {
     CircularProgress,
 } from "@mui/material";
 import Table, { TableColumn } from "@/component/ui/table/Table";
-import VoucherQrPrint from "./VoucherQrPrint";
+import VoucherPrinterSetup from "./VoucherPrinterSetup";
 import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useVoucherPrefixes } from "@/hooks/giftVoucher/useVoucherPrefixes";
 import { useToast } from "@/context/smith/ToastContext";
+import { useConfig } from "@/context/Config/ConfigContext";
 import { VoucherService } from "@/service/voucherService";
 import { GenerateVoucherRequest, Introducer, VoucherGeneration, VoucherPrefix } from "@/types/giftVoucher";
+import { isPrinterConfigured, printVoucherTagsViaProtocol } from "@/service/giftVoucher/PrinterProtocolService";
 
 const VoucherGenerateForm: React.FC = () => {
     const { activeIntroducers, fetchActive } = useIntroducers();
     const { data: prefixes = [], isLoading: prefixesLoading } = useVoucherPrefixes();
     const { addToast } = useToast();
+    const config = useConfig();
+    const companyName = config?.COMPANYNAME || config?.COMPANY_NAME || "Gift Voucher";
 
     const [introducersLoading, setIntroducersLoading] = useState(true);
     const [selectedIntroducer, setSelectedIntroducer] = useState<Introducer | null>(null);
@@ -32,7 +36,6 @@ const VoucherGenerateForm: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const [generated, setGenerated] = useState<VoucherGeneration[]>([]);
-    const [printBatch, setPrintBatch] = useState<VoucherGeneration[]>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -88,15 +91,30 @@ const VoucherGenerateForm: React.FC = () => {
 
             const result = await VoucherService.generate(request);
 
-            console.log(result, 'result');
-            setGenerated(result);
-            setPrintBatch(result);
+            const enrichedResult: VoucherGeneration[] = result.map((voucher) => ({
+                ...voucher,
+                introducerName: selectedIntroducer!.introducerName,
+                amount: Number(amount),
+            }));
+
+            console.log(enrichedResult, 'result');
+            setGenerated(enrichedResult);
 
             addToast({
                 type: "success",
                 title: "Vouchers Issued",
                 message: `${result.length} voucher(s) issued successfully`,
             });
+
+            if (isPrinterConfigured()) {
+                printVoucherTagsViaProtocol(enrichedResult, 1, companyName);
+            } else {
+                addToast({
+                    type: "warning",
+                    title: "Printer Not Set Up",
+                    message: "Complete Tag Printer Setup above, then re-issue to print automatically.",
+                });
+            }
 
             setPiece("");
             setAmount("");
@@ -124,6 +142,8 @@ const VoucherGenerateForm: React.FC = () => {
             { key: "batchNo", label: "Batch No", align: "center", headalign: "center", width: "100px" },
             { key: "voucherCode", label: "Voucher Code", align: "left", headalign: "center", width: "160px" },
             { key: "voucherNo", label: "Voucher No", align: "center", headalign: "center", width: "120px" },
+            { key: "introducerName", label: "Introducer", align: "left", headalign: "center", width: "160px" },
+            { key: "amount", label: "Amount", align: "right", headalign: "center", width: "100px" },
         ],
         []
     );
@@ -137,6 +157,8 @@ const VoucherGenerateForm: React.FC = () => {
             >
                 Issue Vouchers
             </Typography>
+
+            <VoucherPrinterSetup />
 
             <Paper elevation={1} className="p-3 mb-3">
                 <form onSubmit={handleSubmit}>
@@ -256,9 +278,6 @@ const VoucherGenerateForm: React.FC = () => {
                 <Table columns={columns} data={generated} showRows={0} fixedHeight="320px" />
             )}
 
-            {printBatch.length > 0 && (
-                <VoucherQrPrint vouchers={printBatch} onDone={() => setPrintBatch([])} />
-            )}
         </Box>
     );
 };
