@@ -15,6 +15,7 @@ interface ColumnDef<T> {
 
 interface PrintTableProps<T> {
     title: string;
+    smith?:string;
     subtitle?: string;
     main?: boolean;
     showTotal?: boolean;
@@ -33,6 +34,7 @@ const getFontSize = (size?: string) => {
 
 const PrintTable = <T extends Record<string, any>>({
     title,
+    smith,
     subtitle,
     showTotal,
     main,
@@ -202,11 +204,12 @@ console.log(showTotal ,'showTotal')
             <div ref={printRef} style={{ display: "none" }}>
 
                 <div className="header" style={headerStyle}>
-                    <h1 style={titleStyle}>{title}</h1>
+                    {smith && <h1 style={titleStyle}>{smith}</h1>}
+                    {/* <h1 style={titleStyle}>{title}</h1>
                     {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
                     <p style={{ fontSize: showTotal === false ? "0.75rem" : "0.9rem", margin: 0 }}>
                         Printed on: {formattedDate} {formattedTime}
-                    </p>
+                    </p> */}
                 </div>
 
 

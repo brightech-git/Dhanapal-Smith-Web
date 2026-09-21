@@ -766,9 +766,9 @@ export default function SmithsPage() {
         <div style={{ background: styles.background.primary, color: styles.text.primary, minHeight: "100vh" }}>
             <main className="p-2 mx-auto">
                 {/* Fixed Flexbox Layout */}
-                <div className="flex flex-col lg:flex-row gap-4 w-full">
+                <div className="grid grid-cols-12 gap-2 sm:gap-4">
                     {/* Left Side - Main Table (30% width) */}
-                    <div className="flex-1 lg:flex-[0_0_30%] max-w-full lg:max-w-[50%] flex flex-col gap-1">
+                    <div className="col-span-12 lg:col-span-4">
                         <div className="flex justify-between items-center p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                             <h2 className="text-base font-semibold flex items-center space-x-2">
                                 <Wallet size={18} className="text-blue-600 dark:text-blue-400" />
@@ -780,6 +780,7 @@ export default function SmithsPage() {
                                     data={transactions || []}
                                     main={true}
                                     showTotal={showTotal}
+                               
                                 />
                             </h2>
                             <div className="flex  items-center space-x-1">
@@ -847,97 +848,101 @@ export default function SmithsPage() {
                     </div>
 
                     {/* Right Side - Weight + Cash Tables (70% width) */}
-                    <div className="flex-1 lg:flex-[0_0_70%] max-w-full lg:max-w-[52%] flex flex-col gap-1">
-                        {/* Weight Table */}
-                        <div className="flex-1 flex flex-col ">
-                            <div className="flex justify-between items-center px-3 py-4 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                                <h2 className="text-base font-semibold flex items-center space-x-2">
-                                    <Scale size={18} className="text-green-600 dark:text-green-400" />
-                                    <span>Weight Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
-                                </h2>
-                                {selectedSmithId && (
-                                    <div className="flex items-center space-x-2">
-                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} />
+                    <div className="col-span-12 lg:col-span-8">
+                        <div className="flex flex-col gap-4">
+                            {/* Weight Table */}
+                            <div className="flex flex-col ">
+                                <div className="flex justify-between items-center px-3 py-4 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
+                                    <h2 className="text-base font-semibold flex items-center space-x-2">
+                                        <Scale size={18} className="text-green-600 dark:text-green-400" />
+                                        <span>Weight Balance</span>
+                                        {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
+                                    </h2>
+                                    {selectedSmithId && (
+                                        <div className="flex items-center space-x-2">
+                                            <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smith={selectedSmithName} />
+                                            </div>
+                                            <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
+                                                Add New
+                                            </button>
                                         </div>
-                                        <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
-                                            Add New
-                                        </button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <Table
+                                        columns={weightBalanceColumns}
+                                        data={weightBalanceData}
+                                        striped
+                                        hoverable
+                                        compact="auto"
+                                        className="border border-t-0 rounded-t-none w-full"
+                                        headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
+                                        fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                        showRows={5}
+                                        renderFooter={showTotal ? () => (
+                                            <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-black font-semibold">
+                                                <tr>
+                                                    <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.receipts.toFixed(3)}</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.payments.toFixed(3)}</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.balance.toFixed(3)}</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        ) : undefined}
+                                    />
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <Table
-                                    columns={weightBalanceColumns}
-                                    data={weightBalanceData}
-                                    striped
-                                    hoverable
-                                    compact="auto"
-                                    className="border border-t-0 rounded-t-none w-full"
-                                    headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
-                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                    showRows={5}
-                                    renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-black font-semibold">
-                                            <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.receipts.toFixed(3)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.payments.toFixed(3)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.balance.toFixed(3)}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    ) : undefined}
-                                />
-                            </div>
-                        </div>
 
-                        {/* Cash Table */}
-                        <div className="flex-1 flex flex-col">
-                            <div className="flex justify-between items-center px-3 py-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                                <h2 className="text-base font-semibold flex items-center space-x-2">
-                                    <IndianRupee size={18} className="text-blue-600 dark:text-blue-400" />
-                                    <span>Cash Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
-                                </h2>
-                                {selectedSmithId && (
-                                    <div className="flex items-center space-x-2">
-                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} /></div>
-                                       
-                                        <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
-                                            Add New
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <Table
-                                    columns={cashBalanceColumns}
-                                    data={cashBalanceData}
-                                    striped
-                                    hoverable
-                                    compact="auto"
-                                    className="border border-t-0 rounded-t-none w-full"
-                                    headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
-                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                    showRows={5}
-                                    renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-blue-100 dark:bg-blue-800/30 text-black font-semibold">
-                                            <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.receipts)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.payments)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.balance)}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    ) : undefined}
-                                />
+                            {/* Cash Table */}
+                            <div className="flex-1 flex flex-col">
+                                <div className="flex justify-between items-center px-3 py-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
+                                    <h2 className="text-base font-semibold flex items-center space-x-2">
+                                        <IndianRupee size={18} className="text-blue-600 dark:text-blue-400" />
+                                        <span>Cash Balance</span>
+                                        {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
+                                    </h2>
+                                    {selectedSmithId && (
+                                        <div className="flex items-center space-x-2">
+                                            <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smith={selectedSmithName} /></div>
+
+                                            <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
+                                                Add New
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <Table
+                                        columns={cashBalanceColumns}
+                                        data={cashBalanceData}
+                                        striped
+                                        hoverable
+                                        compact="auto"
+                                        className="border border-t-0 rounded-t-none w-full"
+                                        headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                                        fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                        showRows={5}
+                                        renderFooter={showTotal ? () => (
+                                            <tfoot className=" sticky bottom-0 bg-blue-100 dark:bg-blue-800/30 text-black font-semibold">
+                                                <tr>
+                                                    <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.receipts)}</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.payments)}</td>
+                                                    <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.balance)}</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        ) : undefined}
+                                    />
+                                </div>
                             </div>
                         </div>
+                       
                     </div>
                     
                 </div>
+
                 <div className="flex md:flex-row flex-col gap-5 sm:gap-10 md:gap-20 lg:gap-40">
                     <div className="flex  lg:flex-row gap-2">
                         <SmithManager onSelectSmith={handleSmithSelect} />
