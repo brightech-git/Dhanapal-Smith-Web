@@ -16,12 +16,8 @@ const authService = {
             // ✅ Append /user/login dynamically
             const loginUrl = `${MAIN_URL.replace(/\/$/, "")}/users/login`;
 
-            console.log({userName , password ,projectName},"payload request")
-
             const { data } = await axios.post(loginUrl, { userName, password, projectName });
 
-            console.log(data ,"loginresponse");
-           
             return data;
         } catch (error: any) {
             const message =

@@ -17,7 +17,7 @@ import HeaderWrapper from '@/component/ui/HeaderWrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Danapal Smith Dashboard',
+  title: 'Smith Dashboard',
   description: 'A beautiful dashboard to manage the smith',
 };
 

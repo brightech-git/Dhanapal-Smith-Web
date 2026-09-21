@@ -32,7 +32,6 @@ const LoginForm: React.FC = () => {
 
     const { login, isAuthenticated, isLoading, allDetails } = useAuth();
 
-    console.log(allDetails,'allDetails')
     const { addToast } = useToast();
 
     const [userName, setUserName] = useState("");
