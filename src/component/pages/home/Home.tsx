@@ -858,7 +858,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} />
+                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smithName={selectedSmithName}/>
                                         </div>
                                         <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
                                             Add New
@@ -902,7 +902,7 @@ export default function SmithsPage() {
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
-                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} /></div>
+                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smithName={selectedSmithName} /></div>
                                        
                                         <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
                                             Add New

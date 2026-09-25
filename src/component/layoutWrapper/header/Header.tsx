@@ -29,7 +29,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const isSmithProject = allDetails?.projectName === "SMITH";
+
 
   const isMobile = useMediaQuery("(max-width: 1279px)");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -128,7 +128,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
             <X color="white" />
           </button>
         </div>
-        {isSmithProject &&
+      
           <nav className="p-2 space-y-1">
             {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
               const isActive =
@@ -150,7 +150,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
               );
             })}
           </nav>
-          }
+          
 
         <div className="p-2 border-t border-white/10">
           <button
@@ -195,7 +195,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
           </div>
 
           {/* Desktop Nav */}
-          {!isMobile && isSmithProject && (
+          {!isMobile &&  (
             <div className="flex gap-2">
               {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
                 const isActive =

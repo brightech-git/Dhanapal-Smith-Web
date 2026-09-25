@@ -12,8 +12,6 @@ import {
     Avatar,
     CircularProgress,
     Fade,
-    NativeSelect,
-    Autocomplete
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth/AuthContext";
@@ -23,33 +21,24 @@ import { LockOutlined, Visibility, VisibilityOff } from "@mui/icons-material";
 const LoginForm: React.FC = () => {
     const theme = useTheme();
     const router = useRouter();
-
-    const projectTypeList = [{label:"Smith",value:"SMITH"} , {label:"Gift Voucher",value:"GV"}]
-
-    const projectHomePath = (project?: string) =>
-        project === "GV" ? "/GiftVoucher" : "/";
-
-
-    const { login, isAuthenticated, isLoading, allDetails } = useAuth();
-
+    const { login, isAuthenticated, isLoading } = useAuth();
     const { addToast } = useToast();
 
     const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
-    const [projectType ,setProjectType ] =useState<string>("SMITH");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isAuthenticated) router.push(projectHomePath(allDetails?.projectName));
-    }, [isAuthenticated, allDetails, router]);
+        if (isAuthenticated) router.push("/");
+    }, [isAuthenticated, router]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLocalError(null);
 
-        if (!userName || !password ) {
+        if (!userName || !password) {
             setLocalError("Please fill in all fields");
             addToast({
                 type: "error",
@@ -59,15 +48,10 @@ const LoginForm: React.FC = () => {
             return;
         }
 
-        if(!projectType) {
-            setLocalError("Please Select ProjectType");
-            return;
-        }
-
         setIsLoggingIn(true);
 
         try {
-            await login(userName, password ,projectType);
+            await login(userName, password);
 
             addToast({
                 type: "success",
@@ -75,7 +59,7 @@ const LoginForm: React.FC = () => {
                 message: "Successfully logged in to your account",
             });
 
-            router.push(projectHomePath(projectType));
+            router.push("/");
         } catch (error: any) {
             setLocalError(error.message || "Invalid username or password");
             addToast({
@@ -155,30 +139,11 @@ const LoginForm: React.FC = () => {
                                         borderRadius: 2,
                                     }}
                                 >
-                                    <Typography color="white" textAlign="center">
+                                    <Typography color="error.main" textAlign="center">
                                         {localError}
                                     </Typography>
                                 </Paper>
                             )}
-                            <Autocomplete
-                                disablePortal
-                                options={projectTypeList}
-                                className=""
-                                getOptionLabel={(option) => option.label}
-                                value={
-                                    projectTypeList.find(
-                                        (option) => option.value === projectType
-                                    ) || null
-                                }
-                                onChange={(event, newValue) => {
-                                    setProjectType(newValue?.value || "SMITH");
-                                }}
-                                renderInput={(params) => (
-                                    <TextField {...params} label="ProjectType" sx={{ mb: 2 }} />
-                                )}
-                                size="small"
-                              
-                            />
 
                             <TextField
                                 fullWidth
@@ -187,7 +152,6 @@ const LoginForm: React.FC = () => {
                                 onChange={(e) => setUserName(e.target.value)}
                                 disabled={isLoggingIn}
                                 sx={{ mb: 2 }}
-                                size="small"
                             />
 
                             <TextField
@@ -205,7 +169,6 @@ const LoginForm: React.FC = () => {
                                     ),
                                 }}
                                 sx={{ mb: 2 }}
-                                size="small"
                             />
 
                             <Button

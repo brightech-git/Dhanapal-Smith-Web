@@ -20,6 +20,7 @@ interface PrintTableProps<T> {
     showTotal?: boolean;
     columns: ColumnDef<T>[];
     data: T[];
+    smithName ?:string;
 }
 
 const getFontSize = (size?: string) => {
@@ -38,6 +39,8 @@ const PrintTable = <T extends Record<string, any>>({
     main,
     columns,
     data,
+    smithName ,
+
 }: PrintTableProps<T>) => {
     const printRef = useRef<HTMLDivElement>(null);
 console.log(showTotal ,'showTotal')
@@ -97,7 +100,6 @@ console.log(showTotal ,'showTotal')
         printWindow.document.write(`
 <html>
   <head >
-    <title > ${title}</title>
    <style>
   @page { size: A4; margin: 10mm; }
 
@@ -201,14 +203,19 @@ console.log(showTotal ,'showTotal')
             {/* Hidden Printable Section */}
             <div ref={printRef} style={{ display: "none" }}>
 
-                <div className="header" style={headerStyle}>
+                {/* <div className="header" style={headerStyle}>
                     <h1 style={titleStyle}>{title}</h1>
                     {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
                     <p style={{ fontSize: showTotal === false ? "0.75rem" : "0.9rem", margin: 0 }}>
                         Printed on: {formattedDate} {formattedTime}
                     </p>
-                </div>
+                </div> */}
 
+                 <div className="header" style={headerStyle}>
+                    
+                    {smithName && <h1 style={titleStyle}>{smithName}</h1>}
+                  
+                </div> 
 
                 <table style={tableStyle}>
                     <thead>

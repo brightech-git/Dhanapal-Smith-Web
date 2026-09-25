@@ -4,28 +4,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import authService from "@/service/authService";
 import { getAxiosInstance, resetAxiosInstance } from "@/api/axiosInstance";
 
-
-interface UserDetails {
-  userName: string;
-  admin: boolean;
-  sno: number;
-  sessionToken: string;
-  USERNAME?: string; // Some APIs use uppercase
-  role?: string;
-}
-interface User {
-
-  sno: number;
-  date: string;
-  order?: string; // Some APIs use uppercase
-
-}
-
 interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;
     isLoading: boolean;
-    login: (userName: string, password: string, projectName:string) => Promise<void>;
+    login: (userName: string, password: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -61,8 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, []);
 
-    const login = async (userName: string, password: string, projectName:string) => {
-        const response = await authService.login({ userName, password, projectName });
+    const login = async (userName: string, password: string) => {
+        const response = await authService.login({ userName, password });
+
+        console.log("response", response);
 
         const session = {
             expiry: Date.now() + 30 * 60 * 1000, // 30 min
