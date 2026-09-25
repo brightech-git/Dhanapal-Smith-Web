@@ -8,6 +8,9 @@ interface ConfigType {
     MAIN_URL: string;
     COMPANY_NAME?: string;
     LOGO_URL?: string;
+    COMPANYNAME?: string;
+    LOGO?: string;
+    LOGOBASEURL?: string;
 }
 
 declare global {
