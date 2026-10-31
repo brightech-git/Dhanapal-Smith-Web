@@ -19,7 +19,8 @@ import { useIntroducers } from "@/context/giftVoucher/IntroducerContext";
 import { useToast } from "@/context/smith/ToastContext";
 import { VoucherService } from "@/service/voucherService";
 import { Introducer, VoucherReportRequest, VoucherReportResponse } from "@/types/giftVoucher";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { DatePicker,} from "@mui/x-date-pickers/DatePicker";
+import { Dayjs } from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
@@ -32,8 +33,8 @@ const VoucherReport: React.FC = () => {
     const [batchNo, setBatchNo] = useState<string>("");
     const [voucherNo, setVoucherNo] = useState<string>("");
     const [mobileNo, setMobileNo] = useState<string>("");
-    const [fromDate, setFromDate] = useState<string>("");
-    const [toDate, setToDate] = useState<string>("");
+    const [fromDate, setFromDate] = useState<Dayjs | null>(null);
+    const [toDate, setToDate] = useState<Dayjs | null>(null);
 
     const [loading, setLoading] = useState(false);
     const [rows, setRows] = useState<VoucherReportResponse[]>([]);
@@ -48,8 +49,8 @@ const VoucherReport: React.FC = () => {
                 batchNo: batchNo ? Number(batchNo) : undefined,
                 voucherNo: voucherNo ? Number(voucherNo) : undefined,
                 mobileNo: mobileNo || undefined,
-                fromDate: fromDate || undefined,
-                toDate: toDate || undefined,
+                fromDate: fromDate?.toString() || undefined,
+                toDate: toDate?.toString() || undefined,
             };
 
             const result = await VoucherService.getTallyReport(request);
