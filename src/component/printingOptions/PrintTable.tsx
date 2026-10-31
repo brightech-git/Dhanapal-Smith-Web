@@ -99,7 +99,7 @@ console.log(showTotal ,'showTotal')
         printWindow.document.write(`
 <html>
   <head >
-    <title > ${title}</title>
+  
    <style>
   @page { size: A4; margin: 10mm; }
 

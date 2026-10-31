@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import LoadingAnimation from '@/assets/json/Loading.json';
-import Lottie from "lottie-react";
+import {Lottie} from "lottie-react";
 
 interface ConfigType {
     MAIN_URL: string;
