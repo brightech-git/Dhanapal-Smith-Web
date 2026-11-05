@@ -3,7 +3,7 @@ import axios from "axios";
 export interface AuthRequest {
     userName: string;
     password: string;
-    projectName: string
+    projectName?: string;
 }
 
 const authService = {
@@ -16,7 +16,8 @@ const authService = {
             // ✅ Append /user/login dynamically
             const loginUrl = `${MAIN_URL.replace(/\/$/, "")}/users/login`;
 
-            const { data } = await axios.post(loginUrl, { userName, password, projectName });
+            const payload = projectName ? { userName, password, projectName } : { userName, password };
+            const { data } = await axios.post(loginUrl, payload);
 
             return data;
         } catch (error: any) {

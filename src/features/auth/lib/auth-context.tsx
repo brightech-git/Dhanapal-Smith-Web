@@ -9,7 +9,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;
     isLoading: boolean;
-    login: (userName: string, password: string, projectName: string) => Promise<void>;
+    login: (userName: string, password: string, projectName?: string) => Promise<any>;
     logout: () => void;
 }
 
@@ -45,11 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, []);
 
-    const login = async (userName: string, password: string, projectName: string) => {
+    const login = async (userName: string, password: string, projectName?: string) => {
         const response = await authService.login({ userName, password, projectName });
 
-        // Keep the project the user picked on the login screen when the
-        // backend does not send one back, so Smith/Gift Voucher routing works.
+        // The backend decides the user's project (SMITH or GV). A caller can
+        // still pass one as a fallback when the response has none.
         const details = { ...response, projectName: response?.projectName ?? projectName };
 
         const session = {
@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (baseUrl) getAxiosInstance(baseUrl);
 
         sessionStorage.setItem("authSession", JSON.stringify(session));
+        return details;
     };
 
     const logout = () => {
