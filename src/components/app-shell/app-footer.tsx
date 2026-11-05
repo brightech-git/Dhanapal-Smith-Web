@@ -2,35 +2,15 @@
 
 import React from 'react';
 import { Home, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react';
-import { useTheme } from '@/src/theme/theme-context';
 import { useNavigation } from '@/src/providers/navigation-provider';
 import companyLogo from '@/public/logo/com-logo.jpg';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation'; // ✅ Correct import for App Router
 
 const Footer = () => {
-    const { mode, theme } = useTheme();
-    const { navigateWithAnimation } = useNavigation();
-    const router = useRouter(); // ✅ Works fine in client component
-
-    const styles = mode === 'dark'
-        ? {
-            background: theme.colors?.dark?.background?.primary || '#1a1a1a',
-            borderColor: '#374151',
-            text: { primary: '#ffffff', secondary: '#a0a0a0' },
-        }
-        : {
-            background: theme.colors?.light?.background?.primary || '#ffffff',
-            borderColor: '#e5e7eb',
-            text: { primary: '#1a1a1a', secondary: '#6c757d' },
-        };
-
     return (
         <footer
-            style={{
-                background: styles.background,
-                borderTop: `1px solid ${styles.borderColor}`,
-            }}
+            className="border-t border-border bg-card"
         >
             <div
                 className="
@@ -40,11 +20,11 @@ const Footer = () => {
     mx-auto max-w-7xl 
     text-center text-xs 
     gap-2 sm:gap-5            /* tighter gap on mobile */
+    text-muted-foreground
   "
-                style={{ color: styles.text.secondary }}
             >
                 <p>
-                    &copy; {new Date().getFullYear()} Smith Management System. All rights reserved.
+                    &copy; {new Date().getFullYear()} Brightech Software Services. All rights reserved.
                 </p>
 
                 <p
@@ -58,7 +38,7 @@ const Footer = () => {
                         width={20}
                         alt="logo"
                     />
-                    <span>BrightechSoftwareSolutions</span>
+                    <span>Brightech Software Services</span>
                 </p>
             </div>
 

@@ -17,7 +17,7 @@ import { IconButton } from "@mui/material";
 import Register from "@/src/module/user/component/register-form";
 
 export default function SmithsPage() {
-    const { mode, theme, responsive } = useTheme();
+    const { responsive } = useTheme();
     const { addToast } = useToast();
     const { createSmith, smiths: allSmiths } = useSmithDetails();
     const { softControls } = useSoftControls();
@@ -41,25 +41,13 @@ export default function SmithsPage() {
     }, [softControls]);
 
 
-    const styles = useMemo(() => {
-        const isDark = mode === "dark";
-        return {
-            background: {
-                primary: isDark
-                    ? theme.colors?.dark?.background?.primary || "#1f2937"
-                    : theme.colors?.light?.background?.primary || "#ffffff",
-                card: isDark
-                    ? theme.colors?.dark?.background?.tertiary || "#4b5563"
-                    : theme.colors?.light?.background?.tertiary || "#f3f4f6",
-            },
-            text: {
-                primary: isDark
-                    ? theme.colors?.dark?.text?.primary || "#f9fafb"
-                    : theme.colors?.light?.text?.primary || "#111827",
-            },
-            border: isDark ? "#4b5563" : "#e5e7eb",
-        };
-    }, [mode, theme]);
+    // Colors come from the theme tokens (app/globals.css), so they follow
+    // light/dark mode and the theme studio preset.
+    const styles = {
+        background: { primary: "var(--background)", card: "var(--muted)" },
+        text: { primary: "var(--foreground)" },
+        border: "var(--border)",
+    };
 
     const {
         transactions,
@@ -771,7 +759,7 @@ export default function SmithsPage() {
                     <div className="flex-1 lg:flex-[0_0_30%] max-w-full lg:max-w-[50%] flex flex-col gap-1">
                         <div className="flex justify-between items-center p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                             <h2 className="text-base font-semibold flex items-center space-x-2">
-                                <Wallet size={18} className="text-blue-600 dark:text-blue-400" />
+                                <Wallet size={18} className="text-primary-text" />
                                 <span>Smith Transactions</span>
                                 <PrintTable
                                     title="Smith Transactions"
@@ -788,7 +776,7 @@ export default function SmithsPage() {
                                     value={newSmithName}
                                     onChange={(e) => setNewSmithName(e.target.value)}
                                     placeholder="Enter Smith name"
-                                    className="border border-gray-300 rounded px-2 py-1.5 text-xs w-32 sm:w-40 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    className="border border-border rounded px-2 py-1.5 text-xs w-32 sm:w-40 focus:outline-none focus:ring-1 focus:ring-ring"
                                     onKeyDown={(e) => e.key === 'Enter' && handleCreateSmith()}
                                 />
                                 <button
@@ -811,17 +799,17 @@ export default function SmithsPage() {
                                 hoverable
                                 compact="auto"
                                 className="border border-t-0 w-full"
-                                headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                                headerClassName="border-b bg-blue-600 text-white"
                                 bodyClassName="border-0"
                                 fixedHeight={responsive.isMobile ? "400px" : "500px"}
                                 showRows={20}
                                 renderFooter={() => (
-                                    <tfoot className="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 font-semibold">
+                                    <tfoot className="sticky bottom-0 z-10 bg-muted font-semibold">
                                         <tr>
-                                            <td colSpan={2} className="text-right text-red-600  pr-2 border-r border-gray-300 dark:border-gray-600">
+                                            <td colSpan={2} className="text-right text-red-600  pr-2 border-r border-border">
                                                 Total
                                             </td>
-                                            <td className="text-right text-red-600 pr-1 dark:text-blue-400 border-r border-gray-300 dark:border-gray-600">
+                                            <td className="text-right text-red-600 pr-1 border-r border-border">
                                                 {transactionTotals.weight.toFixed(3)}
                                             </td>
                                             <td className="text-right text-red-600 pr-1  dark:text-green-400">
@@ -834,7 +822,7 @@ export default function SmithsPage() {
                         </div>
 
                         {/* {selectedSmithId && selectedSmithName && !existingTransaction && (
-                            <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded border" style={{ borderColor: styles.border }}>
+                            <div className="flex items-center gap-2 p-3 bg-muted rounded border" style={{ borderColor: styles.border }}>
                                 <span className="text-sm font-medium">Selected: {selectedSmithName}</span>
                                 <button
                                     onClick={handleAddTransaction}
@@ -854,7 +842,7 @@ export default function SmithsPage() {
                                 <h2 className="text-base font-semibold flex items-center space-x-2">
                                     <Scale size={18} className="text-green-600 dark:text-green-400" />
                                     <span>Weight Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
+                                    {selectedSmithId && <span className="text-sm text-muted-foreground">({selectedSmithName})</span>}
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
@@ -878,12 +866,12 @@ export default function SmithsPage() {
                                     fixedHeight={responsive.isMobile ? "250px" : "280px"}
                                     showRows={5}
                                     renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-black font-semibold">
+                                        <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-foreground font-semibold">
                                             <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.receipts.toFixed(3)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.payments.toFixed(3)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{weightTotals.balance.toFixed(3)}</td>
+                                                <td colSpan={2} className="text-right pr-4 border-r border-border">Total</td>
+                                                <td className="text-right border-r border-border">{weightTotals.receipts.toFixed(3)}</td>
+                                                <td className="text-right border-r border-border">{weightTotals.payments.toFixed(3)}</td>
+                                                <td className="text-right border-r border-border">{weightTotals.balance.toFixed(3)}</td>
                                                 <td></td>
                                             </tr>
                                         </tfoot>
@@ -896,9 +884,9 @@ export default function SmithsPage() {
                         <div className="flex-1 flex flex-col">
                             <div className="flex justify-between items-center px-3 py-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
                                 <h2 className="text-base font-semibold flex items-center space-x-2">
-                                    <IndianRupee size={18} className="text-blue-600 dark:text-blue-400" />
+                                    <IndianRupee size={18} className="text-primary-text" />
                                     <span>Cash Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-gray-600 dark:text-gray-300">({selectedSmithName})</span>}
+                                    {selectedSmithId && <span className="text-sm text-muted-foreground">({selectedSmithName})</span>}
                                 </h2>
                                 {selectedSmithId && (
                                     <div className="flex items-center space-x-2">
@@ -918,16 +906,16 @@ export default function SmithsPage() {
                                     hoverable
                                     compact="auto"
                                     className="border border-t-0 rounded-t-none w-full"
-                                    headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                                    headerClassName="border-b bg-blue-600 text-white"
                                     fixedHeight={responsive.isMobile ? "250px" : "280px"}
                                     showRows={5}
                                     renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-blue-100 dark:bg-blue-800/30 text-black font-semibold">
+                                        <tfoot className=" sticky bottom-0 bg-accent-soft text-foreground font-semibold">
                                             <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-gray-300 dark:border-gray-600">Total</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.receipts)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.payments)}</td>
-                                                <td className="text-right border-r border-gray-300 dark:border-gray-600">{formatCurrency(cashTotals.balance)}</td>
+                                                <td colSpan={2} className="text-right pr-4 border-r border-border">Total</td>
+                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.receipts)}</td>
+                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.payments)}</td>
+                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.balance)}</td>
                                                 <td></td>
                                             </tr>
                                         </tfoot>

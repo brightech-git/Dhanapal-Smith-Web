@@ -242,7 +242,7 @@ export default function OrderPage() {
 
   /* -------------------- UI -------------------- */
   return (
-    <div className="min-h-screen bg-gray-50 p-3">
+    <div className="min-h-screen bg-muted p-3">
       <style jsx>{`
         @keyframes slideIn {
           from { transform: translateX(100%); opacity: 0; }
@@ -254,11 +254,11 @@ export default function OrderPage() {
       <Toast toasts={toasts} removeToast={removeToast} />
 
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-3">
+      <div className="bg-card rounded-lg shadow-sm p-4 mb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-800">Order Management</h1>
-            <p className="text-xs text-gray-600">
+            <h1 className="text-lg font-bold text-foreground">Order Management</h1>
+            <p className="text-xs text-muted-foreground">
               {orders.length} orders • {isAddingNew ? "Adding new order" : "Ready to add"}
             </p>
           </div>
@@ -278,10 +278,10 @@ export default function OrderPage() {
       </div>
 
       {/* TABLE CONTAINER */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden max-h-[calc(100vh-140px)]">
+      <div className="bg-card rounded-lg shadow-sm overflow-hidden max-h-[calc(100vh-140px)]">
         <div className="overflow-auto h-full">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-gray-800 text-white">
+            <thead className="sticky top-0 bg-primary text-primary-foreground">
               <tr>
                 <th className="p-2 text-left font-medium w-14">SNO</th>
                 <th className="p-2 text-left font-medium w-36">Order Date</th>
@@ -290,7 +290,7 @@ export default function OrderPage() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {/* Existing orders */}
               {pagedOrders.map((order, i) => {
                 const isEdit = editingId === order.id;
@@ -299,11 +299,11 @@ export default function OrderPage() {
                 return (
                   <tr 
                     key={order.id} 
-                    className="hover:bg-gray-50"
+                    className="hover:bg-muted"
                   >
                     {/* Serial Number */}
                     <td className="p-2">
-                      <div className="font-medium text-gray-700 pl-1">
+                      <div className="font-medium text-foreground pl-1">
                         {globalIndex}
                       </div>
                     </td>
@@ -341,12 +341,12 @@ export default function OrderPage() {
                                 }))
                               }
                               className={`w-full px-2 py-1 border rounded text-sm ${
-                                errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                errors.date ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
                               }`}
                             />
                             <button
                               onClick={() => openDatePicker(i)}
-                              className="p-1.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                              className="p-1.5 border border-border rounded hover:bg-muted transition-colors"
                               type="button"
                               title="Open date picker"
                             >
@@ -358,7 +358,7 @@ export default function OrderPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="text-gray-700 text-sm">
+                        <div className="text-foreground text-sm">
                           {order.orderDate && order.orderDate.includes('-') ? toUIDate(order.orderDate) : order.orderDate}
                         </div>
                       )}
@@ -378,7 +378,7 @@ export default function OrderPage() {
                               }))
                             }
                             className={`w-full px-2 py-1 border rounded text-sm resize-none min-h-[38px] ${
-                              errors.items ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                              errors.items ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
                             }`}
                             onInput={(e) => {
                               const target = e.target as HTMLTextAreaElement;
@@ -393,7 +393,7 @@ export default function OrderPage() {
                         </div>
                       ) : (
                         <div 
-                          className="text-gray-700 line-clamp-2 cursor-help text-sm"
+                          className="text-foreground line-clamp-2 cursor-help text-sm"
                           title={order.orderItems}
                         >
                           {order.orderItems}
@@ -411,7 +411,7 @@ export default function OrderPage() {
                               disabled={isSaving}
                               className={`p-1.5 rounded transition-colors ${
                                 isSaving
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
                                   : 'text-green-600 hover:text-green-800 hover:bg-green-50'
                               }`}
                               title="Save"
@@ -421,7 +421,7 @@ export default function OrderPage() {
                             <button
                               onClick={handleCancel}
                               disabled={isSaving}
-                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
                               title="Cancel"
                             >
                               <X size={14} />
@@ -432,7 +432,7 @@ export default function OrderPage() {
                             <button
                               onClick={() => handleEdit(order)}
                               disabled={isSaving || isAddingNew}
-                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                              className="p-1.5 text-primary-text hover:text-primary-text hover:bg-accent-soft rounded transition-colors disabled:opacity-50"
                               title="Edit"
                             >
                               <Pencil size={14} />
@@ -440,7 +440,7 @@ export default function OrderPage() {
                             <button
                               onClick={() => handleDelete(order.id!)}
                               disabled={isSaving || isAddingNew}
-                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
                               title="Delete"
                             >
                               <Trash2 size={14} />
@@ -460,7 +460,7 @@ export default function OrderPage() {
                   className="bg-green-50 hover:bg-green-100"
                 >
                   <td className="p-2">
-                    <div className="font-medium text-gray-700 pl-1">
+                    <div className="font-medium text-foreground pl-1">
                       {orders.length + 1}
                       <span className="ml-1 text-xs text-green-600">●</span>
                     </div>
@@ -497,12 +497,12 @@ export default function OrderPage() {
                             }))
                           }
                           className={`w-full px-2 py-1 border rounded text-sm ${
-                            errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                            errors.date ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
                           }`}
                         />
                         <button
                           onClick={() => openDatePicker(pagedOrders.length)}
-                          className="p-1.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          className="p-1.5 border border-border rounded hover:bg-muted transition-colors"
                           type="button"
                           title="Open date picker"
                         >
@@ -527,7 +527,7 @@ export default function OrderPage() {
                           }))
                         }
                         className={`w-full px-2 py-1 border rounded text-sm resize-none min-h-[38px] ${
-                          errors.items ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          errors.items ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
                         }`}
                         onInput={(e) => {
                           const target = e.target as HTMLTextAreaElement;
@@ -549,7 +549,7 @@ export default function OrderPage() {
                         disabled={isSaving}
                         className={`p-1.5 rounded transition-colors ${
                           isSaving
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
                             : 'text-green-600 hover:text-green-800 hover:bg-green-50'
                         }`}
                         title="Save"
@@ -559,7 +559,7 @@ export default function OrderPage() {
                       <button
                         onClick={handleCancel}
                         disabled={isSaving}
-                        className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                        className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
                         title="Cancel"
                       >
                         <X size={14} />
@@ -572,12 +572,12 @@ export default function OrderPage() {
               {/* Empty State */}
               {orders.length === 0 && !isAddingNew && (
                 <tr>
-                  <td colSpan={4} className="p-6 text-center text-gray-500">
+                  <td colSpan={4} className="p-6 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <div className="text-sm">No orders found</div>
                       <button
                         onClick={handleAddRow}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                        className="text-primary-text hover:text-primary-text text-sm font-medium transition-colors"
                       >
                         Add your first order
                       </button>
@@ -596,7 +596,7 @@ export default function OrderPage() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="p-1.5 rounded disabled:opacity-30 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded disabled:opacity-30 hover:bg-muted transition-colors"
             title="Previous"
           >
             ◀
@@ -621,7 +621,7 @@ export default function OrderPage() {
                 className={`min-w-8 h-8 px-2 rounded text-sm transition-colors ${
                   page === pageNum
                     ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 {pageNum}
@@ -632,7 +632,7 @@ export default function OrderPage() {
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="p-1.5 rounded disabled:opacity-30 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded disabled:opacity-30 hover:bg-muted transition-colors"
             title="Next"
           >
             ▶

@@ -127,7 +127,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
                     todayButton="Today"
                     minDate={new Date("2000-01-01")}
                     maxDate={new Date("2100-12-31")}
-                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSaving ? "opacity-50 cursor-not-allowed" : ""
+                    className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring ${isSaving ? "opacity-50 cursor-not-allowed" : ""
                         } ${className}`}
                     disabled={isSaving}
                     popperClassName="custom-datepicker-popper"
@@ -136,7 +136,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
         }
 
         return (
-            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-white">
+            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-card">
                 <input
                     ref={inputRef}
                     type={type === "numbers" ? "text" : type}
@@ -156,7 +156,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     return (
         <div
             onClick={handleClick}
-            className={`w-full px-1 py-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors ${className}`}
+            className={`w-full px-1 py-1 cursor-pointer hover:bg-accent-soft rounded transition-colors ${className}`}
             title="Click to edit"
         >
             {/* ✅ Show displayValue (masked password) if available */}

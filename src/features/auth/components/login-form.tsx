@@ -142,7 +142,7 @@ const LoginForm: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-[#f4f7fb]">
+            <div className="flex h-screen items-center justify-center bg-background">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         );
@@ -162,27 +162,27 @@ const LoginForm: React.FC = () => {
     const busy = status !== "idle";
 
     return (
-        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#f4f7fb] via-white to-[#fdf8ee] px-4 py-10 sm:px-6">
+        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#f4f7fb] via-white to-[#fdf8ee] dark:from-[#0b1018] dark:via-[#0f141c] dark:to-[#17150f] px-4 py-10 sm:px-6">
             <Backdrop reduceMotion={!!reduceMotion} />
 
             <motion.div
                 initial={{ opacity: 0, y: reduceMotion ? 0 : 24, scale: reduceMotion ? 1 : 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-full max-w-5xl rounded-[26px] bg-gradient-to-br from-amber-300/80 via-slate-200 to-[#1d5fb0]/50 p-px shadow-[0_30px_70px_-25px_rgba(12,55,106,0.35)]"
+                className="relative w-full max-w-5xl rounded-[26px] bg-gradient-to-br from-amber-300/80 via-border to-[#1d5fb0]/50 dark:via-white/10 p-px shadow-[0_30px_70px_-25px_rgba(12,55,106,0.35)]"
             >
-            <div className="grid overflow-hidden rounded-[25px] bg-white lg:grid-cols-[1.05fr_1fr]">
+            <div className="grid overflow-hidden rounded-[25px] bg-card lg:grid-cols-[1.05fr_1fr]">
                 {/* Brand panel */}
-                <div className="relative hidden flex-col justify-between overflow-hidden border-r border-slate-100 p-10 text-[#0c2a52] lg:flex">
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#eaf2fc] via-[#f5f8fd] to-[#fdf3dc]" />
-                    <div className="absolute inset-0 -z-10 opacity-[0.35] [background-image:linear-gradient(45deg,#dbe5f1_1px,transparent_1px),linear-gradient(-45deg,#dbe5f1_1px,transparent_1px)] [background-size:28px_28px]" />
+                <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border p-10 text-foreground lg:flex">
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#eaf2fc] via-[#f5f8fd] to-[#fdf3dc] dark:from-[#111a28] dark:via-[#121925] dark:to-[#1d1a10]" />
+                    <div className="absolute inset-0 -z-10 opacity-[0.35] dark:opacity-[0.06] [background-image:linear-gradient(45deg,#dbe5f1_1px,transparent_1px),linear-gradient(-45deg,#dbe5f1_1px,transparent_1px)] [background-size:28px_28px]" />
 
                     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
                         <motion.div variants={item} className="flex items-center gap-4">
                             <BrandMark reduceMotion={!!reduceMotion} />
                             <div>
                                 <h1 className="text-xl font-bold uppercase leading-tight tracking-[0.18em]">Brightech</h1>
-                                <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-700">
+                                <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-700 dark:text-amber-300">
                                     Software Services
                                 </p>
                             </div>
@@ -190,7 +190,7 @@ const LoginForm: React.FC = () => {
 
                         <motion.span
                             variants={item}
-                            className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
+                            className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-400/10 dark:text-amber-200"
                         >
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
                             {PRODUCT}
@@ -209,39 +209,39 @@ const LoginForm: React.FC = () => {
                         <motion.ul variants={container} className="space-y-4 pt-2">
                             {FEATURES.map(({ icon: Icon, title, text }) => (
                                 <motion.li key={title} variants={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#0c376a]/10">
+                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card shadow-sm ring-1 ring-border">
                                         <Icon className="h-4 w-4 text-amber-600" />
                                     </span>
                                     <span>
                                         <span className="block text-sm font-semibold">{title}</span>
-                                        <span className="block text-sm text-slate-500">{text}</span>
+                                        <span className="block text-sm text-muted-foreground">{text}</span>
                                     </span>
                                 </motion.li>
                             ))}
                         </motion.ul>
                     </motion.div>
 
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                         © {new Date().getFullYear()} {BRAND}. All rights reserved.
                     </p>
                 </div>
 
                 {/* Form panel */}
-                <div className="relative bg-white px-6 py-10 sm:px-10 sm:py-12">
+                <div className="relative bg-card px-6 py-10 sm:px-10 sm:py-12">
                     <motion.div variants={container} initial="hidden" animate="show" className="mx-auto w-full max-w-sm">
                         {/* Compact brand for phones and tablets */}
                         <motion.div variants={item} className="mb-8 flex items-center gap-3 lg:hidden">
                             <BrandMark reduceMotion={!!reduceMotion} small />
                             <div>
                                 <span className="block text-base font-bold uppercase tracking-[0.16em] text-primary">Brightech</span>
-                                <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-slate-500">Software Services</span>
+                                <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground">Software Services</span>
                             </div>
                         </motion.div>
 
-                        <motion.h3 variants={item} className="text-3xl font-semibold tracking-tight text-slate-900">
+                        <motion.h3 variants={item} className="text-3xl font-semibold tracking-tight text-foreground">
                             Sign in
                         </motion.h3>
-                        <motion.p variants={item} className="mt-2 text-sm text-slate-500">
+                        <motion.p variants={item} className="mt-2 text-sm text-muted-foreground">
                             Welcome back. Enter your details to continue.
                         </motion.p>
 
@@ -261,7 +261,7 @@ const LoginForm: React.FC = () => {
                                         exit={{ opacity: 0, height: 0 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+                                        <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                                             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                                             <span>{serverError}</span>
                                         </div>
@@ -317,7 +317,7 @@ const LoginForm: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword((s) => !s)}
-                                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                                             aria-label={showPassword ? "Hide password" : "Show password"}
                                             tabIndex={-1}
                                         >
@@ -341,14 +341,14 @@ const LoginForm: React.FC = () => {
 
                             <motion.label
                                 variants={item}
-                                className="flex w-fit cursor-pointer select-none items-center gap-2.5 text-sm text-slate-600"
+                                className="flex w-fit cursor-pointer select-none items-center gap-2.5 text-sm text-muted-foreground"
                             >
                                 <input
                                     type="checkbox"
                                     checked={remember}
                                     onChange={(e) => setRemember(e.target.checked)}
                                     disabled={busy}
-                                    className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-primary"
+                                    className="h-4 w-4 cursor-pointer rounded border-border accent-primary"
                                 />
                                 Remember my username
                             </motion.label>
@@ -358,15 +358,15 @@ const LoginForm: React.FC = () => {
                             </motion.div>
                         </motion.form>
 
-                        <motion.div variants={item} className="mt-10 flex items-center justify-center gap-3 text-xs text-slate-400">
-                            <span className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-200" />
+                        <motion.div variants={item} className="mt-10 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+                            <span className="h-px flex-1 bg-gradient-to-r from-transparent to-border" />
                             <span className="flex items-center gap-1.5">
                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                                 Secured by {BRAND}
                             </span>
-                            <span className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-200" />
+                            <span className="h-px flex-1 bg-gradient-to-l from-transparent to-border" />
                         </motion.div>
-                        <motion.p variants={item} className="mt-3 text-center text-xs text-slate-400">
+                        <motion.p variants={item} className="mt-3 text-center text-xs text-muted-foreground">
                             Trouble signing in? Contact your administrator.
                         </motion.p>
                     </motion.div>
@@ -417,15 +417,15 @@ const Field: React.FC<FieldProps> = ({
 }) => (
     <div>
         <div
-            className={`group relative flex items-center rounded-xl border bg-slate-50/60 transition-all duration-200 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(12,55,106,0.08)] ${
+            className={`group relative flex items-center rounded-xl border bg-muted/60 transition-all duration-200 focus-within:bg-card focus-within:shadow-[0_0_0_4px_rgba(12,55,106,0.08)] ${
                 error
                     ? "border-red-300 focus-within:border-red-400"
-                    : "border-slate-200 hover:border-slate-300 focus-within:border-primary"
+                    : "border-border hover:border-border focus-within:border-primary"
             }`}
         >
             <Icon
                 className={`pointer-events-none absolute left-3.5 h-[18px] w-[18px] transition-colors ${
-                    error ? "text-red-400" : "text-slate-400 group-focus-within:text-primary"
+                    error ? "text-red-400" : "text-muted-foreground group-focus-within:text-primary"
                 }`}
             />
             <input
@@ -443,11 +443,11 @@ const Field: React.FC<FieldProps> = ({
                 placeholder=" "
                 aria-invalid={!!error}
                 aria-describedby={error ? `${id}-error` : undefined}
-                className="peer h-14 w-full rounded-xl bg-transparent pb-2 pl-11 pr-11 pt-6 text-[15px] text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="peer h-14 w-full rounded-xl bg-transparent pb-2 pl-11 pr-11 pt-6 text-[15px] text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
             />
             <label
                 htmlFor={id}
-                className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 text-[15px] text-slate-400 transition-all duration-200 peer-focus:top-[18px] peer-focus:text-xs peer-focus:font-medium peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-[18px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-medium"
+                className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 text-[15px] text-muted-foreground transition-all duration-200 peer-focus:top-[18px] peer-focus:text-xs peer-focus:font-medium peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-[18px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-medium"
             >
                 {label}
             </label>
@@ -542,7 +542,7 @@ const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduc
                     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                 />
             </span>
-            <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[14px] bg-white p-1.5 shadow-lg">
+            <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[14px] bg-card p-1.5 shadow-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={LOGO_SRC} alt={`${BRAND} logo`} className="h-full w-full object-contain" />
                 {!reduceMotion && (

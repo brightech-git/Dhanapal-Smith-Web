@@ -236,7 +236,7 @@ const Table: React.FC<TableProps> = ({
                     onChange={handleInputChange}
                     onBlur={() => handleSave(rowIndex, column.key)}
                     onKeyDown={(e) => handleKeyDown(e, rowIndex, column.key)}
-                    className={`w-full ${getTextSizeClass()} border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800`}
+                    className={`w-full ${getTextSizeClass()} border border-border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-ring bg-card`}
                     aria-label={`Edit ${column.label}`}
                     min="0"
                     step="0.01"
@@ -261,11 +261,11 @@ const Table: React.FC<TableProps> = ({
         return (
             <div className={`animate-pulse ${tableStyles.bodyBg} rounded-lg border ${tableStyles.border} ${className}`}>
                 <div className={`${getPaddingClass()} ${tableStyles.headerBg}`}>
-                    <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+                    <div className="h-4 bg-border rounded w-1/3"></div>
                 </div>
                 {[...Array(5)].map((_, index) => (
                     <div key={index} className={`${getPaddingClass()} border-b ${tableStyles.border}`}>
-                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="h-4 bg-border rounded w-full"></div>
                     </div>
                 ))}
             </div>
@@ -275,7 +275,7 @@ const Table: React.FC<TableProps> = ({
     return (
         <div className={`overflow-hidden rounded-lg border ${tableStyles.border} shadow-sm ${className}`}>
             <div
-                className="overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
+                className="overflow-auto scrollbar-thin  "
                 style={fixedHeight ? { maxHeight: fixedHeight } : {}}
             >
                 <table className="w-full border-collapse">
@@ -332,7 +332,7 @@ const Table: React.FC<TableProps> = ({
                         <div className={`${tableStyles.bodyText} ${responsive.isMobile ? 'text-sm' : 'text-base'} font-medium`}>
                             {emptyMessage}
                         </div>
-                        <div className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                        <div className="text-muted-foreground text-sm mt-1">
                             There are no records to display
                         </div>
                     </div>

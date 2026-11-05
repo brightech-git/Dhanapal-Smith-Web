@@ -230,7 +230,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                         transition={{ duration: 0.3 }}
                     >
                         {visibleSmiths.length === 0 ? (
-                            <div className="text-center py-4 text-gray-500">
+                            <div className="text-center py-4 text-muted-foreground">
                                 Click "See All" to view and manage smiths
                             </div>
                         ) : (

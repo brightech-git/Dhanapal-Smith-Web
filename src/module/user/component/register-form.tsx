@@ -232,7 +232,7 @@ const UsersTable = () => {
                     hoverable
                     compact="auto"
                     className="border border-t-0 w-full"
-                    headerClassName="border-b bg-blue-600 text-white dark:bg-blue-800"
+                    headerClassName="border-b bg-blue-600 text-white"
                     bodyClassName="border-0"
                     fixedHeight={responsive.isMobile ? "400px" : "500px"}
                     loading={loading}

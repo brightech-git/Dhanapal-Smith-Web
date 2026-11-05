@@ -32,7 +32,7 @@ const GiftVoucherPage: React.FC = () => {
                     Gift Voucher
                 </Typography>
 
-                <Paper elevation={0} className="mb-3 p-1 flex flex-wrap gap-1 border border-gray-200 dark:border-gray-700 rounded-lg w-fit">
+                <Paper elevation={0} className="mb-3 p-1 flex flex-wrap gap-1 border border-border rounded-lg w-fit">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
@@ -41,7 +41,7 @@ const GiftVoucherPage: React.FC = () => {
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                                 activeTab === tab.key
                                     ? "bg-[var(--primary-background-color)] text-white"
-                                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    : "text-muted-foreground hover:bg-muted"
                             }`}
                         >
                             {tab.icon}
