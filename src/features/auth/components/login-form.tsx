@@ -24,13 +24,11 @@ import {
     User,
 } from "lucide-react";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
-import { APP_BRANDING } from "@/src/config/branding";
 
 const REMEMBER_KEY = "smith.rememberedUser";
-const BRAND = APP_BRANDING.developerName;
-const PRODUCT = APP_BRANDING.appName;
-const LOGO_SRC = APP_BRANDING.developerLogo;
-const VERSION = APP_BRANDING.version;
+const BRAND = "Brightech Software Services";
+const PRODUCT = "Smith & Gift Voucher Suite";
+const LOGO_SRC = "/logo/com-logo.jpg";
 
 const projectHomePath = (project?: string) =>
     project === "GV" ? "/gift-voucher" : "/";
@@ -196,7 +194,6 @@ const LoginForm: React.FC = () => {
                         >
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
                             {PRODUCT}
-                            <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold">v{VERSION}</span>
                         </motion.span>
 
                         <motion.h2
@@ -225,7 +222,7 @@ const LoginForm: React.FC = () => {
                     </motion.div>
 
                     <p className="text-xs text-muted-foreground">
-                        © {new Date().getFullYear()} {BRAND}. All rights reserved. · {PRODUCT} v{VERSION}
+                        © {new Date().getFullYear()} {BRAND}. All rights reserved.
                     </p>
                 </div>
 
@@ -245,7 +242,7 @@ const LoginForm: React.FC = () => {
                             Sign in
                         </motion.h3>
                         <motion.p variants={item} className="mt-2 text-sm text-muted-foreground">
-                            Welcome back to <span className="font-semibold text-foreground">{PRODUCT}</span>. Enter your details to continue.
+                            Welcome back. Enter your details to continue.
                         </motion.p>
 
                         <motion.form
@@ -371,9 +368,6 @@ const LoginForm: React.FC = () => {
                         </motion.div>
                         <motion.p variants={item} className="mt-3 text-center text-xs text-muted-foreground">
                             Trouble signing in? Contact your administrator.
-                        </motion.p>
-                        <motion.p variants={item} className="mt-4 text-center text-[11px] text-muted-foreground lg:hidden">
-                            {PRODUCT} v{VERSION} · © {new Date().getFullYear()} {BRAND}
                         </motion.p>
                     </motion.div>
                 </div>

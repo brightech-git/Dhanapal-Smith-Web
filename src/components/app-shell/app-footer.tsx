@@ -1,35 +1,49 @@
 'use client';
 
 import React from 'react';
-import { APP_BRANDING } from '@/src/config/branding';
+import { Home, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react';
+import { useNavigation } from '@/src/providers/navigation-provider';
+import companyLogo from '@/public/logo/com-logo.jpg';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // ✅ Correct import for App Router
 
-const { developerName, developerLogo, developerWebsite, appName, version } = APP_BRANDING;
-
-// Slim footer: app name and version on one side, the developer on the other.
-const AppFooter = () => (
-    <footer className="border-t border-border bg-card/80 backdrop-blur">
-        <div className="flex w-full flex-col items-center justify-between gap-2 px-3 py-3 text-xs text-muted-foreground sm:flex-row sm:px-5 lg:px-6">
-            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                <span className="font-semibold text-foreground">{appName}</span>
-                <span className="rounded-full bg-accent-soft px-2 py-0.5 font-semibold text-primary-text">v{version}</span>
-                <span className="hidden sm:inline">·</span>
-                <span>&copy; {new Date().getFullYear()} {developerName}. All rights reserved.</span>
-            </p>
-            <a
-                href={developerWebsite}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
+const Footer = () => {
+    return (
+        <footer
+            className="border-t border-border bg-card"
+        >
+            <div
+                className="
+    p-3 
+    flex flex-col sm:flex-row  /* stack on small, row on ≥640px */
+    justify-center items-center 
+    mx-auto max-w-7xl 
+    text-center text-xs 
+    gap-2 sm:gap-5            /* tighter gap on mobile */
+    text-muted-foreground
+  "
             >
-                Crafted by
-                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-white p-0.5 ring-1 ring-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={developerLogo} alt={`${developerName} logo`} className="h-full w-full object-contain" />
-                </span>
-                <span className="font-semibold text-foreground">{developerName}</span>
-            </a>
-        </div>
-    </footer>
-);
+                <p>
+                    &copy; {new Date().getFullYear()} Brightech Software Services. All rights reserved.
+                </p>
 
-export default AppFooter;
+                <p
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => window.open('https://www.brightechsoftware.com/', '_blank')}
+                >
+                    Crafted by
+                    <Image
+                        src={companyLogo}
+                        height={20}
+                        width={20}
+                        alt="logo"
+                    />
+                    <span>Brightech Software Services</span>
+                </p>
+            </div>
+
+        </footer>
+    );
+};
+
+export default Footer;
