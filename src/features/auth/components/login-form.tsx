@@ -143,7 +143,7 @@ const LoginForm: React.FC = () => {
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-[#f4f7fb]">
-                <Loader2 className="h-10 w-10 animate-spin text-[#0c376a]" />
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         );
     }
@@ -233,7 +233,7 @@ const LoginForm: React.FC = () => {
                         <motion.div variants={item} className="mb-8 flex items-center gap-3 lg:hidden">
                             <BrandMark reduceMotion={!!reduceMotion} small />
                             <div>
-                                <span className="block text-base font-bold uppercase tracking-[0.16em] text-[#0c376a]">Brightech</span>
+                                <span className="block text-base font-bold uppercase tracking-[0.16em] text-primary">Brightech</span>
                                 <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-slate-500">Software Services</span>
                             </div>
                         </motion.div>
@@ -281,6 +281,14 @@ const LoginForm: React.FC = () => {
                                         if (fieldErrors.userName) setFieldErrors((f) => ({ ...f, userName: undefined }));
                                     }}
                                     autoComplete="username"
+                                    enterKeyHint="next"
+                                    onKeyDown={(e) => {
+                                        // Enter on username moves to password instead of submitting.
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            passwordRef.current?.focus();
+                                        }
+                                    }}
                                     disabled={busy}
                                     error={fieldErrors.userName}
                                 />
@@ -302,13 +310,14 @@ const LoginForm: React.FC = () => {
                                     onKeyDown={onPasswordKey}
                                     onBlur={() => setCapsLock(false)}
                                     autoComplete="current-password"
+                                    enterKeyHint="go"
                                     disabled={busy}
                                     error={fieldErrors.password}
                                     trailing={
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword((s) => !s)}
-                                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c376a]/40"
+                                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                                             aria-label={showPassword ? "Hide password" : "Show password"}
                                             tabIndex={-1}
                                         >
@@ -339,7 +348,7 @@ const LoginForm: React.FC = () => {
                                     checked={remember}
                                     onChange={(e) => setRemember(e.target.checked)}
                                     disabled={busy}
-                                    className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#0c376a]"
+                                    className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-primary"
                                 />
                                 Remember my username
                             </motion.label>
@@ -384,6 +393,7 @@ interface FieldProps {
     trailing?: React.ReactNode;
     onKeyUp?: React.KeyboardEventHandler<HTMLInputElement>;
     onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+    enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>["enterKeyHint"];
     onBlur?: () => void;
 }
 
@@ -403,18 +413,19 @@ const Field: React.FC<FieldProps> = ({
     onKeyUp,
     onKeyDown,
     onBlur,
+    enterKeyHint,
 }) => (
     <div>
         <div
             className={`group relative flex items-center rounded-xl border bg-slate-50/60 transition-all duration-200 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(12,55,106,0.08)] ${
                 error
                     ? "border-red-300 focus-within:border-red-400"
-                    : "border-slate-200 hover:border-slate-300 focus-within:border-[#0c376a]"
+                    : "border-slate-200 hover:border-slate-300 focus-within:border-primary"
             }`}
         >
             <Icon
                 className={`pointer-events-none absolute left-3.5 h-[18px] w-[18px] transition-colors ${
-                    error ? "text-red-400" : "text-slate-400 group-focus-within:text-[#0c376a]"
+                    error ? "text-red-400" : "text-slate-400 group-focus-within:text-primary"
                 }`}
             />
             <input
@@ -425,6 +436,7 @@ const Field: React.FC<FieldProps> = ({
                 onChange={(e) => onChange(e.target.value)}
                 onKeyUp={onKeyUp}
                 onKeyDown={onKeyDown}
+                enterKeyHint={enterKeyHint}
                 onBlur={onBlur}
                 autoComplete={autoComplete}
                 disabled={disabled}
@@ -435,7 +447,7 @@ const Field: React.FC<FieldProps> = ({
             />
             <label
                 htmlFor={id}
-                className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 text-[15px] text-slate-400 transition-all duration-200 peer-focus:top-[18px] peer-focus:text-xs peer-focus:font-medium peer-focus:text-[#0c376a] peer-[:not(:placeholder-shown)]:top-[18px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-medium"
+                className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 text-[15px] text-slate-400 transition-all duration-200 peer-focus:top-[18px] peer-focus:text-xs peer-focus:font-medium peer-focus:text-primary peer-[:not(:placeholder-shown)]:top-[18px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-medium"
             >
                 {label}
             </label>
@@ -466,10 +478,10 @@ const SubmitButton: React.FC<{ status: "idle" | "loading" | "success"; reduceMot
         disabled={status !== "idle"}
         whileHover={status === "idle" && !reduceMotion ? { y: -1 } : undefined}
         whileTap={status === "idle" && !reduceMotion ? { scale: 0.985 } : undefined}
-        className={`group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl text-[15px] font-semibold text-white shadow-lg transition-colors duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0c376a]/25 disabled:cursor-default ${
+        className={`group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl text-[15px] font-semibold text-white shadow-lg transition-colors duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 disabled:cursor-default ${
             status === "success"
                 ? "bg-emerald-600 shadow-emerald-600/25"
-                : "bg-gradient-to-r from-[#0c376a] to-[#14539c] shadow-[#0c376a]/25"
+                : "bg-gradient-to-r from-primary to-primary-500 shadow-primary/25"
         }`}
     >
         {/* Shimmer sweep on hover */}
