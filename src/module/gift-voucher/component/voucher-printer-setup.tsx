@@ -104,7 +104,7 @@ const VoucherPrinterSetup: React.FC = () => {
             </Stack>
 
             <Collapse in={open}>
-                <Box sx={{ px: 2, pb: 2 }}>
+                <Box sx={{ px: 2, pb: 2 }} data-enter-nav>
                     <Grid container spacing={1.5} alignItems="flex-end">
                         <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField

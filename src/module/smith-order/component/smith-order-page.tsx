@@ -300,6 +300,7 @@ export default function OrderPage() {
                   <tr 
                     key={order.id} 
                     className="hover:bg-muted"
+                    data-enter-nav={isEdit ? "" : undefined}
                   >
                     {/* Serial Number */}
                     <td className="p-2">
@@ -458,6 +459,7 @@ export default function OrderPage() {
                 <tr 
                   ref={tableEndRef}
                   className="bg-green-50 hover:bg-green-100"
+                  data-enter-nav
                 >
                   <td className="p-2">
                     <div className="font-medium text-foreground pl-1">
