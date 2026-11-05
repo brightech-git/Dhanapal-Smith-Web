@@ -9,7 +9,9 @@ import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
 import { useNavigation } from "@/src/providers/navigation-provider";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
-const LOGO_SRC = "/logo/com-logo.jpg";
+import { APP_BRANDING } from "@/src/config/branding";
+
+const LOGO_SRC = APP_BRANDING.developerLogo;
 
 const SMITH_NAV = [
     { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -39,7 +41,7 @@ const AppHeader: React.FC = () => {
 
     const isGV = allDetails?.projectName === "GV";
     const navItems = isGV ? GV_NAV : SMITH_NAV;
-    const moduleName = isGV ? "Gift Voucher" : "Smith Dashboard";
+    const moduleName = isGV ? "Gift Voucher" : APP_BRANDING.appName;
     const userName: string = allDetails?.userName || allDetails?.USERNAME || "Admin";
     const role = allDetails?.admin === false ? "User" : "Administrator";
     const initials = userName.slice(0, 2).toUpperCase();
