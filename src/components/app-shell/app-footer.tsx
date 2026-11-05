@@ -3,8 +3,6 @@
 import React from 'react';
 import { Home, Mail, Phone, MapPin, Twitter, Linkedin, Github } from 'lucide-react';
 import { useNavigation } from '@/src/providers/navigation-provider';
-import companyLogo from '@/public/logo/com-logo.jpg';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation'; // ✅ Correct import for App Router
 
 const Footer = () => {
@@ -24,21 +22,7 @@ const Footer = () => {
   "
             >
                 <p>
-                    &copy; {new Date().getFullYear()} Brightech Software Services. All rights reserved.
-                </p>
-
-                <p
-                    className="flex items-center gap-1 cursor-pointer"
-                    onClick={() => window.open('https://www.brightechsoftware.com/', '_blank')}
-                >
-                    Crafted by
-                    <Image
-                        src={companyLogo}
-                        height={20}
-                        width={20}
-                        alt="logo"
-                    />
-                    <span>Brightech Software Services</span>
+                    &copy; {new Date().getFullYear()} Smith Suite. All rights reserved.
                 </p>
             </div>
 

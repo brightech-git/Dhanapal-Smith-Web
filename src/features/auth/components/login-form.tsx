@@ -22,13 +22,13 @@ import {
     Printer,
     ShieldCheck,
     User,
+    Gem,
 } from "lucide-react";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
 const REMEMBER_KEY = "smith.rememberedUser";
-const BRAND = "Brightech Software Services";
+const APP_TITLE = "Smith Suite";
 const PRODUCT = "Smith & Gift Voucher Suite";
-const LOGO_SRC = "/logo/com-logo.jpg";
 
 const projectHomePath = (project?: string) =>
     project === "GV" ? "/gift-voucher" : "/";
@@ -181,9 +181,9 @@ const LoginForm: React.FC = () => {
                         <motion.div variants={item} className="flex items-center gap-4">
                             <BrandMark reduceMotion={!!reduceMotion} />
                             <div>
-                                <h1 className="text-xl font-bold uppercase leading-tight tracking-[0.18em]">Brightech</h1>
+                                <h1 className="text-xl font-bold uppercase leading-tight tracking-[0.18em]">{APP_TITLE}</h1>
                                 <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-700 dark:text-amber-300">
-                                    Software Services
+                                    Jewellery back office
                                 </p>
                             </div>
                         </motion.div>
@@ -222,7 +222,7 @@ const LoginForm: React.FC = () => {
                     </motion.div>
 
                     <p className="text-xs text-muted-foreground">
-                        © {new Date().getFullYear()} {BRAND}. All rights reserved.
+                        © {new Date().getFullYear()} {APP_TITLE}. All rights reserved.
                     </p>
                 </div>
 
@@ -233,8 +233,8 @@ const LoginForm: React.FC = () => {
                         <motion.div variants={item} className="mb-8 flex items-center gap-3 lg:hidden">
                             <BrandMark reduceMotion={!!reduceMotion} small />
                             <div>
-                                <span className="block text-base font-bold uppercase tracking-[0.16em] text-primary">Brightech</span>
-                                <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground">Software Services</span>
+                                <span className="block text-base font-bold uppercase tracking-[0.16em] text-primary">{APP_TITLE}</span>
+                                <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground">Jewellery back office</span>
                             </div>
                         </motion.div>
 
@@ -362,7 +362,7 @@ const LoginForm: React.FC = () => {
                             <span className="h-px flex-1 bg-gradient-to-r from-transparent to-border" />
                             <span className="flex items-center gap-1.5">
                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                                Secured by {BRAND}
+                                Secure sign-in
                             </span>
                             <span className="h-px flex-1 bg-gradient-to-l from-transparent to-border" />
                         </motion.div>
@@ -529,7 +529,7 @@ const SubmitButton: React.FC<{ status: "idle" | "loading" | "success"; reduceMot
     </motion.button>
 );
 
-// Brightech logo on a white tile, ringed by a slowly turning gold halo.
+// App mark on a tile, ringed by a slowly turning gold halo.
 const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduceMotion, small }) => {
     const size = small ? 44 : 60;
     return (
@@ -543,8 +543,9 @@ const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduc
                 />
             </span>
             <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[14px] bg-card p-1.5 shadow-lg">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_SRC} alt={`${BRAND} logo`} className="h-full w-full object-contain" />
+                <span className="flex h-full w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-primary to-primary-500 text-primary-foreground">
+                    <Gem className={small ? "h-5 w-5" : "h-7 w-7"} />
+                </span>
                 {!reduceMotion && (
                     <motion.span
                         className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/70 to-transparent"

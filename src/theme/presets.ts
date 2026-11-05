@@ -18,8 +18,8 @@ export type ThemePreset = {
 export const THEME_PRESETS: Record<string, ThemePreset> = {
     brightech: {
         id: "brightech",
-        name: "Brightech classic",
-        description: "Brightech navy with a warm gold accent.",
+        name: "Classic navy",
+        description: "Deep navy with a warm gold accent.",
         primary: "#0c376a",
         secondary: "#d4a017",
         accent: "#eef4fb",

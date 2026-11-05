@@ -111,7 +111,7 @@ const VoucherPrinterSetup: React.FC = () => {
                                 fullWidth
                                 size="small"
                                 label="System / PC Name"
-                                placeholder="e.g. Brightech2"
+                                placeholder="e.g. COUNTER-PC"
                                 value={systemName}
                                 onChange={(e) => setSystemName(e.target.value)}
                             />

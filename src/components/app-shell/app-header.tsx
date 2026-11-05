@@ -3,13 +3,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronDown, ClipboardList, Gift, LayoutDashboard, LogOut, Menu, Moon, ShieldCheck, Sun, Users, X } from "lucide-react";
+import { ChevronDown, ClipboardList, Gem, Gift, LayoutDashboard, LogOut, Menu, Moon, ShieldCheck, Sun, Users, X } from "lucide-react";
 import { useTheme } from "@/src/theme/theme-context";
 import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
 import { useNavigation } from "@/src/providers/navigation-provider";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
-const LOGO_SRC = "/logo/com-logo.jpg";
+const APP_TITLE = "Smith Suite";
 
 const SMITH_NAV = [
     { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -95,13 +95,12 @@ const AppHeader: React.FC = () => {
                     </button>
 
                     <button type="button" onClick={() => go(navItems[0].path)} className="flex items-center gap-2.5 text-left">
-                        <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-border">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={LOGO_SRC} alt="Brightech logo" className="h-full w-full object-contain" />
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-500 text-primary-foreground shadow-sm">
+                            <Gem className="h-[18px] w-[18px]" />
                         </span>
                         <span className="hidden sm:block">
                             <span className="block text-sm font-bold uppercase leading-tight tracking-[0.14em] text-foreground">
-                                Brightech
+                                {APP_TITLE}
                             </span>
                             <span className="block text-[11px] font-medium leading-tight text-muted-foreground">{moduleName}</span>
                         </span>
@@ -236,12 +235,11 @@ const AppHeader: React.FC = () => {
                         >
                             <div className="flex items-center justify-between border-b border-border px-4 py-4">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 ring-1 ring-border">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={LOGO_SRC} alt="" className="h-full w-full object-contain" />
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-500 text-primary-foreground">
+                                        <Gem className="h-[18px] w-[18px]" />
                                     </span>
                                     <span>
-                                        <span className="block text-sm font-bold uppercase tracking-[0.14em]">Brightech</span>
+                                        <span className="block text-sm font-bold uppercase tracking-[0.14em]">{APP_TITLE}</span>
                                         <span className="block text-[11px] text-muted-foreground">{moduleName}</span>
                                     </span>
                                 </div>
