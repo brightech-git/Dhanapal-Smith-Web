@@ -64,3 +64,44 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
         </SoftControlContext.Provider>
     );
 };
+
+/** Normalises a soft control description so "Save Button", "save_button" and "SaveButton" match. */
+const normalise = (s: string | undefined | null) => (s ?? "").toLowerCase().replace(/[\s_-]+/g, "");
+
+export type DashboardPosition = "above" | "below";
+
+export interface SoftControlFlags {
+    /** GrandTotal = Y: show totals on printed tables. */
+    grandTotal: boolean;
+    /** Delete = Y: show the delete button on cash/weight rows. */
+    rowDelete: boolean;
+    /** SaveButton = Y: cash/weight edits are kept until the row's Save button is pressed. */
+    saveButton: boolean;
+    /** Dashboard = Y: show the dashboard (totals and recent transactions). */
+    showDashboard: boolean;
+    /** DashboardPosition = A (above) or B (below). Above is the default. */
+    dashboardPosition: DashboardPosition;
+    loading: boolean;
+}
+
+/** Reads the soft controls the Smith screens depend on. */
+export const useSoftControlFlags = (): SoftControlFlags => {
+    const { softControls, loading } = useSoftControls();
+    return React.useMemo(() => {
+        const list = Array.isArray(softControls) ? softControls : [];
+        const value = (...names: string[]) => {
+            const wanted = names.map(normalise);
+            const hit = list.find((sc) => wanted.includes(normalise(sc.description)));
+            return (hit?.ctlid ?? "").toString().trim().toUpperCase();
+        };
+        const position = value("DashboardPosition", "DashboardPlace");
+        return {
+            grandTotal: value("GrandTotal") === "Y",
+            rowDelete: value("Delete") === "Y",
+            saveButton: value("SaveButton", "Save") === "Y",
+            showDashboard: value("Dashboard", "ShowDashboard") === "Y",
+            dashboardPosition: position === "B" || position === "BELOW" ? "below" : "above",
+            loading,
+        };
+    }, [softControls, loading]);
+};

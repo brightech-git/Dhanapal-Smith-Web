@@ -17,8 +17,9 @@ export const smithDashboardKeys = {
 };
 
 /** Current total weight and total amount across all smiths. */
-export function useDashboardSummary() {
+export function useDashboardSummary(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: smithDashboardKeys.summary(),
         queryFn: fetchDashboardSummary,
         staleTime: 30_000,
@@ -26,8 +27,9 @@ export function useDashboardSummary() {
     });
 }
 
-export function useRecentCashTransactions(limit = 5) {
+export function useRecentCashTransactions(limit = 5, enabled = true) {
     return useQuery({
+        enabled,
         queryKey: smithDashboardKeys.recentCash(limit),
         queryFn: () => fetchRecentCashTransactions(limit),
         staleTime: 30_000,
@@ -35,8 +37,9 @@ export function useRecentCashTransactions(limit = 5) {
     });
 }
 
-export function useRecentWeightTransactions(limit = 5) {
+export function useRecentWeightTransactions(limit = 5, enabled = true) {
     return useQuery({
+        enabled,
         queryKey: smithDashboardKeys.recentWeight(limit),
         queryFn: () => fetchRecentWeightTransactions(limit),
         staleTime: 30_000,

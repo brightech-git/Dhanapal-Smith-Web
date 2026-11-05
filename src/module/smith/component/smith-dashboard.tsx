@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/src/theme/theme-context";
 import Table from "@/src/components/ui/table";
-import { IndianRupee, Scale, Wallet, Plus, Paperclip, Users as UsersIcon, UserRound, CalendarDays, History } from "lucide-react";
+import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, Users as UsersIcon, UserRound, CalendarDays, History } from "lucide-react";
 import { formatCurrency, } from "@/src/utils/format/format";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useSmithDetails } from '@/src/module/smith/context/smith-details-context'
@@ -12,7 +12,7 @@ import SmithManager from "@/src/module/smith/component/smith-manager";
 import EditableCell from "@/src/components/ui/editable-cell";
 import { useToast } from "@/src/providers/toast-provider";
 import PrintTable from "@/src/components/print/print-table";
-import { useSoftControls } from "@/src/module/smith/context/soft-control-context";
+import { useSoftControlFlags } from "@/src/module/smith/context/soft-control-context";
 import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import Register from "@/src/module/user/component/register-form";
@@ -54,31 +54,20 @@ export default function SmithsPage() {
     const { responsive } = useTheme();
     const { addToast } = useToast();
     const { createSmith, smiths: allSmiths } = useSmithDetails();
-    const { softControls } = useSoftControls();
-    const [showTotal, setShowTotal] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const flags = useSoftControlFlags();
+    const showTotal = flags.grandTotal;
+    const showDelete = flags.rowDelete;
+    const saveMode = flags.saveButton;
+    const showDashboard = flags.showDashboard;
 
     const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: any } | null>(null);
     const [detail, setDetail] = useState<{ kind: FlowKind; index: number } | null>(null);
-    const summaryQuery = useDashboardSummary();
-    const recentCashQuery = useRecentCashTransactions(5);
-    const recentWeightQuery = useRecentWeightTransactions(5);
+    const summaryQuery = useDashboardSummary(showDashboard);
+    const recentCashQuery = useRecentCashTransactions(5, showDashboard);
+    const recentWeightQuery = useRecentWeightTransactions(5, showDashboard);
 
     const weightPrintRef = useRef<HTMLDivElement>(null);
     const cashPrintRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (Array.isArray(softControls)) {
-            const grandTotalCtl = softControls.find(sc => sc.description === "GrandTotal");
-            const showRowDelete = softControls.find(sc => sc.description === "Delete");
-
-            setShowTotal(grandTotalCtl?.ctlid === "Y");
-            setShowDelete(showRowDelete?.ctlid === "Y");
-        } else {
-            setShowTotal(false);
-            setShowDelete(false);
-        }
-    }, [softControls]);
 
 
 
@@ -361,6 +350,103 @@ export default function SmithsPage() {
         }
     };
 
+    // SaveButton soft control: keep edits on the row until its Save button is pressed.
+    const [savingRow, setSavingRow] = useState<any>(null);
+
+    const isDirty = (row: any) => !!row?.isNew || (!!row?.__changes && Object.keys(row.__changes).length > 0);
+
+    const stageEdit = (kind: FlowKind, row: any, field: string, value: any) => {
+        const setter = kind === "weight" ? setWeightBalanceData : setCashBalanceData;
+        setter((prev) =>
+            prev.map((r) => (r === row ? { ...r, [field]: value, __changes: { ...(r.__changes || {}), [field]: value } } : r))
+        );
+    };
+
+    const onEdit = async (kind: FlowKind, row: any, field: string, value: any) => {
+        if (saveMode) {
+            stageEdit(kind, row, field, value);
+            return;
+        }
+        return kind === "weight" ? handleWeightSave(row, field, value) : handleCashSave(row, field, value);
+    };
+
+    const commitRow = async (kind: FlowKind, row: any, quiet = false) => {
+        if (!selectedSmithId || !isDirty(row)) return true;
+        setSavingRow(row);
+        try {
+            if (row.id) {
+                const payload = Object.fromEntries(
+                    Object.entries(row.__changes || {}).map(([k, v]) => [k, k === "date" ? convertDateToAPIFormat(String(v)) : v])
+                );
+                if (kind === "weight") await updateWeight(row.id, payload);
+                else await updateCash(row.id, payload);
+            } else {
+                const payload: any = {
+                    smithId: selectedSmithId,
+                    date: convertDateToAPIFormat(row.date || ""),
+                    receipts: parseFloat(row.receipts) || 0,
+                    payments: parseFloat(row.payments) || 0,
+                    remarks: row.remarks ?? "",
+                };
+                if (kind === "weight") await addWeight(selectedSmithId, payload);
+                else await addCash(selectedSmithId, payload);
+            }
+            if (!quiet) {
+                addToast({ type: "success", title: "Saved", message: `${kind === "weight" ? "Weight" : "Cash"} row saved.` });
+                if (kind === "weight") await refetchWeightFlows(selectedSmithId);
+                else await refetchCashFlows(selectedSmithId);
+            }
+            return true;
+        } catch (error: any) {
+            console.error(`Error saving ${kind} row:`, error);
+            addToast({ type: "error", title: "Save failed", message: error?.message || "Could not save the row." });
+            return false;
+        } finally {
+            setSavingRow(null);
+        }
+    };
+
+    const commitAll = async (kind: FlowKind) => {
+        if (!selectedSmithId) return;
+        const rows = (kind === "weight" ? weightBalanceData : cashBalanceData).filter(isDirty);
+        let saved = 0;
+        for (const row of rows) if (await commitRow(kind, row, true)) saved++;
+        if (kind === "weight") await refetchWeightFlows(selectedSmithId);
+        else await refetchCashFlows(selectedSmithId);
+        if (saved) addToast({ type: "success", title: "Saved", message: `${saved} ${kind} row${saved > 1 ? "s" : ""} saved.` });
+    };
+
+    const saveColumn = (kind: FlowKind) => ({
+        key: "save",
+        label: "Save",
+        headalign: "center" as const,
+        align: "center" as const,
+        width: "60px",
+        render: (_v: any, row: any) => {
+            const dirty = isDirty(row);
+            const busy = savingRow === row;
+            return (
+                <button
+                    type="button"
+                    onClick={() => commitRow(kind, row)}
+                    disabled={!dirty || busy}
+                    title={dirty ? "Save this row" : "Saved"}
+                    className={`inline-flex h-7 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition ${
+                        dirty
+                            ? "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+                            : "text-emerald-600 dark:text-emerald-400"
+                    } disabled:cursor-default`}
+                >
+                    {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : dirty ? <Save className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                    {dirty && !busy && <span className="hidden sm:inline">Save</span>}
+                </button>
+            );
+        },
+    });
+
+    const weightDirtyCount = weightBalanceData.filter(isDirty).length;
+    const cashDirtyCount = cashBalanceData.filter(isDirty).length;
+
     const handleSmithSelect = (smithId: string | number, smithName: string = "") => {
         const smithIdStr = String(smithId);
         setSelectedSmithId(smithIdStr);
@@ -535,7 +621,7 @@ export default function SmithsPage() {
             align: "center" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="date" onSave={(newVal) => handleWeightSave(row, "date", newVal)} />
+                <EditableCell value={value} type="date" onSave={(newVal) => onEdit("weight", row, "date", newVal)} />
             ),
         },
         {
@@ -545,7 +631,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "receipts", newVal)} />
+                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
             ),
         },
         {
@@ -555,7 +641,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "payments", newVal)} />
+                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
             ),
         },
         {
@@ -573,7 +659,7 @@ export default function SmithsPage() {
             align: "left" as const,
             width: "110px",
             render: (value: any, row: any) => (
-                <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
+                <EditableCell value={value} type="text" onSave={(newVal) => onEdit("weight", row, "remarks", newVal)} />
             ),
         },
         {
@@ -584,7 +670,8 @@ export default function SmithsPage() {
             width: "50px",
             render: (_v: any, row: any) => <AttachButton row={row} onClick={() => setAttachTarget({ kind: "weight", row })} />,
         },
-    ], [selectedSmithId, responsive.isMobile, showDelete]);
+        ...(saveMode ? [saveColumn("weight")] : []),
+    ], [selectedSmithId, responsive.isMobile, showDelete, saveMode, savingRow, weightBalanceData]);
     const weightBalancePrintColumns = useMemo(() => [
         {
             key: "sno",
@@ -607,7 +694,7 @@ export default function SmithsPage() {
             align: "center" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="date" onSave={(newVal) => handleWeightSave(row, "date", newVal)} />
+                <EditableCell value={value} type="date" onSave={(newVal) => onEdit("weight", row, "date", newVal)} />
             ),
         },
         {
@@ -617,7 +704,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "receipts", newVal)} />
+                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
             ),
         },
         {
@@ -627,7 +714,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => handleWeightSave(row, "payments", newVal)} />
+                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
             ),
         },
         {
@@ -645,7 +732,7 @@ export default function SmithsPage() {
             align: "left" as const,
             width: "110px",
             render: (value: any, row: any) => (
-                <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
+                <EditableCell value={value} type="text" onSave={(newVal) => onEdit("weight", row, "remarks", newVal)} />
             ),
         },
     ], [selectedSmithId, responsive.isMobile, showDelete]);
@@ -680,7 +767,7 @@ export default function SmithsPage() {
             align: "center" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="date" onSave={(newVal) => handleCashSave(row, "date", newVal)} />
+                <EditableCell value={value} type="date" onSave={(newVal) => onEdit("cash", row, "date", newVal)} />
             ),
         },
         {
@@ -690,7 +777,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "receipts", newVal)} />
+                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
             ),
         },
         {
@@ -700,7 +787,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "payments", newVal)} />
+                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
             ),
         },
         {
@@ -718,7 +805,7 @@ export default function SmithsPage() {
             align: "left" as const,
             width: "110px",
             render: (value: any, row: any) => (
-                <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
+                <EditableCell value={value} type="text" onSave={(newVal) => onEdit("cash", row, "remarks", newVal)} />
             ),
         },
         {
@@ -729,7 +816,8 @@ export default function SmithsPage() {
             width: "50px",
             render: (_v: any, row: any) => <AttachButton row={row} onClick={() => setAttachTarget({ kind: "cash", row })} />,
         },
-    ], [selectedSmithId, responsive.isMobile, showDelete]);
+        ...(saveMode ? [saveColumn("cash")] : []),
+    ], [selectedSmithId, responsive.isMobile, showDelete, saveMode, savingRow, cashBalanceData]);
     const cashBalancePrintColumns = useMemo(() => [
         {
             key: "sno",
@@ -753,7 +841,7 @@ export default function SmithsPage() {
             align: "center" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="date" onSave={(newVal) => handleCashSave(row, "date", newVal)} />
+                <EditableCell value={value} type="date" onSave={(newVal) => onEdit("cash", row, "date", newVal)} />
             ),
         },
         {
@@ -763,7 +851,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "receipts", newVal)} />
+                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
             ),
         },
         {
@@ -773,7 +861,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => handleCashSave(row, "payments", newVal)} />
+                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
             ),
         },
         {
@@ -791,7 +879,7 @@ export default function SmithsPage() {
             align: "left" as const,
             width: "110px",
             render: (value: any, row: any) => (
-                <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
+                <EditableCell value={value} type="text" onSave={(newVal) => onEdit("cash", row, "remarks", newVal)} />
             ),
         },
     ], [selectedSmithId, responsive.isMobile, showDelete]);
@@ -800,30 +888,10 @@ export default function SmithsPage() {
 
 
     const summary = summaryQuery.data;
-    const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-
-    const cardHeader = "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3";
-    const actionButton = "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90";
-
-    return (
-        <div className="min-h-screen w-full bg-background text-foreground">
-            <main className="w-full space-y-5 px-3 py-4 sm:px-5 lg:px-6">
-                {/* Page heading */}
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Smith Dashboard</h1>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <CalendarDays className="h-4 w-4" />
-                            {today}
-                        </p>
-                    </div>
-                    {summary?.updatedAt && (
-                        <p className="text-xs text-muted-foreground">
-                            Updated {new Date(summary.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                    )}
-                </div>
-
+    // Totals and recent transactions; shown only when the Dashboard soft control is Y,
+    // above or below the ledger according to DashboardPosition.
+    const dashboardSection = (
+        <div className="space-y-5">
                 {/* Totals */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <KpiCard
@@ -915,6 +983,33 @@ export default function SmithsPage() {
                         onSelect={(i) => setDetail({ kind: "weight", index: i })}
                     />
                 </div>
+        </div>
+    );
+    const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    const cardHeader = "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3";
+    const actionButton = "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90";
+
+    return (
+        <div className="min-h-screen w-full bg-background text-foreground">
+            <main className="w-full space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+                {/* Page heading */}
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Smith Dashboard</h1>
+                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <CalendarDays className="h-4 w-4" />
+                            {today}
+                        </p>
+                    </div>
+                    {showDashboard && summary?.updatedAt && (
+                        <p className="text-xs text-muted-foreground">
+                            Updated {new Date(summary.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                    )}
+                </div>
+
+                {showDashboard && flags.dashboardPosition === "above" && dashboardSection}
 
                 {/* Ledger workspace */}
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -992,6 +1087,12 @@ export default function SmithsPage() {
                                         <div ref={weightPrintRef}>
                                             <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
+                                        {saveMode && weightDirtyCount > 0 && (
+                                            <button onClick={() => commitAll("weight")} disabled={!!savingRow} className={`${actionButton} bg-amber-500 disabled:opacity-60`}>
+                                                <Save size={14} />
+                                                Save all ({weightDirtyCount})
+                                            </button>
+                                        )}
                                         <button onClick={handleAddWeightRow} className={`${actionButton} bg-emerald-600`}>
                                             <Plus size={14} />
                                             Add new
@@ -1040,6 +1141,12 @@ export default function SmithsPage() {
                                         <div ref={cashPrintRef}>
                                             <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
+                                        {saveMode && cashDirtyCount > 0 && (
+                                            <button onClick={() => commitAll("cash")} disabled={!!savingRow} className={`${actionButton} bg-amber-500 disabled:opacity-60`}>
+                                                <Save size={14} />
+                                                Save all ({cashDirtyCount})
+                                            </button>
+                                        )}
                                         <button onClick={handleAddCashRow} className={`${actionButton} bg-primary`}>
                                             <Plus size={14} />
                                             Add new
@@ -1082,6 +1189,8 @@ export default function SmithsPage() {
                         <Register />
                     </section>
                 </div>
+
+                {showDashboard && flags.dashboardPosition === "below" && dashboardSection}
             </main>
 
             <TransactionDetailView
