@@ -4,11 +4,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import authService from "@/service/authService";
 import { getAxiosInstance, resetAxiosInstance } from "@/api/axiosInstance";
 
+
 interface AuthContextType {
     isAuthenticated: boolean;
     allDetails: any;
     isLoading: boolean;
-    login: (userName: string, password: string) => Promise<void>;
+    login: (userName: string, password: string, projectName: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -44,17 +45,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
     }, []);
 
-    const login = async (userName: string, password: string) => {
-        const response = await authService.login({ userName, password });
+    const login = async (userName: string, password: string, projectName: string) => {
+        const response = await authService.login({ userName, password, projectName });
 
-        console.log("response", response);
+        // Keep the project the user picked on the login screen when the
+        // backend does not send one back, so Smith/Gift Voucher routing works.
+        const details = { ...response, projectName: response?.projectName ?? projectName };
 
         const session = {
             expiry: Date.now() + 30 * 60 * 1000, // 30 min
-            allDetails: response,
+            allDetails: details,
         };
 
-        setAllDetails(response);
+        setAllDetails(details);
         setIsAuthenticated(true);
 
         // ✅ Initialize axios dynamically (use config base URL)

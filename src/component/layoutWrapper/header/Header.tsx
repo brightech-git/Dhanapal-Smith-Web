@@ -38,11 +38,15 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ className = "" }) => {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const NAV_ITEMS = [
-    { label: "Dashboard", path: "/", icon: Home },
-    { label: "Orders", path: "/smiths/order", icon: Menu },
-    { label: "Users", path: "/smiths/create", icon: Users },
-  ];
+  // Smith screens are hidden for Gift Voucher logins; Logout stays for everyone.
+  const NAV_ITEMS =
+    allDetails?.projectName === "GV"
+      ? []
+      : [
+          { label: "Dashboard", path: "/", icon: Home },
+          { label: "Orders", path: "/smiths/order", icon: Menu },
+          { label: "Users", path: "/smiths/create", icon: Users },
+        ];
 
   const styles =
     mode === "dark"
