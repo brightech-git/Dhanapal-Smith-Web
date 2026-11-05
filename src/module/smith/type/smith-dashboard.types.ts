@@ -12,6 +12,8 @@ export interface DashboardSummary {
 
 /** One row in the "recent transactions" cards. */
 export interface RecentTransaction {
+    /** Cash/weight row id; needed to add or replace attachments. */
+    id?: number;
     sno: number;
     receipt: number;
     issue: number;
@@ -19,6 +21,10 @@ export interface RecentTransaction {
     remark: string;
     smithName?: string;
     date?: string;
+    /** Attachment URLs (same fields as the cash/weight rows). */
+    imageFile?: string | null;
+    pdfFile?: string | null;
+    cameraImage?: string | null;
 }
 
 export type FlowKind = "cash" | "weight";

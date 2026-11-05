@@ -17,6 +17,7 @@ import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import Register from "@/src/module/user/component/register-form";
 import FlowAttachmentsDialog from "@/src/module/smith/component/flow-attachments-dialog";
+import TransactionDetailView from "@/src/module/smith/component/transaction-detail-view";
 import { KpiCard, RecentTransactionsCard, formatAmount, formatWeight } from "@/src/module/smith/component/dashboard-widgets";
 import { attachmentCount } from "@/src/module/smith/api/smith-attachments.api";
 import {
@@ -58,6 +59,7 @@ export default function SmithsPage() {
     const [showDelete, setShowDelete] = useState(false);
 
     const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: any } | null>(null);
+    const [detail, setDetail] = useState<{ kind: FlowKind; index: number } | null>(null);
     const summaryQuery = useDashboardSummary();
     const recentCashQuery = useRecentCashTransactions(5);
     const recentWeightQuery = useRecentWeightTransactions(5);
@@ -900,6 +902,7 @@ export default function SmithsPage() {
                         rows={recentCashQuery.data}
                         loading={recentCashQuery.isLoading}
                         format={formatAmount}
+                        onSelect={(i) => setDetail({ kind: "cash", index: i })}
                     />
                     <RecentTransactionsCard
                         index={1}
@@ -909,6 +912,7 @@ export default function SmithsPage() {
                         rows={recentWeightQuery.data}
                         loading={recentWeightQuery.isLoading}
                         format={formatWeight}
+                        onSelect={(i) => setDetail({ kind: "weight", index: i })}
                     />
                 </div>
 
@@ -1079,6 +1083,23 @@ export default function SmithsPage() {
                     </section>
                 </div>
             </main>
+
+            <TransactionDetailView
+                open={!!detail}
+                kind={detail?.kind ?? "cash"}
+                rows={(detail?.kind === "weight" ? recentWeightQuery.data : recentCashQuery.data) ?? []}
+                index={detail?.index ?? 0}
+                format={detail?.kind === "weight" ? formatWeight : formatAmount}
+                onIndexChange={(index) => setDetail((d) => (d ? { ...d, index } : d))}
+                onClose={() => setDetail(null)}
+                onAttach={(r) =>
+                    detail &&
+                    setAttachTarget({
+                        kind: detail.kind,
+                        row: { id: r.id, date: r.date, remarks: r.remark, imageFile: r.imageFile, pdfFile: r.pdfFile, cameraImage: r.cameraImage },
+                    })
+                }
+            />
 
             <FlowAttachmentsDialog
                 open={!!attachTarget}

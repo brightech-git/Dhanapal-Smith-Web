@@ -2,7 +2,8 @@
 
 import React, { useEffect } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, Inbox } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronRight, Inbox, Paperclip } from "lucide-react";
+import { attachmentCount } from "../api/smith-attachments.api";
 import type { RecentTransaction } from "../type/smith-dashboard.types";
 
 export const formatWeight = (v: number | undefined | null) =>
@@ -103,6 +104,7 @@ export function RecentTransactionsCard({
     loading,
     format,
     index = 0,
+    onSelect,
 }: {
     title: string;
     subtitle: string;
@@ -111,6 +113,8 @@ export function RecentTransactionsCard({
     loading?: boolean;
     format: (v: number) => string;
     index?: number;
+    /** Called with the row index when a row is clicked; opens the single view. */
+    onSelect?: (index: number) => void;
 }) {
     return (
         <motion.section
@@ -129,10 +133,11 @@ export function RecentTransactionsCard({
                         <p className="text-xs text-muted-foreground">{subtitle}</p>
                     </div>
                 </div>
+                {onSelect && !!rows?.length && <span className="hidden text-xs text-muted-foreground sm:inline">Click a row to view</span>}
             </header>
 
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
+            <div className="relative overflow-x-auto">
+                <table className="w-full min-w-[620px] text-sm">
                     <thead>
                         <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                             <th className="px-5 py-2.5 font-medium">S.No</th>
@@ -140,14 +145,17 @@ export function RecentTransactionsCard({
                             <th className="px-3 py-2.5 text-right font-medium">Receipt</th>
                             <th className="px-3 py-2.5 text-right font-medium">Issue</th>
                             <th className="px-3 py-2.5 text-right font-medium">Balance</th>
-                            <th className="px-5 py-2.5 font-medium">Remark</th>
+                            <th className="px-3 py-2.5 font-medium">Remark</th>
+                            <th className="w-16 px-5 py-2.5 text-right font-medium" aria-label="Files" title="Files">
+                                <Paperclip className="ml-auto h-3.5 w-3.5" aria-hidden />
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                         {loading &&
                             Array.from({ length: 4 }).map((_, i) => (
                                 <tr key={i}>
-                                    <td colSpan={6} className="px-5 py-3">
+                                    <td colSpan={7} className="px-5 py-3">
                                         <div className="h-4 w-full animate-pulse rounded bg-muted" />
                                     </td>
                                 </tr>
@@ -159,7 +167,19 @@ export function RecentTransactionsCard({
                                     initial={{ opacity: 0, x: -6 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.25 + i * 0.04 }}
-                                    className="transition-colors hover:bg-muted/60"
+                                    className={`group transition-colors hover:bg-muted/60 ${onSelect ? "cursor-pointer focus:bg-muted/60 focus:outline-none" : ""}`}
+                                    {...(onSelect && {
+                                        role: "button",
+                                        tabIndex: 0,
+                                        "aria-label": `View transaction ${r.sno}${r.smithName ? ` of ${r.smithName}` : ""}`,
+                                        onClick: () => onSelect(i),
+                                        onKeyDown: (e: React.KeyboardEvent) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                onSelect(i);
+                                            }
+                                        },
+                                    })}
                                 >
                                     <td className="px-5 py-3 font-medium text-muted-foreground">{r.sno}</td>
                                     <td className="px-3 py-3">
@@ -173,14 +193,27 @@ export function RecentTransactionsCard({
                                         {r.issue ? format(r.issue) : "—"}
                                     </td>
                                     <td className="px-3 py-3 text-right font-semibold">{format(r.balance)}</td>
-                                    <td className="max-w-[180px] truncate px-5 py-3 text-muted-foreground" title={r.remark}>
+                                    <td className="max-w-[180px] truncate px-3 py-3 text-muted-foreground" title={r.remark}>
                                         {r.remark || "—"}
+                                    </td>
+                                    <td className="px-5 py-3 text-right">
+                                        <span className="inline-flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                                            {attachmentCount(r) > 0 && (
+                                                <span className="inline-flex items-center gap-0.5 rounded-full bg-accent-soft px-1.5 py-0.5 font-semibold text-primary-text">
+                                                    <Paperclip className="h-3 w-3" />
+                                                    {attachmentCount(r)}
+                                                </span>
+                                            )}
+                                            {onSelect && (
+                                                <ChevronRight className="h-4 w-4 opacity-40 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+                                            )}
+                                        </span>
                                     </td>
                                 </motion.tr>
                             ))}
                         {!loading && !rows?.length && (
                             <tr>
-                                <td colSpan={6} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                                <td colSpan={7} className="px-5 py-10 text-center text-sm text-muted-foreground">
                                     <Inbox className="mx-auto mb-2 h-6 w-6" />
                                     No recent transactions
                                 </td>

@@ -149,6 +149,7 @@ export default function FlowAttachmentsDialog({ open, onClose, kind, row, onUplo
         <AnimatePresence>
             {open && row && (
                 <motion.div
+                    data-flow-attachments-dialog
                     className="fixed inset-0 z-[1350] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
