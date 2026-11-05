@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smith & Gift Voucher (Dhanapal)
 
-## Getting Started
+Back-office web app with two modules, chosen on the login screen:
 
-First, run the development server:
+- **Smith**: cash and gold-weight ledger per smith, smith users, orders.
+- **Gift Voucher (GV)**: issue vouchers (with tag printing), receipt, introducers, report.
+
+Next.js (App Router, static export to `out/`), MUI, Tailwind, React Query.
+Runtime settings (API base URL, company) are read from `public/config.json`.
+
+## Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # static export to out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The layout follows the Saving Scheme frontend. `@/` points at the repo root,
+so imports read `@/src/module/smith/...`, `@/lib/api/client`, `@/hooks/...`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/                      routes only (thin pages)
+  layout.tsx              providers + app shell
+  login/                  /login
+  (app)/                  signed-in screens (route group, no URL segment)
+    page.tsx              /                 Smith dashboard
+    smiths/create/        /smiths/create    Smith users
+    smiths/order/         /smiths/order     Smith orders
+    gift-voucher/         /gift-voucher     Gift Voucher
+lib/api/client.ts         shared axios instance (base URL from config.json)
+hooks/                    app-wide hooks
+src/
+  components/
+    app-shell/            header, footer, shell, protected route
+    ui/                   table, editable cell
+    print/                print table
+  features/auth/          login form, auth context, login api
+  module/<name>/          one folder per business module
+    api/                  REST calls
+    component/            screens and forms
+    context/              module state providers
+    hook/                 React Query / data hooks
+    type/                 TypeScript types
+    lib/                  module helpers
+    index.ts              public exports
+  providers/              config, query, navigation, toast
+  theme/                  theme context, colors, spacing, font sizes
+  utils/format/           number, date and words formatting
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Modules: `smith`, `smith-order`, `user`, `gift-voucher`.
