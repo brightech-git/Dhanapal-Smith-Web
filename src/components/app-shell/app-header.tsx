@@ -83,7 +83,7 @@ const AppHeader: React.FC = () => {
                 {/* Thin brand gradient along the top edge */}
                 <div className="h-0.5 w-full bg-gradient-to-r from-primary via-secondary to-primary" />
 
-                <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-3 sm:px-5">
+                <div className="flex h-16 w-full items-center gap-3 px-3 sm:px-5">
                     <button
                         type="button"
                         onClick={() => setDrawerOpen(true)}

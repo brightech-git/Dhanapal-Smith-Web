@@ -18,7 +18,15 @@ export interface NewSmithTransaction {
     weightBalance: number;
 }
 
-export interface SmithFlow {
+/** Attachment URLs on a cash/weight row (set via the /files upload). */
+export interface FlowAttachmentFields {
+    remarks?: string | null;
+    imageFile?: string | null;
+    pdfFile?: string | null;
+    cameraImage?: string | null;
+}
+
+export interface SmithFlow extends FlowAttachmentFields {
     id: number;
     receipts: number;
     payments: number;
@@ -33,7 +41,7 @@ export interface SmithTransactionDetail extends SmithTransaction {
 }
 
 
-export interface CashFlow {
+export interface CashFlow extends FlowAttachmentFields {
     id: number;
     receipts: number;
     payments: number;
@@ -41,7 +49,7 @@ export interface CashFlow {
     balance: number;
 }
 
-export interface WeightFlow {
+export interface WeightFlow extends FlowAttachmentFields {
     id: number;
     receipts: number;
     payments: number;

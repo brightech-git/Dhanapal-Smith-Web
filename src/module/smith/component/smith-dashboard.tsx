@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { useTheme } from "@/src/theme/theme-context";
 import Table from "@/src/components/ui/table";
-import { IndianRupee, Scale, Wallet, Plus } from "lucide-react";
+import { IndianRupee, Scale, Wallet, Plus, Paperclip, Users as UsersIcon, UserRound, CalendarDays, History } from "lucide-react";
 import { formatCurrency, } from "@/src/utils/format/format";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useSmithDetails } from '@/src/module/smith/context/smith-details-context'
@@ -15,6 +16,38 @@ import { useSoftControls } from "@/src/module/smith/context/soft-control-context
 import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import Register from "@/src/module/user/component/register-form";
+import FlowAttachmentsDialog from "@/src/module/smith/component/flow-attachments-dialog";
+import { KpiCard, RecentTransactionsCard, formatAmount, formatWeight } from "@/src/module/smith/component/dashboard-widgets";
+import { attachmentCount } from "@/src/module/smith/api/smith-attachments.api";
+import {
+    useDashboardSummary,
+    useRecentCashTransactions,
+    useRecentWeightTransactions,
+} from "@/src/module/smith/hook/use-smith-dashboard";
+import type { FlowKind } from "@/src/module/smith/type/smith-dashboard.types";
+
+/** Paperclip button for a cash/weight row; disabled until the row is saved. */
+function AttachButton({ row, onClick }: { row: any; onClick: () => void }) {
+    const count = attachmentCount(row);
+    const saved = !!row?.id;
+    if (!saved && !row?.isNew) return <span className="opacity-0">-</span>;
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={!saved}
+            title={saved ? "Attachments" : "Save the row first"}
+            className="relative inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent-soft hover:text-primary-text disabled:opacity-40"
+        >
+            <Paperclip className="h-4 w-4" />
+            {count > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+}
 
 export default function SmithsPage() {
     const { responsive } = useTheme();
@@ -23,6 +56,11 @@ export default function SmithsPage() {
     const { softControls } = useSoftControls();
     const [showTotal, setShowTotal] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
+
+    const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: any } | null>(null);
+    const summaryQuery = useDashboardSummary();
+    const recentCashQuery = useRecentCashTransactions(5);
+    const recentWeightQuery = useRecentWeightTransactions(5);
 
     const weightPrintRef = useRef<HTMLDivElement>(null);
     const cashPrintRef = useRef<HTMLDivElement>(null);
@@ -41,13 +79,6 @@ export default function SmithsPage() {
     }, [softControls]);
 
 
-    // Colors come from the theme tokens (app/globals.css), so they follow
-    // light/dark mode and the theme studio preset.
-    const styles = {
-        background: { primary: "var(--background)", card: "var(--muted)" },
-        text: { primary: "var(--foreground)" },
-        border: "var(--border)",
-    };
 
     const {
         transactions,
@@ -543,6 +574,14 @@ export default function SmithsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => handleWeightSave(row, "remarks", newVal)} />
             ),
         },
+        {
+            key: "files",
+            label: "Files",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "50px",
+            render: (_v: any, row: any) => <AttachButton row={row} onClick={() => setAttachTarget({ kind: "weight", row })} />,
+        },
     ], [selectedSmithId, responsive.isMobile, showDelete]);
     const weightBalancePrintColumns = useMemo(() => [
         {
@@ -680,6 +719,14 @@ export default function SmithsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => handleCashSave(row, "remarks", newVal)} />
             ),
         },
+        {
+            key: "files",
+            label: "Files",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "50px",
+            render: (_v: any, row: any) => <AttachButton row={row} onClick={() => setAttachTarget({ kind: "cash", row })} />,
+        },
     ], [selectedSmithId, responsive.isMobile, showDelete]);
     const cashBalancePrintColumns = useMemo(() => [
         {
@@ -750,195 +797,300 @@ export default function SmithsPage() {
 
 
 
+    const summary = summaryQuery.data;
+    const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    const cardHeader = "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3";
+    const actionButton = "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-90";
+
     return (
-        <div style={{ background: styles.background.primary, color: styles.text.primary, minHeight: "100vh" }}>
-            <main className="p-2 mx-auto">
-                {/* Fixed Flexbox Layout */}
-                <div className="flex flex-col lg:flex-row gap-4 w-full">
-                    {/* Left Side - Main Table (30% width) */}
-                    <div className="flex-1 lg:flex-[0_0_30%] max-w-full lg:max-w-[50%] flex flex-col gap-1">
-                        <div className="flex justify-between items-center p-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                            <h2 className="text-base font-semibold flex items-center space-x-2">
+        <div className="min-h-screen w-full bg-background text-foreground">
+            <main className="w-full space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+                {/* Page heading */}
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Smith Dashboard</h1>
+                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <CalendarDays className="h-4 w-4" />
+                            {today}
+                        </p>
+                    </div>
+                    {summary?.updatedAt && (
+                        <p className="text-xs text-muted-foreground">
+                            Updated {new Date(summary.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                    )}
+                </div>
+
+                {/* Totals */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <KpiCard
+                        index={0}
+                        label="Current total weight"
+                        value={summary?.totalWeight ?? 0}
+                        format={formatWeight}
+                        change={summary?.weightChange}
+                        footnote="since yesterday"
+                        icon={Scale}
+                        tone="primary"
+                        loading={summaryQuery.isLoading}
+                    />
+                    <KpiCard
+                        index={1}
+                        label="Current total amount"
+                        value={summary?.totalAmount ?? 0}
+                        format={formatAmount}
+                        change={summary?.amountChange}
+                        footnote="since yesterday"
+                        icon={IndianRupee}
+                        tone="secondary"
+                        loading={summaryQuery.isLoading}
+                    />
+                    <KpiCard
+                        index={2}
+                        label="Smiths"
+                        value={summary?.smithCount ?? (transactions?.length || 0)}
+                        format={(v) => Math.round(v).toString()}
+                        footnote="with open balances"
+                        icon={UsersIcon}
+                        tone="emerald"
+                        loading={summaryQuery.isLoading}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.18, duration: 0.45 }}
+                        className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm"
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium text-muted-foreground">Selected smith</p>
+                                <p className="mt-2 truncate text-xl font-bold tracking-tight">
+                                    {selectedSmithName || "None selected"}
+                                </p>
+                            </div>
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-500 text-white shadow-sm">
+                                <UserRound className="h-5 w-5" />
+                            </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            {selectedSmithId ? (
+                                <>
+                                    <span>
+                                        Weight <b className="text-foreground">{formatWeight(weightTotals.balance)}</b>
+                                    </span>
+                                    <span>
+                                        Cash <b className="text-foreground">{formatAmount(cashTotals.balance)}</b>
+                                    </span>
+                                </>
+                            ) : (
+                                <span>Double-click a balance in Smith Transactions to open it.</span>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* Recent transactions */}
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <RecentTransactionsCard
+                        index={0}
+                        title="Recent cash transactions"
+                        subtitle="Latest receipts and issues by amount"
+                        icon={Wallet}
+                        rows={recentCashQuery.data}
+                        loading={recentCashQuery.isLoading}
+                        format={formatAmount}
+                    />
+                    <RecentTransactionsCard
+                        index={1}
+                        title="Recent weight transactions"
+                        subtitle="Latest receipts and issues by weight"
+                        icon={History}
+                        rows={recentWeightQuery.data}
+                        loading={recentWeightQuery.isLoading}
+                        format={formatWeight}
+                    />
+                </div>
+
+                {/* Ledger workspace */}
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                    <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:col-span-4">
+                        <div className={cardHeader}>
+                            <h2 className="flex items-center gap-2 text-sm font-semibold">
                                 <Wallet size={18} className="text-primary-text" />
-                                <span>Smith Transactions</span>
+                                Smith Transactions
                                 <PrintTable
                                     title="Smith Transactions"
-                                    // subtitle="Summary of balances"
                                     columns={mainTableColumns}
                                     data={transactions || []}
                                     main={true}
                                     showTotal={showTotal}
                                 />
                             </h2>
-                            <div className="flex  items-center space-x-1">
+                            <div className="flex items-center gap-1.5">
                                 <input
                                     type="text"
                                     value={newSmithName}
                                     onChange={(e) => setNewSmithName(e.target.value)}
-                                    placeholder="Enter Smith name"
-                                    className="border border-border rounded px-2 py-1.5 text-xs w-32 sm:w-40 focus:outline-none focus:ring-1 focus:ring-ring"
+                                    placeholder="New smith name"
+                                    className="w-36 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring sm:w-44"
                                     onKeyDown={(e) => e.key === 'Enter' && handleCreateSmith()}
                                 />
                                 <button
                                     onClick={handleCreateSmith}
                                     disabled={isCreatingSmith || !newSmithName.trim()}
-                                    className="bg-green-600 text-white px-2 py-1.5 rounded hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center text-xs"
+                                    className={`${actionButton} bg-primary disabled:opacity-50`}
                                 >
-                                    <Plus size={12} className="mr-1" />
+                                    <Plus size={14} />
                                     Create
                                 </button>
                             </div>
                         </div>
+                        <Table
+                            columns={mainTableColumns}
+                            data={transactions || []}
+                            striped
+                            hoverable
+                            compact="auto"
+                            className="w-full rounded-none border-0 shadow-none"
+                            bodyClassName="border-0"
+                            fixedHeight={responsive.isMobile ? "400px" : "640px"}
+                            showRows={20}
+                            renderFooter={() => (
+                                <tfoot className="sticky bottom-0 z-10 bg-muted font-semibold">
+                                    <tr>
+                                        <td colSpan={2} className="border-r border-border pr-2 text-right">Total</td>
+                                        <td className="border-r border-border pr-1 text-right text-primary-text">
+                                            {transactionTotals.weight.toFixed(3)}
+                                        </td>
+                                        <td className="pr-1 text-right text-primary-text">{formatCurrency(transactionTotals.cash)}</td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        />
+                    </section>
 
-                        {/* Main Table with Correct Footer */}
-                        <div className="flex">
+                    <div className="flex min-w-0 flex-col gap-4 xl:col-span-8">
+                        {/* Weight */}
+                        <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                            <div className={cardHeader}>
+                                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                                    <Scale size={18} className="text-emerald-600 dark:text-emerald-400" />
+                                    Weight Balance
+                                    {selectedSmithId && (
+                                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                            {selectedSmithName}
+                                        </span>
+                                    )}
+                                </h2>
+                                {selectedSmithId && (
+                                    <div className="flex items-center gap-2">
+                                        <div ref={weightPrintRef}>
+                                            <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
+                                        </div>
+                                        <button onClick={handleAddWeightRow} className={`${actionButton} bg-emerald-600`}>
+                                            <Plus size={14} />
+                                            Add new
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <Table
-                                columns={mainTableColumns}
-                                data={transactions || []}
+                                columns={weightBalanceColumns}
+                                data={weightBalanceData}
                                 striped
                                 hoverable
                                 compact="auto"
-                                className="border border-t-0 w-full"
-                                headerClassName="border-b bg-blue-600 text-white"
-                                bodyClassName="border-0"
-                                fixedHeight={responsive.isMobile ? "400px" : "500px"}
-                                showRows={20}
-                                renderFooter={() => (
-                                    <tfoot className="sticky bottom-0 z-10 bg-muted font-semibold">
+                                className="w-full rounded-none border-0 shadow-none"
+                                fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                showRows={5}
+                                renderFooter={showTotal ? () => (
+                                    <tfoot className="sticky bottom-0 bg-emerald-50 font-semibold text-foreground dark:bg-emerald-500/10">
                                         <tr>
-                                            <td colSpan={2} className="text-right text-red-600  pr-2 border-r border-border">
-                                                Total
-                                            </td>
-                                            <td className="text-right text-red-600 pr-1 border-r border-border">
-                                                {transactionTotals.weight.toFixed(3)}
-                                            </td>
-                                            <td className="text-right text-red-600 pr-1  dark:text-green-400">
-                                                {formatCurrency(transactionTotals.cash)}
-                                            </td>
+                                            <td colSpan={2} className="border-r border-border pr-4 text-right">Total</td>
+                                            <td className="border-r border-border text-right">{weightTotals.receipts.toFixed(3)}</td>
+                                            <td className="border-r border-border text-right">{weightTotals.payments.toFixed(3)}</td>
+                                            <td className="border-r border-border text-right">{weightTotals.balance.toFixed(3)}</td>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
-                                )}
+                                ) : undefined}
                             />
-                        </div>
+                        </section>
 
-                        {/* {selectedSmithId && selectedSmithName && !existingTransaction && (
-                            <div className="flex items-center gap-2 p-3 bg-muted rounded border" style={{ borderColor: styles.border }}>
-                                <span className="text-sm font-medium">Selected: {selectedSmithName}</span>
-                                <button
-                                    onClick={handleAddTransaction}
-                                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors text-sm"
-                                >
-                                    Add Transaction
-                                </button>
-                            </div>
-                        )} */}
-                    </div>
-
-                    {/* Right Side - Weight + Cash Tables (70% width) */}
-                    <div className="flex-1 lg:flex-[0_0_70%] max-w-full lg:max-w-[52%] flex flex-col gap-1">
-                        {/* Weight Table */}
-                        <div className="flex-1 flex flex-col ">
-                            <div className="flex justify-between items-center px-3 py-4 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                                <h2 className="text-base font-semibold flex items-center space-x-2">
-                                    <Scale size={18} className="text-green-600 dark:text-green-400" />
-                                    <span>Weight Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-muted-foreground">({selectedSmithName})</span>}
-                                </h2>
-                                {selectedSmithId && (
-                                    <div className="flex items-center space-x-2">
-                                        <div ref={weightPrintRef}> <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smithName={selectedSmithName}/>
-                                        </div>
-                                        <button onClick={handleAddWeightRow} className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors text-sm">
-                                            Add New
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <Table
-                                    columns={weightBalanceColumns}
-                                    data={weightBalanceData}
-                                    striped
-                                    hoverable
-                                    compact="auto"
-                                    className="border border-t-0 rounded-t-none w-full"
-                                    headerClassName="border-b bg-green-600 text-white dark:bg-green-800"
-                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                    showRows={5}
-                                    renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-green-100 dark:bg-green-800/30 text-foreground font-semibold">
-                                            <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-border">Total</td>
-                                                <td className="text-right border-r border-border">{weightTotals.receipts.toFixed(3)}</td>
-                                                <td className="text-right border-r border-border">{weightTotals.payments.toFixed(3)}</td>
-                                                <td className="text-right border-r border-border">{weightTotals.balance.toFixed(3)}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    ) : undefined}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Cash Table */}
-                        <div className="flex-1 flex flex-col">
-                            <div className="flex justify-between items-center px-3 py-3 border rounded-t" style={{ background: styles.background.card, borderColor: styles.border }}>
-                                <h2 className="text-base font-semibold flex items-center space-x-2">
+                        {/* Cash */}
+                        <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                            <div className={cardHeader}>
+                                <h2 className="flex items-center gap-2 text-sm font-semibold">
                                     <IndianRupee size={18} className="text-primary-text" />
-                                    <span>Cash Balance</span>
-                                    {selectedSmithId && <span className="text-sm text-muted-foreground">({selectedSmithName})</span>}
+                                    Cash Balance
+                                    {selectedSmithId && (
+                                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                            {selectedSmithName}
+                                        </span>
+                                    )}
                                 </h2>
                                 {selectedSmithId && (
-                                    <div className="flex items-center space-x-2">
-                                        <div ref={cashPrintRef}> <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smithName={selectedSmithName} /></div>
-                                       
-                                        <button onClick={handleAddCashRow} className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors text-sm">
-                                            Add New
+                                    <div className="flex items-center gap-2">
+                                        <div ref={cashPrintRef}>
+                                            <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
+                                        </div>
+                                        <button onClick={handleAddCashRow} className={`${actionButton} bg-primary`}>
+                                            <Plus size={14} />
+                                            Add new
                                         </button>
                                     </div>
                                 )}
                             </div>
-                            <div className="flex-1">
-                                <Table
-                                    columns={cashBalanceColumns}
-                                    data={cashBalanceData}
-                                    striped
-                                    hoverable
-                                    compact="auto"
-                                    className="border border-t-0 rounded-t-none w-full"
-                                    headerClassName="border-b bg-blue-600 text-white"
-                                    fixedHeight={responsive.isMobile ? "250px" : "280px"}
-                                    showRows={5}
-                                    renderFooter={showTotal ? () => (
-                                        <tfoot className=" sticky bottom-0 bg-accent-soft text-foreground font-semibold">
-                                            <tr>
-                                                <td colSpan={2} className="text-right pr-4 border-r border-border">Total</td>
-                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.receipts)}</td>
-                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.payments)}</td>
-                                                <td className="text-right border-r border-border">{formatCurrency(cashTotals.balance)}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    ) : undefined}
-                                />
-                            </div>
-                        </div>
+                            <Table
+                                columns={cashBalanceColumns}
+                                data={cashBalanceData}
+                                striped
+                                hoverable
+                                compact="auto"
+                                className="w-full rounded-none border-0 shadow-none"
+                                fixedHeight={responsive.isMobile ? "250px" : "280px"}
+                                showRows={5}
+                                renderFooter={showTotal ? () => (
+                                    <tfoot className="sticky bottom-0 bg-accent-soft font-semibold text-foreground">
+                                        <tr>
+                                            <td colSpan={2} className="border-r border-border pr-4 text-right">Total</td>
+                                            <td className="border-r border-border text-right">{formatCurrency(cashTotals.receipts)}</td>
+                                            <td className="border-r border-border text-right">{formatCurrency(cashTotals.payments)}</td>
+                                            <td className="border-r border-border text-right">{formatCurrency(cashTotals.balance)}</td>
+                                            <td></td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                ) : undefined}
+                            />
+                        </section>
                     </div>
-                    
                 </div>
-                <div className="flex md:flex-row flex-col gap-5 sm:gap-10 md:gap-20 lg:gap-40">
-                    <div className="flex  lg:flex-row gap-2">
-                        <SmithManager onSelectSmith={handleSmithSelect} />
 
-                    </div>
-                    <div className="flex flex-col lg:flex-row gap-2 mt-3 ">
+                {/* Management */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
+                        <SmithManager onSelectSmith={handleSmithSelect} />
+                    </section>
+                    <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
                         <Register />
-                    </div>
+                    </section>
                 </div>
-               
-        
-                
             </main>
+
+            <FlowAttachmentsDialog
+                open={!!attachTarget}
+                kind={attachTarget?.kind ?? "cash"}
+                row={attachTarget?.row ?? null}
+                onClose={() => setAttachTarget(null)}
+                onUploaded={() => {
+                    if (!selectedSmithId || !attachTarget) return;
+                    if (attachTarget.kind === "cash") refetchCashFlows(selectedSmithId);
+                    else refetchWeightFlows(selectedSmithId);
+                }}
+            />
         </div>
     );
 }
