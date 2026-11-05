@@ -20,12 +20,15 @@ import {
     Loader2,
     Lock,
     Printer,
+    ShieldCheck,
     User,
 } from "lucide-react";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
-import { useConfig } from "@/src/providers/config-provider";
 
 const REMEMBER_KEY = "smith.rememberedUser";
+const BRAND = "Brightech Software Services";
+const PRODUCT = "Smith & Gift Voucher Suite";
+const LOGO_SRC = "/logo/com-logo.jpg";
 
 const projectHomePath = (project?: string) =>
     project === "GV" ? "/gift-voucher" : "/";
@@ -58,11 +61,8 @@ type FieldErrors = { userName?: string; password?: string };
 const LoginForm: React.FC = () => {
     const router = useRouter();
     const { login, isAuthenticated, isLoading, allDetails } = useAuth();
-    const config = useConfig();
     const reduceMotion = useReducedMotion();
     const shake = useAnimationControls();
-
-    const companyName = config?.COMPANYNAME || config?.COMPANY_NAME || "Smith Dashboard";
 
     const [userName, setUserName] = useState("");
     const [password, setPassword] = useState("");
@@ -142,8 +142,8 @@ const LoginForm: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-[#071a33]">
-                <Loader2 className="h-10 w-10 animate-spin text-amber-300" />
+            <div className="flex h-screen items-center justify-center bg-[#f4f7fb]">
+                <Loader2 className="h-10 w-10 animate-spin text-[#0c376a]" />
             </div>
         );
     }
@@ -162,58 +162,67 @@ const LoginForm: React.FC = () => {
     const busy = status !== "idle";
 
     return (
-        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#071a33] px-4 py-10 sm:px-6">
+        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#f4f7fb] via-white to-[#fdf8ee] px-4 py-10 sm:px-6">
             <Backdrop reduceMotion={!!reduceMotion} />
 
             <motion.div
                 initial={{ opacity: 0, y: reduceMotion ? 0 : 24, scale: reduceMotion ? 1 : 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl lg:grid-cols-[1.05fr_1fr]"
+                className="relative w-full max-w-5xl rounded-[26px] bg-gradient-to-br from-amber-300/80 via-slate-200 to-[#1d5fb0]/50 p-px shadow-[0_30px_70px_-25px_rgba(12,55,106,0.35)]"
             >
+            <div className="grid overflow-hidden rounded-[25px] bg-white lg:grid-cols-[1.05fr_1fr]">
                 {/* Brand panel */}
-                <div className="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex">
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#0c376a] via-[#0a2c56] to-[#061630]" />
-                    <div className="absolute inset-0 -z-10 opacity-[0.07] [background-image:linear-gradient(45deg,#fff_1px,transparent_1px),linear-gradient(-45deg,#fff_1px,transparent_1px)] [background-size:28px_28px]" />
+                <div className="relative hidden flex-col justify-between overflow-hidden border-r border-slate-100 p-10 text-[#0c2a52] lg:flex">
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#eaf2fc] via-[#f5f8fd] to-[#fdf3dc]" />
+                    <div className="absolute inset-0 -z-10 opacity-[0.35] [background-image:linear-gradient(45deg,#dbe5f1_1px,transparent_1px),linear-gradient(-45deg,#dbe5f1_1px,transparent_1px)] [background-size:28px_28px]" />
 
                     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-                        <motion.div variants={item} className="flex items-center gap-3">
-                            <Gem reduceMotion={!!reduceMotion} />
+                        <motion.div variants={item} className="flex items-center gap-4">
+                            <BrandMark reduceMotion={!!reduceMotion} />
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.25em] text-amber-200/80">
-                                    Welcome to
+                                <h1 className="text-xl font-bold uppercase leading-tight tracking-[0.18em]">Brightech</h1>
+                                <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-700">
+                                    Software Services
                                 </p>
-                                <h1 className="text-2xl font-semibold leading-tight">{companyName}</h1>
                             </div>
                         </motion.div>
+
+                        <motion.span
+                            variants={item}
+                            className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
+                        >
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                            {PRODUCT}
+                        </motion.span>
 
                         <motion.h2
                             variants={item}
                             className="max-w-sm text-4xl font-semibold leading-[1.15] tracking-tight"
                         >
-                            Every gram and every voucher,{" "}
-                            <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-500 bg-clip-text text-transparent">
-                                in one place.
+                            Jewellery back-office,{" "}
+                            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-700 bg-clip-text text-transparent">
+                                crafted for precision.
                             </span>
                         </motion.h2>
 
                         <motion.ul variants={container} className="space-y-4 pt-2">
                             {FEATURES.map(({ icon: Icon, title, text }) => (
                                 <motion.li key={title} variants={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-                                        <Icon className="h-4 w-4 text-amber-300" />
+                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[#0c376a]/10">
+                                        <Icon className="h-4 w-4 text-amber-600" />
                                     </span>
                                     <span>
                                         <span className="block text-sm font-semibold">{title}</span>
-                                        <span className="block text-sm text-white/65">{text}</span>
+                                        <span className="block text-sm text-slate-500">{text}</span>
                                     </span>
                                 </motion.li>
                             ))}
                         </motion.ul>
                     </motion.div>
 
-                    <p className="text-xs text-white/45">
-                        © {new Date().getFullYear()} {companyName}
+                    <p className="text-xs text-slate-400">
+                        © {new Date().getFullYear()} {BRAND}. All rights reserved.
                     </p>
                 </div>
 
@@ -222,8 +231,11 @@ const LoginForm: React.FC = () => {
                     <motion.div variants={container} initial="hidden" animate="show" className="mx-auto w-full max-w-sm">
                         {/* Compact brand for phones and tablets */}
                         <motion.div variants={item} className="mb-8 flex items-center gap-3 lg:hidden">
-                            <Gem reduceMotion={!!reduceMotion} small />
-                            <span className="text-lg font-semibold text-[#0c376a]">{companyName}</span>
+                            <BrandMark reduceMotion={!!reduceMotion} small />
+                            <div>
+                                <span className="block text-base font-bold uppercase tracking-[0.16em] text-[#0c376a]">Brightech</span>
+                                <span className="block text-[11px] font-medium uppercase tracking-[0.25em] text-slate-500">Software Services</span>
+                            </div>
                         </motion.div>
 
                         <motion.h3 variants={item} className="text-3xl font-semibold tracking-tight text-slate-900">
@@ -337,11 +349,20 @@ const LoginForm: React.FC = () => {
                             </motion.div>
                         </motion.form>
 
-                        <motion.p variants={item} className="mt-10 text-center text-xs text-slate-400">
+                        <motion.div variants={item} className="mt-10 flex items-center justify-center gap-3 text-xs text-slate-400">
+                            <span className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-200" />
+                            <span className="flex items-center gap-1.5">
+                                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                                Secured by {BRAND}
+                            </span>
+                            <span className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-200" />
+                        </motion.div>
+                        <motion.p variants={item} className="mt-3 text-center text-xs text-slate-400">
                             Trouble signing in? Contact your administrator.
                         </motion.p>
                     </motion.div>
                 </div>
+            </div>
             </motion.div>
         </div>
     );
@@ -496,40 +517,31 @@ const SubmitButton: React.FC<{ status: "idle" | "loading" | "success"; reduceMot
     </motion.button>
 );
 
-// Faceted gem mark with a slow shimmer.
-const Gem: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduceMotion, small }) => {
-    const size = small ? 36 : 48;
+// Brightech logo on a white tile, ringed by a slowly turning gold halo.
+const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduceMotion, small }) => {
+    const size = small ? 44 : 60;
     return (
-        <motion.div
-            className="relative shrink-0"
-            style={{ width: size, height: size }}
-            animate={reduceMotion ? undefined : { rotate: [0, 6, -6, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        >
-            <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true">
-                <defs>
-                    <linearGradient id={`gem-${small ? "s" : "l"}`} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stopColor="#fde68a" />
-                        <stop offset="0.5" stopColor="#f59e0b" />
-                        <stop offset="1" stopColor="#b45309" />
-                    </linearGradient>
-                </defs>
-                <path d="M12 6h24l10 12-22 26L2 18z" fill={`url(#gem-${small ? "s" : "l"})`} />
-                <path d="M2 18h44M12 6l6 12 6-12 6 12 6-12M18 18l6 26 6-26" fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1.2" strokeLinejoin="round" />
-            </svg>
-            {!reduceMotion && (
+        <div className="relative shrink-0" style={{ width: size, height: size }}>
+            {/* Clip a rotating gradient to a rounded frame so only a thin ring shows. */}
+            <span className="absolute -inset-[3px] overflow-hidden rounded-[17px]">
                 <motion.span
-                    className="pointer-events-none absolute inset-0 overflow-hidden"
-                    style={{ clipPath: "polygon(25% 12%, 75% 12%, 96% 38%, 50% 92%, 4% 38%)" }}
-                >
+                    className="absolute -inset-1/2 bg-[conic-gradient(from_0deg,#fde68a,#f59e0b,#1d5fb0,#fde68a)]"
+                    animate={reduceMotion ? undefined : { rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                />
+            </span>
+            <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[14px] bg-white p-1.5 shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={LOGO_SRC} alt={`${BRAND} logo`} className="h-full w-full object-contain" />
+                {!reduceMotion && (
                     <motion.span
-                        className="absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/80 to-transparent"
+                        className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/70 to-transparent"
                         animate={{ left: ["-40%", "140%"] }}
-                        transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 2.4, ease: "easeInOut" }}
+                        transition={{ duration: 1.4, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
                     />
-                </motion.span>
-            )}
-        </motion.div>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -544,12 +556,12 @@ const SPARKLES = Array.from({ length: 18 }, (_, i) => ({
 const Backdrop: React.FC<{ reduceMotion: boolean }> = ({ reduceMotion }) => (
     <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <motion.div
-            className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-[#1d5fb0] opacity-40 blur-[120px]"
+            className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-[#93c5fd] opacity-40 blur-[120px]"
             animate={reduceMotion ? undefined : { x: [0, 60, 0], y: [0, 40, 0] }}
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-            className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-amber-500 opacity-25 blur-[120px]"
+            className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-amber-300 opacity-35 blur-[120px]"
             animate={reduceMotion ? undefined : { x: [0, -50, 0], y: [0, -30, 0] }}
             transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -557,7 +569,7 @@ const Backdrop: React.FC<{ reduceMotion: boolean }> = ({ reduceMotion }) => (
             SPARKLES.map((s, i) => (
                 <motion.span
                     key={i}
-                    className="absolute rounded-full bg-amber-200"
+                    className="absolute rounded-full bg-amber-400"
                     style={{ left: `${s.left}%`, top: `${s.top}%`, width: s.size, height: s.size }}
                     animate={{ opacity: [0, 0.9, 0], scale: [0.6, 1.2, 0.6] }}
                     transition={{ duration: 3.2, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}

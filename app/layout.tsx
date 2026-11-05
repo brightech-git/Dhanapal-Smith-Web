@@ -17,7 +17,7 @@ import { SoftControlProvider } from '@/src/module/smith/context/soft-control-con
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Smith Dashboard',
+  title: 'Smith & Gift Voucher | Brightech Software Services',
   description: 'A beautiful dashboard to manage the smith',
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.ico" />
         <meta property="og:image" content="/icon-512.png" />
-        <meta property="og:title" content="Danapal Smith Dashboard" />
+        <meta property="og:title" content="Smith & Gift Voucher | Brightech Software Services" />
         <meta property="og:description" content="A beautiful dashboard to manage the smith" />
         <meta name="twitter:card" content="summary_large_image" />
       </head>
