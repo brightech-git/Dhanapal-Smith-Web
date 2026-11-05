@@ -24,6 +24,7 @@ import {
     User,
     Gem,
 } from "lucide-react";
+import { firstAllowedPath } from "@/src/features/auth/lib/access";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
 const REMEMBER_KEY = "smith.rememberedUser";
@@ -92,7 +93,7 @@ const LoginForm: React.FC = () => {
 
     useEffect(() => {
         if (isAuthenticated && !justSignedIn.current) {
-            router.replace(projectHomePath(allDetails?.projectName));
+            router.replace(firstAllowedPath(allDetails) ?? projectHomePath(allDetails?.projectName));
         }
     }, [isAuthenticated, allDetails, router]);
 
@@ -124,7 +125,7 @@ const LoginForm: React.FC = () => {
             writeRemembered(remember ? userName.trim() : null);
             setStatus("success");
             setTimeout(
-                () => router.replace(projectHomePath(details?.projectName)),
+                () => router.replace(firstAllowedPath(details) ?? projectHomePath(details?.projectName)),
                 reduceMotion ? 0 : 900
             );
         } catch (error: any) {

@@ -37,8 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
         <ThemeStudioProvider>
           <ConfigProvider>
-            <AuthProvider>
-              <ReactQueryProvider>
+            <ReactQueryProvider>
+              <AuthProvider>
                 <NavigationProvider>
                   <ToastProvider>
                     <SoftControlProvider>
@@ -52,8 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </SoftControlProvider>
                   </ToastProvider>
                 </NavigationProvider>
-              </ReactQueryProvider>
-            </AuthProvider>
+              </AuthProvider>
+            </ReactQueryProvider>
           </ConfigProvider>
         </ThemeStudioProvider>
         </ThemeProvider>

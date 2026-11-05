@@ -9,12 +9,14 @@ import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
 import { useNavigation } from "@/src/providers/navigation-provider";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
-const APP_TITLE = "Smith Suite";
+import { canAccessPath } from "@/src/features/auth/lib/access";
+
+const APP_TITLE = "Smith Management System";
 
 const SMITH_NAV = [
     { label: "Dashboard", path: "/", icon: LayoutDashboard },
     { label: "Orders", path: "/smiths/order", icon: ClipboardList },
-    { label: "Users", path: "/smiths/create", icon: Users },
+    { label: "Smiths", path: "/smiths/create", icon: Users },
     { label: "Roles", path: "/roles", icon: ShieldCheck },
 ];
 const GV_NAV = [{ label: "Gift Voucher", path: "/gift-voucher", icon: Gift }];
@@ -37,8 +39,8 @@ const AppHeader: React.FC = () => {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
 
-    const isGV = allDetails?.projectName === "GV";
-    const navItems = isGV ? GV_NAV : SMITH_NAV;
+    const isGV = pathname === "/gift-voucher" || pathname.startsWith("/gift-voucher/");
+    const navItems = [...SMITH_NAV, ...GV_NAV].filter((item) => canAccessPath(allDetails, item.path));
     const moduleName = isGV ? "Gift Voucher" : "Smith Dashboard";
     const userName: string = allDetails?.userName || allDetails?.USERNAME || "Admin";
     const role = allDetails?.admin === false ? "User" : "Administrator";
@@ -94,7 +96,7 @@ const AppHeader: React.FC = () => {
                         <Menu className="h-5 w-5" />
                     </button>
 
-                    <button type="button" onClick={() => go(navItems[0].path)} className="flex items-center gap-2.5 text-left">
+                    <button type="button" onClick={() => navItems[0] && go(navItems[0].path)} className="flex items-center gap-2.5 text-left">
                         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-500 text-primary-foreground shadow-sm">
                             <Gem className="h-[18px] w-[18px]" />
                         </span>

@@ -7,6 +7,9 @@ import RoleMasterPanel from "./role-master-panel";
 import RolePermissionMatrix from "./role-permission-matrix";
 import UserRolePanel from "./user-role-panel";
 
+import { useAuth } from "@/src/features/auth/lib/auth-context";
+import { canViewMenu } from "@/src/features/auth/lib/access";
+
 const TABS = [
     { id: "roles", label: "Roles", icon: ShieldCheck, hint: "Create, edit and delete roles" },
     { id: "permissions", label: "Permissions", icon: KeyRound, hint: "Per-menu access for a role" },
@@ -25,6 +28,10 @@ const readHash = (): { tab: TabId; roleId: number | null } => {
 export default function RolesPage() {
     const [tab, setTab] = useState<TabId>("roles");
     const [roleId, setRoleId] = useState<number | null>(null);
+
+    const { allDetails } = useAuth();
+    const availableTabs = TABS.filter((t) => canViewMenu(allDetails, t.id === "permissions" ? "role-permissions" : t.id));
+    const activeTab = availableTabs.some((t) => t.id === tab) ? tab : availableTabs[0]?.id;
 
     // The tab (and selected role) live in the URL hash, so reload and back keep them.
     useEffect(() => {
@@ -53,8 +60,8 @@ export default function RolesPage() {
             </div>
 
             <div role="tablist" aria-label="Roles and access" className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card p-1 shadow-sm sm:inline-flex">
-                {TABS.map((t) => {
-                    const active = tab === t.id;
+                {availableTabs.map((t) => {
+                    const active = activeTab === t.id;
                     return (
                         <button
                             key={t.id}
@@ -80,10 +87,10 @@ export default function RolesPage() {
                 })}
             </div>
 
-            <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-                {tab === "roles" && <RoleMasterPanel onManagePermissions={(role) => go("permissions", role.roleId)} />}
-                {tab === "permissions" && <RolePermissionMatrix roleId={roleId} onRoleChange={(id) => go("permissions", id)} />}
-                {tab === "user-roles" && <UserRolePanel />}
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+                {activeTab === "roles" && <RoleMasterPanel onManagePermissions={(role) => go("permissions", role.roleId)} />}
+                {activeTab === "permissions" && <RolePermissionMatrix roleId={roleId} onRoleChange={(id) => go("permissions", id)} />}
+                {activeTab === "user-roles" && <UserRolePanel />}
             </motion.div>
         </div>
     );

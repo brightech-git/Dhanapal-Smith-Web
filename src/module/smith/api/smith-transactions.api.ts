@@ -4,6 +4,7 @@
 // The screens still work with "cash" and "weight" rows ({ date, receipts,
 // payments, remarks, balance }); this file maps them to and from the API.
 
+import { validateTransactionValues } from "../lib/transaction-validation";
 import { getAxiosInstance } from "@/lib/api/client";
 import { api, toApiDate, type ApiEnvelope, unwrap } from "@/lib/api/envelope";
 import type { FlowKind } from "@/src/module/smith/type/smith-dashboard.types";
@@ -104,7 +105,9 @@ export const toFlows = (rows: TransactionApi[]): SmithFlow[] => {
 };
 
 // Exactly the fields TransactionRequest accepts (unknown properties are rejected).
-const toRequest = (t: Omit<TransactionApi, "id" | "media">, mediaUrls?: string[] | null) => ({
+const toRequest = (t: Omit<TransactionApi, "id" | "media">, mediaUrls?: string[] | null) => {
+    validateTransactionValues(t.issue, t.receipt);
+    return ({
     smithId: t.smithId,
     trandate: toApiDate(t.trandate),
     remark: t.remark && t.remark.trim() ? t.remark.trim() : null,
@@ -112,14 +115,15 @@ const toRequest = (t: Omit<TransactionApi, "id" | "media">, mediaUrls?: string[]
     receipt: num(t.receipt),
     trantype: t.trantype,
     ...(mediaUrls !== undefined ? { mediaUrls } : {}),
-});
+    });
+};
 
 /** Screen field names → API field names. */
 const applyPatch = (t: TransactionApi, patch: Record<string, unknown>): TransactionApi => {
     const next = { ...t };
     if ("date" in patch) next.trandate = toApiDate(String(patch.date ?? ""));
-    if ("receipts" in patch) next.receipt = num(patch.receipts);
-    if ("payments" in patch) next.issue = num(patch.payments);
+    if ("receipts" in patch) next.receipt = Number(patch.receipts ?? 0);
+    if ("payments" in patch) next.issue = Number(patch.payments ?? 0);
     if ("remarks" in patch) next.remark = (patch.remarks as string) ?? null;
     return next;
 };

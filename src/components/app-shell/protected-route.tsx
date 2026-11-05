@@ -1,64 +1,30 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import { useAuth } from '@/src/features/auth/lib/auth-context';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from "react";
+import { useAuth } from "@/src/features/auth/lib/auth-context";
+import { canAccessPath, firstAllowedPath } from "@/src/features/auth/lib/access";
+import { usePathname, useRouter } from "next/navigation";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    requiredRole?: string; // Optional: for role-based access
-    // Optional: restrict this route to a specific project type
-    // ("SMITH" or "GV"). If the logged-in user belongs to a
-    // different project, they are redirected to their own home page.
+    requiredRole?: string;
     requiredProject?: "SMITH" | "GV";
 }
 
-const projectHomePath = (projectName?: string) =>
-    projectName === "GV" ? "/gift-voucher" : "/";
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-    children,
-    requiredRole,
-    requiredProject,
-}) => {
-
-
-    const { isAuthenticated, allDetails } = useAuth();
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+    const { isAuthenticated, allDetails, isLoading } = useAuth();
     const router = useRouter();
-
-    const projectName: string | undefined = allDetails?.projectName;
-    console.log(projectName, allDetails, "projectName")
+    const pathname = usePathname() || "/";
+    const allowed = isAuthenticated && canAccessPath(allDetails, pathname);
+    const fallback = firstAllowedPath(allDetails);
 
     useEffect(() => {
-        if (!isAuthenticated) {
-            router.push('/login');
-            return;
-        }
+        if (isLoading) return;
+        if (!isAuthenticated) router.replace("/login");
+        else if (!allowed && fallback && fallback !== pathname) router.replace(fallback);
+    }, [isLoading, isAuthenticated, allowed, fallback, pathname, router]);
 
-        if (
-            requiredProject &&
-            projectName &&
-            projectName !== requiredProject
-        ) {
-            router.push(projectHomePath(projectName));
-        }
-    }, [isAuthenticated, requiredProject, projectName, router]);
-
-    // Redirect if not authenticated (handled by useEffect)
-    if (!isAuthenticated) {
-        return null;
-    }
-
-    // Redirect if logged in under a different project (handled by useEffect)
-    if (
-        requiredProject &&
-        projectName &&
-        projectName !== requiredProject
-    ) {
-        return null;
-    }
-
+    if (isLoading || !isAuthenticated) return null;
+    if (!allowed) return <div role="alert" className="p-6">You do not have access to this page. Contact your administrator for an assignment.</div>;
     return <>{children}</>;
-};
-
-export default ProtectedRoute;
+}

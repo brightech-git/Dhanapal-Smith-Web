@@ -36,7 +36,7 @@ const authService = {
             const { data } = await axios.post<ApiEnvelope<LoginResponse>>(`${MAIN_URL.replace(/\/$/, "")}/users/login`, {
                 username: userName,
                 password,
-            });
+            }, { withCredentials: true });
             if (!data?.success) throw new Error(data?.message || "Login failed");
             const p = data.data;
             // Keep the field names the rest of the app already reads (userName, admin, projectName).

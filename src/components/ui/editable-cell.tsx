@@ -13,6 +13,7 @@ interface EditableCellProps {
     onSave: (value: any) => Promise<void>;
     className?: string;
     displayValue?: string;
+    allowNegative?: boolean;
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({
@@ -21,6 +22,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     onSave,
     className = "",
     displayValue,
+    allowNegative = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -81,8 +83,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
             }
 
             if ((type === "number" || type === "numbers") && editValue !== "") {
-                const numValue = parseFloat(editValue);
-                if (isNaN(numValue) || numValue < 0) throw new Error("Invalid number");
+                const numValue = Number(editValue);
+                if (!Number.isFinite(numValue) || (!allowNegative && numValue < 0)) throw new Error("Invalid number");
                 finalValue = numValue;
             }
 

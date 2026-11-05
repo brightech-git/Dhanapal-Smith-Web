@@ -12,6 +12,7 @@ export const getAxiosInstance = (baseUrl?: string): AxiosInstance => {
         const BASEURL = currentBaseUrl.trim().replace(/\/+$/, "");
         axiosInstance = axios.create({
             baseURL: BASEURL,
+            withCredentials: true,
             headers: {
                 "Content-Type": "application/json",
             },

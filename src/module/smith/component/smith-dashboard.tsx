@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/src/theme/theme-context";
 import Table from "@/src/components/ui/table";
-import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, Users as UsersIcon, UserRound, CalendarDays, History } from "lucide-react";
+import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, Users as UsersIcon, ClipboardList, CalendarDays, History } from "lucide-react";
 import { formatCurrency, } from "@/src/utils/format/format";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useSmithDetails } from '@/src/module/smith/context/smith-details-context'
@@ -12,6 +12,7 @@ import SmithManager from "@/src/module/smith/component/smith-manager";
 import EditableCell from "@/src/components/ui/editable-cell";
 import { useToast } from "@/src/providers/toast-provider";
 import PrintTable from "@/src/components/print/print-table";
+import { validateTransactionValues } from "../lib/transaction-validation";
 import { toApiDate } from "@/lib/api/envelope";
 import { useSoftControlFlags } from "@/src/module/smith/context/soft-control-context";
 import { Delete } from "@mui/icons-material";
@@ -51,21 +52,25 @@ function AttachButton({ row, onClick }: { row: any; onClick: () => void }) {
     );
 }
 
+import { useAuth } from "@/src/features/auth/lib/auth-context";
+import { canMenuAction, canViewMenu } from "@/src/features/auth/lib/access";
+
 export default function SmithsPage() {
+    const { allDetails } = useAuth();
     const { responsive } = useTheme();
     const { addToast } = useToast();
     const { createSmith, smiths: allSmiths } = useSmithDetails();
     const flags = useSoftControlFlags();
     const showTotal = flags.grandTotal;
-    const showDelete = flags.rowDelete;
+    const showDelete = canViewMenu(allDetails, "transactions") && canMenuAction(allDetails, "transactions", "del");
     const saveMode = flags.saveButton;
-    const showDashboard = flags.showDashboard;
+    const showDashboard = flags.showDashboard && canViewMenu(allDetails, "dashboard");
 
     const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: any } | null>(null);
     const [detail, setDetail] = useState<{ kind: FlowKind; index: number } | null>(null);
     const summaryQuery = useDashboardSummary(showDashboard);
-    const recentCashQuery = useRecentCashTransactions(5, showDashboard);
-    const recentWeightQuery = useRecentWeightTransactions(5, showDashboard);
+    const recentCashQuery = useRecentCashTransactions(5, showDashboard && canViewMenu(allDetails, "transactions"));
+    const recentWeightQuery = useRecentWeightTransactions(5, showDashboard && canViewMenu(allDetails, "transactions"));
 
     const weightPrintRef = useRef<HTMLDivElement>(null);
     const cashPrintRef = useRef<HTMLDivElement>(null);
@@ -74,6 +79,7 @@ export default function SmithsPage() {
 
     const {
         transactions,
+        loading: transactionsLoading,
         getWeightFlows,
         getCashFlows,
         addCash,
@@ -414,6 +420,12 @@ export default function SmithsPage() {
     const commitAll = async (kind: FlowKind) => {
         if (!selectedSmithId) return;
         const rows = (kind === "weight" ? weightBalanceData : cashBalanceData).filter(isDirty);
+        try {
+            for (const row of rows) validateTransactionValues(row.payments, row.receipts);
+        } catch (error) {
+            addToast({ type: "error", title: "Save failed", message: (error as Error).message });
+            return;
+        }
         let saved = 0;
         for (const row of rows) if (await commitRow(kind, row, true)) saved++;
         if (kind === "weight") await refetchWeightFlows(selectedSmithId);
@@ -490,7 +502,7 @@ export default function SmithsPage() {
     //     : cashBalanceData;
 
     const handleDeleteCashRow = async (rowId: number) => {
-        if (!selectedSmithId) return;
+        if (!showDelete || !selectedSmithId) return;
 
         // Ask for user confirmation
         const confirmed = window.confirm("Are you sure you want to delete this row?");
@@ -522,7 +534,7 @@ export default function SmithsPage() {
 
 
     const handleDeleteWeightRow = async (rowId: number) => {
-        if (!selectedSmithId) return;
+        if (!showDelete || !selectedSmithId) return;
 
         // Ask for user confirmation
         const confirmed = window.confirm("Are you sure you want to delete this weight row?");
@@ -636,7 +648,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
+                <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
             ),
         },
         {
@@ -646,7 +658,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
+                <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
             ),
         },
         {
@@ -709,7 +721,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
+                <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
             ),
         },
         {
@@ -719,7 +731,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="number" onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
+                <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
             ),
         },
         {
@@ -782,7 +794,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
+                <EditableCell value={value} type="numbers" allowNegative onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
             ),
         },
         {
@@ -792,7 +804,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
+                <EditableCell value={value} type="numbers" allowNegative onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
             ),
         },
         {
@@ -856,7 +868,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
+                <EditableCell value={value} type="numbers" allowNegative onSave={(newVal) => onEdit("cash", row, "receipts", newVal)} />
             ),
         },
         {
@@ -866,7 +878,7 @@ export default function SmithsPage() {
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                <EditableCell value={value} type="numbers" onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
+                <EditableCell value={value} type="numbers" allowNegative onSave={(newVal) => onEdit("cash", row, "payments", newVal)} />
             ),
         },
         {
@@ -897,81 +909,77 @@ export default function SmithsPage() {
     // above or below the ledger according to DashboardPosition.
     const dashboardSection = (
         <div className="space-y-5">
+                {summaryQuery.isError && <p role="alert" className="text-sm text-red-600">Unable to load dashboard totals. Please try again.</p>}
                 {/* Totals */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <KpiCard
                         index={0}
-                        label="Current total weight"
+                        label="Total weight balance"
                         value={summary?.totalWeight ?? 0}
                         format={formatWeight}
                         footnote={summary ? `${summary.weightTransactions} weight entries` : undefined}
                         icon={Scale}
                         tone="primary"
-                        loading={summaryQuery.isLoading}
+                        loading={flags.showLoading && summaryQuery.isLoading}
                     />
                     <KpiCard
                         index={1}
-                        label="Current total amount"
+                        label="Total amount"
                         value={summary?.totalAmount ?? 0}
                         format={formatAmount}
                         footnote={summary ? `${summary.amountTransactions} cash entries` : undefined}
                         icon={IndianRupee}
                         tone="secondary"
-                        loading={summaryQuery.isLoading}
+                        loading={flags.showLoading && summaryQuery.isLoading}
                     />
                     <KpiCard
                         index={2}
                         label="Smiths"
-                        value={summary?.smithCount ?? (transactions?.length || 0)}
+                        value={summary?.smithCount ?? 0}
                         format={(v) => Math.round(v).toString()}
-                        footnote={summary ? `${summary.totalTransactions} transactions in all` : "registered smiths"}
+                        footnote="Registered smiths"
                         icon={UsersIcon}
                         tone="emerald"
-                        loading={summaryQuery.isLoading}
+                        loading={flags.showLoading && summaryQuery.isLoading}
                     />
-                    <motion.div
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.18, duration: 0.45 }}
-                        className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm"
-                    >
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground">Selected smith</p>
-                                <p className="mt-2 truncate text-xl font-bold tracking-tight">
-                                    {selectedSmithName || "None selected"}
-                                </p>
-                            </div>
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-500 text-white shadow-sm">
-                                <UserRound className="h-5 w-5" />
-                            </span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                            {selectedSmithId ? (
-                                <>
-                                    <span>
-                                        Weight <b className="text-foreground">{formatWeight(weightTotals.balance)}</b>
-                                    </span>
-                                    <span>
-                                        Cash <b className="text-foreground">{formatAmount(cashTotals.balance)}</b>
-                                    </span>
-                                </>
-                            ) : (
-                                <span>Double-click a balance in Smith Transactions to open it.</span>
-                            )}
-                        </div>
-                    </motion.div>
+                    <KpiCard
+                        index={3}
+                        label="Weight transactions"
+                        value={summary?.weightTransactions ?? 0}
+                        format={(v) => Math.round(v).toLocaleString("en-IN")}
+                        icon={Scale}
+                        tone="primary"
+                        loading={flags.showLoading && summaryQuery.isLoading}
+                    />
+                    <KpiCard
+                        index={4}
+                        label="Amount transactions"
+                        value={summary?.amountTransactions ?? 0}
+                        format={(v) => Math.round(v).toLocaleString("en-IN")}
+                        icon={IndianRupee}
+                        tone="secondary"
+                        loading={flags.showLoading && summaryQuery.isLoading}
+                    />
+                    <KpiCard
+                        index={5}
+                        label="Total transactions"
+                        value={summary?.totalTransactions ?? 0}
+                        format={(v) => Math.round(v).toLocaleString("en-IN")}
+                        icon={ClipboardList}
+                        tone="slate"
+                        loading={flags.showLoading && summaryQuery.isLoading}
+                    />
                 </div>
 
                 {/* Recent transactions */}
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {canViewMenu(allDetails, "transactions") && <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <RecentTransactionsCard
                         index={0}
                         title="Recent cash transactions"
                         subtitle="Latest receipts and issues by amount"
                         icon={Wallet}
                         rows={recentCashQuery.data}
-                        loading={recentCashQuery.isLoading}
+                        loading={flags.showLoading && recentCashQuery.isLoading}
                         format={formatAmount}
                         onSelect={(i) => setDetail({ kind: "cash", index: i })}
                     />
@@ -981,11 +989,11 @@ export default function SmithsPage() {
                         subtitle="Latest receipts and issues by weight"
                         icon={History}
                         rows={recentWeightQuery.data}
-                        loading={recentWeightQuery.isLoading}
+                        loading={flags.showLoading && recentWeightQuery.isLoading}
                         format={formatWeight}
                         onSelect={(i) => setDetail({ kind: "weight", index: i })}
                     />
-                </div>
+                </div>}
         </div>
     );
     const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -1050,6 +1058,7 @@ export default function SmithsPage() {
                         </div>
                         <Table
                             columns={mainTableColumns}
+                            loading={flags.showLoading && transactionsLoading}
                             data={transactions || []}
                             striped
                             hoverable

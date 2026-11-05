@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { fetchSoftControls, SoftControl } from "@/src/module/smith/api/soft-control.api";
+import { readSoftControlSettings, type DashboardPosition } from "../lib/soft-control-settings";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
 interface SoftControlContextProps {
@@ -38,8 +39,9 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
             const data = await fetchSoftControls();
             setSoftControls(data);
         } catch (err: any) {
-            // The current backend has no soft control route; the defaults apply.
-            console.warn("Soft controls unavailable, using defaults:", err?.message);
+            // Keep the failure visible and clear stale controls.
+            setSoftControls([]);
+            console.warn("Soft controls unavailable:", err?.message);
             setError(err.message || "Failed to load soft controls");
         } finally {
             setLoading(false);
@@ -49,6 +51,8 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
     useEffect(() => {
         if (!authLoading && isAuthenticated) {
             loadSoftControls();
+        } else {
+            setSoftControls([]);
         }
     }, [isAuthenticated, authLoading]);
 
@@ -66,47 +70,28 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
     );
 };
 
-/** Normalises a soft control description so "Save Button", "save_button" and "SaveButton" match. */
-const normalise = (s: string | undefined | null) => (s ?? "").toLowerCase().replace(/[\s_-]+/g, "");
-
-export type DashboardPosition = "above" | "below";
+export type { DashboardPosition } from "../lib/soft-control-settings";
 
 export interface SoftControlFlags {
-    /** GrandTotal = Y: show totals on printed tables. */
+    /** GRANDTOTAL = Y: show ledger footers and printed totals. */
     grandTotal: boolean;
-    /** Delete = Y: show the delete button on cash/weight rows. */
-    rowDelete: boolean;
     /** SaveButton = Y: cash/weight edits are kept until the row's Save button is pressed. */
     saveButton: boolean;
     /** Dashboard = Y: show the dashboard (totals and recent transactions). */
     showDashboard: boolean;
     /** DashboardPosition = A (above) or B (below). Above is the default. */
     dashboardPosition: DashboardPosition;
+    /** LOADING = Y: show loading indicators while data is fetched. */
+    showLoading: boolean;
+    /** Whether the SoftControl request is pending. */
     loading: boolean;
 }
 
 /** Reads the soft controls the Smith screens depend on. */
 export const useSoftControlFlags = (): SoftControlFlags => {
     const { softControls, loading, error } = useSoftControls();
-    return React.useMemo(() => {
-        // The current backend has no soft control endpoint: fall back to showing everything.
-        if (error) {
-            return { grandTotal: true, rowDelete: true, saveButton: false, showDashboard: true, dashboardPosition: "above" as const, loading };
-        }
-        const list = Array.isArray(softControls) ? softControls : [];
-        const value = (...names: string[]) => {
-            const wanted = names.map(normalise);
-            const hit = list.find((sc) => wanted.includes(normalise(sc.description)));
-            return (hit?.ctlid ?? "").toString().trim().toUpperCase();
-        };
-        const position = value("DashboardPosition", "DashboardPlace");
-        return {
-            grandTotal: value("GrandTotal") === "Y",
-            rowDelete: value("Delete") === "Y",
-            saveButton: value("SaveButton", "Save") === "Y",
-            showDashboard: value("Dashboard", "ShowDashboard") === "Y",
-            dashboardPosition: position === "B" || position === "BELOW" ? "below" : "above",
-            loading,
-        };
-    }, [softControls, loading, error]);
+    return React.useMemo(() => ({
+        ...readSoftControlSettings(!error && Array.isArray(softControls) ? softControls : []),
+        loading,
+    }), [softControls, loading, error]);
 };

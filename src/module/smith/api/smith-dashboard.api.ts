@@ -20,10 +20,10 @@ export async function fetchDashboardSummary(): Promise<DashboardSummary> {
     return {
         totalWeight: num(d.totalWeightBalance),
         totalAmount: num(d.totalAmount),
-        smithCount: d.smithCount ?? 0,
-        weightTransactions: d.totalWeightTransactions ?? 0,
-        amountTransactions: d.totalAmountTransactions ?? 0,
-        totalTransactions: d.totalTransactions ?? 0,
+        smithCount: num(d.smithCount),
+        weightTransactions: num(d.totalWeightTransactions),
+        amountTransactions: num(d.totalAmountTransactions),
+        totalTransactions: num(d.totalTransactions),
         updatedAt: new Date().toISOString(),
     };
 }

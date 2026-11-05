@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import authService from "@/src/features/auth/api/auth.api";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api/envelope";
 import { getAxiosInstance, resetAxiosInstance } from "@/lib/api/client";
 
 
@@ -22,27 +24,34 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const queryClient = useQueryClient();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [allDetails, setAllDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Restore session
+    // Validate the server session and refresh assignments by the authenticated user ID.
     useEffect(() => {
-        const savedSession = sessionStorage.getItem("authSession");
-        if (savedSession) {
-            const parsed = JSON.parse(savedSession);
-            if (Date.now() < parsed.expiry) {
+        let cancelled = false;
+        const restore = async () => {
+            try {
+                const saved = sessionStorage.getItem("authSession");
+                if (!saved) return;
+                const parsed = JSON.parse(saved);
+                if (Date.now() >= parsed.expiry) throw new Error("Session expired");
+                const profile = await api.get<any>("users/me");
+                if (cancelled) return;
+                const details = { ...profile, userName: profile.username, admin: !!profile.isadmin,
+                    projectName: parsed.allDetails?.projectName ?? "SMITH" };
+                setAllDetails(details);
                 setIsAuthenticated(true);
-                setAllDetails(parsed.allDetails);
-
-                // ✅ Initialize axios using base URL from config.json
-                const baseUrl = window?.appConfig?.MAIN_URL;
-                if (baseUrl) getAxiosInstance(baseUrl);
-            } else {
-                sessionStorage.clear();
+            } catch {
+                sessionStorage.removeItem("authSession");
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
-        }
-        setIsLoading(false);
+        };
+        void restore();
+        return () => { cancelled = true; };
     }, []);
 
     const login = async (userName: string, password: string, projectName?: string) => {
@@ -57,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             allDetails: details,
         };
 
+        queryClient.clear();
         setAllDetails(details);
         setIsAuthenticated(true);
 
@@ -69,6 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const logout = () => {
+        queryClient.clear();
+        void api.post("users/logout").catch(() => undefined);
         resetAxiosInstance();
         setIsAuthenticated(false);
         setAllDetails(null);
@@ -77,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <AuthContext.Provider value={{ isAuthenticated, allDetails, isLoading, login, logout }}>
-            {!isLoading && children}
+            {!isLoading && <React.Fragment key={allDetails?.sno ?? "anonymous"}>{children}</React.Fragment>}
         </AuthContext.Provider>
     );
 };

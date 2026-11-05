@@ -1,15 +1,14 @@
-import { getAxiosInstance } from "@/lib/api/client";
-import { useAuth } from "@/src/features/auth/lib/auth-context";
+import { api } from "@/lib/api/envelope";
 
 export interface SoftControl {
     id: number;
-    ctlid: string;
-    description: string;
-    updatedDate: Date|string;
+    CTLID: string | null;
+    CTLNAME: string | null;
+    CTLTEXT: string | null;
 }
 
-export const fetchSoftControls = async (): Promise<SoftControl[]> => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.get('/softcontrol');
-    return response.data;
-}
+export const fetchSoftControls = async (): Promise<SoftControl[]> =>
+    (await api.get<SoftControl[]>("soft-controls")) ?? [];
+
+export const fetchSoftControlById = (id: number): Promise<SoftControl> =>
+    api.get<SoftControl>(`soft-controls/${id}`);
