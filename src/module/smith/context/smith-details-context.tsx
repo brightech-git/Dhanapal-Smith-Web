@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { SmithDetailsService } from "@/src/module/smith/api/smith-details.api";
 import { SmithDetails } from "@/src/module/smith/type/smith-details.types";
+import { getApiErrorMessage } from "@/lib/api/envelope";
 
 interface SmithDetailsContextType {
     smiths: SmithDetails[];
@@ -26,7 +27,7 @@ export const SmithDetailsProvider = ({ children }: { children: ReactNode }) => {
             const data = await SmithDetailsService.getAll();
             setSmiths(data);
         } catch (error) {
-            throw new Error("Failed to fetch Smiths");
+            throw new Error(getApiErrorMessage(error, "Smith request failed"));
         } finally {
             setLoading(false);
         }
@@ -38,7 +39,7 @@ export const SmithDetailsProvider = ({ children }: { children: ReactNode }) => {
             const data = await SmithDetailsService.getById(id);
             return data;
         } catch (error) {
-            throw new Error("Failed to fetch Smith");
+            throw new Error(getApiErrorMessage(error, "Smith request failed"));
         } finally {
             setLoading(false);
         }
@@ -51,7 +52,7 @@ export const SmithDetailsProvider = ({ children }: { children: ReactNode }) => {
             setSmiths((prev) => [...prev, created]);
             return created;
         } catch (error) {
-            throw new Error("Failed to create Smith");
+            throw new Error(getApiErrorMessage(error, "Smith request failed"));
         } finally {
             setLoading(false);
         }
@@ -66,7 +67,7 @@ export const SmithDetailsProvider = ({ children }: { children: ReactNode }) => {
             );
             return updated;
         } catch (error) {
-            throw new Error("Failed to update Smith");
+            throw new Error(getApiErrorMessage(error, "Smith request failed"));
         } finally {
             setLoading(false);
         }
@@ -81,7 +82,7 @@ export const SmithDetailsProvider = ({ children }: { children: ReactNode }) => {
             }
             return success;
         } catch (error) {
-            throw new Error("Failed to delete Smith");
+            throw new Error(getApiErrorMessage(error, "Smith request failed"));
         } finally {
             setLoading(false);
         }

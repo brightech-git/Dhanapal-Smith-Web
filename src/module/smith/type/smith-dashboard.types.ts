@@ -1,44 +1,39 @@
+/** GET /transaction/dashboard, mapped for the KPI cards. */
 export interface DashboardSummary {
-    /** Current total weight balance across all smiths, in grams. */
+    /** Total weight balance (receipt minus issue) across all smiths. */
     totalWeight: number;
-    /** Current total cash balance across all smiths, in rupees. */
+    /** Total amount balance across all smiths. */
     totalAmount: number;
-    /** Change since yesterday (optional; shown as a trend when present). */
-    weightChange?: number;
-    amountChange?: number;
-    smithCount?: number;
+    smithCount: number;
+    weightTransactions: number;
+    amountTransactions: number;
+    totalTransactions: number;
     updatedAt?: string;
+}
+
+export interface MediaFile {
+    id: number;
+    url: string;
 }
 
 /** One row in the "recent transactions" cards. */
 export interface RecentTransaction {
-    /** Cash/weight row id; needed to add or replace attachments. */
     id?: number;
     sno: number;
     receipt: number;
     issue: number;
+    /** That smith's running balance after this transaction. */
     balance: number;
     remark: string;
+    smithId?: number;
     smithName?: string;
     date?: string;
-    /** Attachment URLs (same fields as the cash/weight rows). */
-    imageFile?: string | null;
-    pdfFile?: string | null;
-    cameraImage?: string | null;
+    media?: MediaFile[];
 }
 
 export type FlowKind = "cash" | "weight";
 
-/** Attachment URLs stored on a cash or weight row. */
+/** Anything that carries attachments (ledger rows, recent rows). */
 export interface FlowAttachments {
-    imageFile?: string | null;
-    pdfFile?: string | null;
-    cameraImage?: string | null;
-}
-
-/** Files picked in the attachment dialog; any left out keep the current file. */
-export interface FlowAttachmentUpload {
-    imageFile?: File | null;
-    pdfFile?: File | null;
-    cameraImage?: File | null;
+    media?: MediaFile[];
 }

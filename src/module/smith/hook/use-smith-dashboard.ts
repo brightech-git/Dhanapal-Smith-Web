@@ -7,7 +7,7 @@ import {
     fetchRecentWeightTransactions,
 } from "../api/smith-dashboard.api";
 import { uploadFlowAttachments } from "../api/smith-attachments.api";
-import type { FlowAttachmentUpload, FlowKind } from "../type/smith-dashboard.types";
+
 
 export const smithDashboardKeys = {
     all: ["smith-dashboard"] as const,
@@ -51,8 +51,8 @@ export function useRecentWeightTransactions(limit = 5, enabled = true) {
 export function useUploadFlowAttachments() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ kind, id, files }: { kind: FlowKind; id: number; files: FlowAttachmentUpload }) =>
-            uploadFlowAttachments(kind, id, files),
+        mutationFn: ({ id, files, keepUrls }: { id: number; files: File[]; keepUrls?: string[] }) =>
+            uploadFlowAttachments(id, files, keepUrls),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: smithDashboardKeys.all }),
     });
 }

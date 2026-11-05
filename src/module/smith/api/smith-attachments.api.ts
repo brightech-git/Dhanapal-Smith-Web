@@ -1,34 +1,21 @@
-import { getAxiosInstance } from "@/lib/api/client";
-import type { FlowAttachmentUpload, FlowAttachments, FlowKind } from "../type/smith-dashboard.types";
+import type { FlowAttachments } from "../type/smith-dashboard.types";
+import { saveTransactionMedia } from "./smith-transactions.api";
 
-/** Same limits as the backend (spring.servlet.multipart). */
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
-export const MAX_REQUEST_BYTES = 30 * 1024 * 1024;
+/** Backend limits: 1 MiB per file, 10 files per transaction, 12 MiB per request. */
+export const MAX_FILE_BYTES = 1024 * 1024;
+export const MAX_FILES = 10;
+export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+export const ACCEPTED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "pdf", "xls", "xlsx"];
+export const ACCEPT_ATTR = ".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.xls,.xlsx,image/*,application/pdf";
+
+export const fileExtension = (name: string) => (name.split("?")[0].split(".").pop() || "").toLowerCase();
+export const isImageUrl = (url: string) => ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileExtension(url)) || url.startsWith("data:image");
+export const isPdfUrl = (url: string) => fileExtension(url) === "pdf" || url.startsWith("data:application/pdf");
 
 /**
- * Sends the image, PDF and camera photo for one cash or weight row in a
- * single multipart request:
- *   POST smith/cash/{id}/files   or   POST smith/weight/{id}/files
- * Parts: imageFile, pdfFile, cameraImage (each optional). The backend
- * keeps any part that is left out and returns the updated row.
+ * Adds new files to a cash/weight transaction and keeps only `keepUrls`
+ * of the existing ones (undefined keeps all). One multipart PUT.
  */
-export async function uploadFlowAttachments(
-    kind: FlowKind,
-    id: number,
-    files: FlowAttachmentUpload
-): Promise<FlowAttachments & { id: number }> {
-    const form = new FormData();
-    (["imageFile", "pdfFile", "cameraImage"] as const).forEach((part) => {
-        const file = files[part];
-        if (file) form.append(part, file, file.name);
-    });
+export const uploadFlowAttachments = (id: number, files: File[], keepUrls?: string[]) => saveTransactionMedia(id, files, keepUrls);
 
-    // Let the browser set the multipart boundary.
-    const { data } = await getAxiosInstance().post(`smith/${kind}/${id}/files`, form, {
-        headers: { "Content-Type": undefined as unknown as string },
-    });
-    return data;
-}
-
-export const attachmentCount = (row: FlowAttachments | undefined | null) =>
-    row ? [row.imageFile, row.pdfFile, row.cameraImage].filter(Boolean).length : 0;
+export const attachmentCount = (row: FlowAttachments | undefined | null) => row?.media?.length ?? 0;

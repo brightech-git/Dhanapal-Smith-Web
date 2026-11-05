@@ -90,34 +90,21 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         if (!confirmDelete) return;
 
         try {
-            const getDetailTransaction = await getDetail(smith.smithId!);
-
-            const smithTransactions = Array.isArray(getDetailTransaction)
-                ? getDetailTransaction
-                : [getDetailTransaction];
-
-            const hasAnyValue = smithTransactions.some(
-                (txn) =>
-                    (parseFloat(String(txn.cashBalance || 0)) !== 0 &&
-                        !isNaN(parseFloat(String(txn.cashBalance || 0)))) ||
-                    (parseFloat(String(txn.weightBalance || 0)) !== 0 &&
-                        !isNaN(parseFloat(String(txn.weightBalance || 0))))
-            );
+            const detail = await getDetail(smith.smithId!);
+            const hasAnyValue = Math.abs(detail.cashBalance) > 0.0001 || Math.abs(detail.weightBalance) > 0.0001;
 
             if (hasAnyValue) {
                 addToast({
                     type: "warning",
                     title: "Cannot Delete",
-                    message: `Sorry, ${smith.pname} cannot be deleted because they have existing transactions.`,
+                    message: `Sorry, ${smith.pname} cannot be deleted because they have an open cash or weight balance.`,
                 });
                 return;
             }
 
-            // Delete all transactions for this smith
-            for (const txn of smithTransactions) {
-                if (txn.id) {
-                    await deleteTransaction(txn.id);
-                }
+            // The backend needs a smith's transactions removed before the profile.
+            for (const txn of detail.transactions) {
+                await deleteTransaction(txn.id);
             }
 
             // Finally delete the smith itself

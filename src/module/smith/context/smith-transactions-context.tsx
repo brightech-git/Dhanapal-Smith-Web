@@ -22,6 +22,8 @@ import {
     deleteSmithTransaction
 } from "@/src/module/smith/api/smith-transactions.api";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { smithDashboardKeys } from "@/src/module/smith/hook/use-smith-dashboard";
 
 
 interface SmithTransactionContextType {
@@ -29,7 +31,8 @@ interface SmithTransactionContextType {
     loading: boolean;
     error: string | null;
     refetch: () => void;
-    getDetail: (id: number) => Promise<SmithTransactionDetail>;
+    /** Balances and all transactions of one smith (by smith id). */
+    getDetail: (smithId: number) => Promise<SmithTransactionDetail>;
     addCash: (smithId: string, data: Partial<any>) => Promise<void>;
     updateCash: (id: number, data: Partial<any>) => Promise<void>;
     deleteCash: (id: number) => Promise<void>;
@@ -60,7 +63,10 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
             throw err;
         }
     };
+    const queryClient = useQueryClient();
     const loadTransactions = async () => {
+        // Totals and recent transactions on the dashboard follow every change.
+        queryClient.invalidateQueries({ queryKey: smithDashboardKeys.all });
         setLoading(true);
         try {
             const data = await fetchSmithTransactions();
@@ -90,7 +96,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     };
 
-    const updateCash = async (id: number, data: Partial<CashFlow>) => {
+    const updateCash = async (id: number, data: Record<string, unknown>) => {
         // Only send the changed fields
         await patchCashFlow(id, data);
         await loadTransactions(); // Refetch after update
@@ -106,7 +112,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     };
 
-    const updateWeight = async (id: number, data: Partial<WeightFlow>) => {
+    const updateWeight = async (id: number, data: Record<string, unknown>) => {
        
         await patchWeightFlow(id, data);
        

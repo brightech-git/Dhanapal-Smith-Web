@@ -1,72 +1,74 @@
-import { getAxiosInstance } from "@/lib/api/client";
+import { api } from "@/lib/api/envelope";
 import type { AppUser, RoleMaster, RoleMasterInput, RoleTran, UserRole } from "../type/role.types";
 
-/** The role endpoints wrap results as { success, message, data }. */
-interface ApiEnvelope<T> {
-    success: boolean;
-    message: string;
-    data: T;
-}
+export { getApiErrorMessage } from "@/lib/api/envelope";
 
-const unwrap = <T,>(body: ApiEnvelope<T>): T => {
-    if (body && body.success === false) throw new Error(body.message || "Request failed");
-    return body?.data;
-};
+// ---- Roles: /roles (roleId is assigned by the client on create)
+export const fetchRoles = async (): Promise<RoleMaster[]> => (await api.get<RoleMaster[]>("roles")) ?? [];
 
-/** Reads the backend's message from a failed request. */
-export const getApiErrorMessage = (error: unknown, fallback = "Something went wrong") => {
-    const e = error as { response?: { data?: { message?: string } | string }; message?: string };
-    const data = e?.response?.data;
-    if (typeof data === "string" && data) return data;
-    if (data && typeof data === "object" && data.message) return data.message;
-    return e?.message || fallback;
-};
-
-const api = () => getAxiosInstance();
-
-// ---- Role master: /rolemaster
-export const fetchRoles = async (): Promise<RoleMaster[]> =>
-    unwrap((await api().get<ApiEnvelope<RoleMaster[]>>("rolemaster")).data) ?? [];
-
-export const createRole = async (input: RoleMasterInput): Promise<RoleMaster> =>
-    unwrap((await api().post<ApiEnvelope<RoleMaster>>("rolemaster", input)).data);
+export const createRole = async (input: RoleMasterInput, roleId: number): Promise<RoleMaster> =>
+    api.post<RoleMaster>("roles", { roleId, roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
 
 export const updateRole = async (roleId: number, input: RoleMasterInput): Promise<RoleMaster> =>
-    unwrap((await api().put<ApiEnvelope<RoleMaster>>(`rolemaster/${roleId}`, input)).data);
+    api.put<RoleMaster>(`roles/${roleId}`, { roleId, roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
 
-export const deleteRole = async (roleId: number): Promise<void> => {
-    unwrap((await api().delete<ApiEnvelope<null>>(`rolemaster/${roleId}`)).data);
-};
+export const deleteRole = async (roleId: number): Promise<void> => api.delete(`roles/${roleId}`);
 
-// ---- Role permissions: /roletran
+// ---- Role permissions: /role-permissions (one row per role + menu)
 export const fetchRoleTran = async (roleId: number): Promise<RoleTran[]> =>
-    unwrap((await api().get<ApiEnvelope<RoleTran[]>>(`roletran/${roleId}`)).data) ?? [];
+    (await api.get<RoleTran[]>("role-permissions", { roleId })) ?? [];
 
-/** Replaces every permission row of the role with the given list. */
-export const saveRoleTran = async (roleId: number, rows: RoleTran[]): Promise<RoleTran[]> =>
-    unwrap((await api().put<ApiEnvelope<RoleTran[]>>(`roletran/${roleId}`, rows)).data) ?? [];
+const FLAGS = ["add", "edit", "view", "del", "excel", "print", "authorize"] as const;
 
-export const deleteRoleTran = async (roleId: number): Promise<void> => {
-    unwrap((await api().delete<ApiEnvelope<null>>(`roletran/${roleId}`)).data);
+// Only fields the server accepts (updateTime is generated there).
+const permissionBody = (row: RoleTran) => ({
+    roleTranId: { roleId: row.roleTranId.roleId, menuId: row.roleTranId.menuId },
+    ...Object.fromEntries(FLAGS.map((f) => [f, (row[f] ?? "N") === "Y" ? "Y" : "N"])),
+    systemId: row.systemId ?? null,
+    userId: row.userId ?? null,
+    viewDays: row.viewDays ?? null,
+});
+
+const hasAny = (row: RoleTran) => FLAGS.some((f) => row[f] === "Y");
+
+/**
+ * Brings the role's permissions in line with `rows`: new menus are created,
+ * changed ones updated, and menus with nothing granted are deleted.
+ */
+export const saveRoleTran = async (roleId: number, rows: RoleTran[]): Promise<RoleTran[]> => {
+    const existing = await fetchRoleTran(roleId);
+    const byMenu = new Map(existing.map((r) => [r.roleTranId.menuId, r]));
+    const wanted = new Map(rows.filter(hasAny).map((r) => [r.roleTranId.menuId, r]));
+
+    for (const [menuId, row] of wanted) {
+        const before = byMenu.get(menuId);
+        if (!before) await api.post("role-permissions", permissionBody(row));
+        else if (FLAGS.some((f) => (before[f] ?? "N") !== (row[f] ?? "N")))
+            await api.put(`role-permissions/${roleId}/${encodeURIComponent(menuId)}`, permissionBody({ ...before, ...row }));
+    }
+    for (const menuId of byMenu.keys()) {
+        if (!wanted.has(menuId)) await api.delete(`role-permissions/${roleId}/${encodeURIComponent(menuId)}`);
+    }
+    return fetchRoleTran(roleId);
 };
 
-// ---- User roles: /userrole
-export const fetchUserRoles = async (): Promise<UserRole[]> =>
-    unwrap((await api().get<ApiEnvelope<UserRole[]>>("userrole")).data) ?? [];
+// ---- User roles: /user-roles (one role per user)
+export const fetchUserRoles = async (): Promise<UserRole[]> => (await api.get<UserRole[]>("user-roles")) ?? [];
 
 export const createUserRole = async (userId: number, roleId: number): Promise<UserRole> =>
-    unwrap((await api().post<ApiEnvelope<UserRole>>("userrole", { userId, roleId })).data);
+    api.post<UserRole>("user-roles", { userId, roleId });
 
 export const updateUserRole = async (userId: number, roleId: number): Promise<UserRole> =>
-    unwrap((await api().put<ApiEnvelope<UserRole>>(`userrole/${roleId}/${userId}`)).data);
+    api.put<UserRole>(`user-roles/${userId}`, { userId, roleId });
 
-export const deleteUserRole = async (userId: number): Promise<void> => {
-    unwrap((await api().delete<ApiEnvelope<null>>(`userrole/${userId}`)).data);
-};
+export const deleteUserRole = async (userId: number): Promise<void> => api.delete(`user-roles/${userId}`);
 
-/** Menu permissions of the user's role (used to gate menus). */
+/** Permissions a user gets through their role. */
 export const fetchUserPermissions = async (userId: number): Promise<RoleTran[]> =>
-    unwrap((await api().get<ApiEnvelope<RoleTran[]>>(`userrole/paths/${userId}`)).data) ?? [];
+    (await api.get<RoleTran[]>(`user-roles/${userId}/permissions`)) ?? [];
 
-// ---- Users: /users/all
-export const fetchUsers = async (): Promise<AppUser[]> => (await api().get<AppUser[]>("users/all")).data ?? [];
+// ---- Users: /users
+export const fetchUsers = async (): Promise<AppUser[]> =>
+    ((await api.get<{ sno: number; username: string; active: string; isadmin: boolean; parentuserid: number | null }[]>("users")) ?? []).map(
+        (u) => ({ sno: u.sno, userName: u.username, active: u.active, admin: !!u.isadmin, parentUserId: u.parentuserid })
+    );

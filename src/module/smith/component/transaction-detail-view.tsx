@@ -11,6 +11,7 @@ import {
     ChevronRight,
     Download,
     ExternalLink,
+    FileSpreadsheet,
     FileText,
     ImageIcon,
     Paperclip,
@@ -19,7 +20,8 @@ import {
     X,
 } from "lucide-react";
 import type { FlowKind, RecentTransaction } from "../type/smith-dashboard.types";
-import { attachmentCount } from "../api/smith-attachments.api";
+import { attachmentCount, isImageUrl, isPdfUrl } from "../api/smith-attachments.api";
+import { resolveMediaUrl } from "@/lib/api/envelope";
 
 interface TransactionDetailViewProps {
     open: boolean;
@@ -84,12 +86,15 @@ export default function TransactionDetailView({
 
     if (!mounted) return null;
 
-    const images = row
-        ? ([
-              row.imageFile && { src: row.imageFile, label: "Image", icon: ImageIcon },
-              row.cameraImage && { src: row.cameraImage, label: "Camera photo", icon: Camera },
-          ].filter(Boolean) as { src: string; label: string; icon: React.ElementType }[])
-        : [];
+    const media = row?.media ?? [];
+    const nameOf = (url: string) => decodeURIComponent(url.split("/").pop() || "file");
+    const images = media
+        .filter((m) => isImageUrl(m.url))
+        .map((m, i) => ({ key: m.id, src: resolveMediaUrl(m.url), label: `Image ${i + 1}`, icon: /camera/i.test(m.url) ? Camera : ImageIcon }));
+    const pdfs = media.filter((m) => isPdfUrl(m.url)).map((m) => ({ key: m.id, src: resolveMediaUrl(m.url), name: nameOf(m.url) }));
+    const others = media
+        .filter((m) => !isImageUrl(m.url) && !isPdfUrl(m.url))
+        .map((m) => ({ key: m.id, src: resolveMediaUrl(m.url), name: nameOf(m.url) }));
     const count = attachmentCount(row);
     const KindIcon = kind === "cash" ? Wallet : Scale;
 
@@ -178,7 +183,7 @@ export default function TransactionDetailView({
                                                 onClick={() => onAttach(row)}
                                                 className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary-text transition-colors hover:bg-accent-soft"
                                             >
-                                                {count ? "Add / replace" : "Add files"}
+                                                {count ? "Manage files" : "Add files"}
                                             </button>
                                         )}
                                     </div>
@@ -194,7 +199,7 @@ export default function TransactionDetailView({
                                         <div className={`grid gap-2.5 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
                                             {images.map((img) => (
                                                 <button
-                                                    key={img.label}
+                                                    key={img.key}
                                                     type="button"
                                                     onClick={() => setLightbox({ src: img.src, label: img.label })}
                                                     className="group relative overflow-hidden rounded-xl border border-border bg-muted text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -215,16 +220,16 @@ export default function TransactionDetailView({
                                         </div>
                                     )}
 
-                                    {row.pdfFile && (
-                                        <div className="mt-2.5 overflow-hidden rounded-xl border border-border">
+                                    {pdfs.map((pdf) => (
+                                        <div key={pdf.key} className="mt-2.5 overflow-hidden rounded-xl border border-border">
                                             <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/50 px-3 py-2">
-                                                <span className="flex items-center gap-1.5 text-xs font-medium">
-                                                    <FileText className="h-4 w-4 text-red-500" />
-                                                    PDF document
+                                                <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
+                                                    <FileText className="h-4 w-4 shrink-0 text-red-500" />
+                                                    <span className="truncate">{pdf.name}</span>
                                                 </span>
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex shrink-0 items-center gap-1">
                                                     <a
-                                                        href={row.pdfFile}
+                                                        href={pdf.src}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-text hover:bg-accent-soft"
@@ -232,16 +237,36 @@ export default function TransactionDetailView({
                                                         <ExternalLink className="h-3.5 w-3.5" /> Open
                                                     </a>
                                                     <a
-                                                        href={row.pdfFile}
-                                                        download={`${kind}-${row.id ?? row.sno}.pdf`}
+                                                        href={pdf.src}
+                                                        download={pdf.name}
                                                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-text hover:bg-accent-soft"
                                                     >
                                                         <Download className="h-3.5 w-3.5" /> Download
                                                     </a>
                                                 </div>
                                             </div>
-                                            <iframe src={row.pdfFile} title="PDF preview" className="h-72 w-full bg-white" />
+                                            <iframe src={pdf.src} title={pdf.name} className="h-72 w-full bg-white" />
                                         </div>
+                                    ))}
+
+                                    {others.length > 0 && (
+                                        <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-xl border border-border">
+                                            {others.map((f) => (
+                                                <li key={f.key} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-600" />
+                                                        <span className="truncate">{f.name}</span>
+                                                    </span>
+                                                    <a
+                                                        href={f.src}
+                                                        download={f.name}
+                                                        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-text hover:bg-accent-soft"
+                                                    >
+                                                        <Download className="h-3.5 w-3.5" /> Download
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
                                 </div>
                             </motion.div>

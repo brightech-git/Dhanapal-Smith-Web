@@ -6,6 +6,7 @@ import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { useToast } from "@/src/providers/toast-provider";
 import { Box, Button, Switch, FormControlLabel, IconButton, Typography } from "@mui/material";
 import { useTheme } from "@/src/theme/theme-context";
+import { getApiErrorMessage } from "@/lib/api/envelope";
 import { getAllUsers, updateUser, deleteUser, CreateUserService, getUserById } from "@/src/module/user/api/register.api";
 import { Trash2, Plus } from "lucide-react";
 import EditableCell from "@/src/components/ui/editable-cell";
@@ -65,7 +66,7 @@ const UsersTable = () => {
             addToast({ type: "success", title: "Deleted", message: "User deleted successfully" });
             await fetchUsers(); // refetch after delete
         } catch (err: any) {
-            addToast({ type: "error", title: "Error", message: "Failed to delete user" });
+            addToast({ type: "error", title: "Error", message: getApiErrorMessage(err, "Failed to delete user") });
         }
     };
 
@@ -85,7 +86,7 @@ const UsersTable = () => {
             addToast({ type: "success", title: "Updated", message: "User updated successfully" });
             await fetchUsers(); // refetch after update
         } catch (err: any) {
-            addToast({ type: "error", title: "Error", message: "Failed to update user" });
+            addToast({ type: "error", title: "Error", message: getApiErrorMessage(err, "Failed to update user") });
         }
     };
 
@@ -118,7 +119,7 @@ const UsersTable = () => {
             addToast({ type: "success", title: "Added", message: "User added successfully" });
             await fetchUsers(); // refetch after add
         } catch (err: any) {
-            addToast({ type: "error", title: "Error", message: "Failed to add user" });
+            addToast({ type: "error", title: "Error", message: getApiErrorMessage(err, "Failed to add user") });
         }
     };
 
@@ -148,7 +149,7 @@ const UsersTable = () => {
             label: "Password",
             render: (_, row: User) => {
                 // Mask password visually
-                const maskedPassword = row.password ? "*".repeat(5) : "";
+                const maskedPassword = row.password || !row.isNew ? "*".repeat(5) : "";
 
                 return (
                     <EditableCell

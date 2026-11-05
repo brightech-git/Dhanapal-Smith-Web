@@ -1,94 +1,65 @@
-// Dashboard summary and recent transactions.
-//
-// The backend has no endpoints for these yet, so the functions return
-// dummy data in the final response shape. When the endpoints exist, set
-// USE_DUMMY_DASHBOARD to false and fill in the paths marked TODO; the
-// hooks and screens will not need to change.
+// Dashboard totals and recent transactions from the backend.
 
-import { getAxiosInstance } from "@/lib/api/client";
-import type { DashboardSummary, RecentTransaction } from "../type/smith-dashboard.types";
+import { api } from "@/lib/api/envelope";
+import type { DashboardSummary, FlowKind, RecentTransaction } from "../type/smith-dashboard.types";
+import { fetchSmithTransactions, fetchTransactions, tranTypeOf, type TransactionApi } from "./smith-transactions.api";
 
-export const USE_DUMMY_DASHBOARD = true;
+interface DashboardApi {
+    totalWeightBalance: number;
+    smithCount: number;
+    totalAmount: number;
+    totalWeightTransactions: number;
+    totalAmountTransactions: number;
+    totalTransactions: number;
+}
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const DUMMY_SUMMARY: DashboardSummary = {
-    totalWeight: 1284.562,
-    totalAmount: 845320.5,
-    weightChange: 12.45,
-    amountChange: -15200,
-    smithCount: 18,
-    updatedAt: new Date().toISOString(),
-};
-
-// Inline placeholder media so the dummy rows show previews without a server.
-const placeholderImage = (label: string, from: string, to: string) =>
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="560" viewBox="0 0 800 560">` +
-            `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>` +
-            `<rect width="800" height="560" fill="url(#g)"/>` +
-            `<text x="400" y="290" font-family="sans-serif" font-size="44" fill="white" text-anchor="middle">${label}</text></svg>`
-    );
-
-const PLACEHOLDER_PDF =
-    "data:application/pdf;base64," +
-    "JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMzAwIDE0NF0vQ29udGVudHMgNCAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDUgMCBSPj4+Pj4+ZW5kb2JqCjQgMCBvYmo8PC9MZW5ndGggNTU+PnN0cmVhbQpCVCAvRjEgMjAgVGYgNDAgNzAgVGQgKFNhbXBsZSByZWNlaXB0IFBERikgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvQmFzZUZvbnQvSGVsdmV0aWNhPj5lbmRvYmoKdHJhaWxlcjw8L1Jvb3QgMSAwIFI+Pgo=";
-
-const DUMMY_RECENT_CASH: RecentTransaction[] = [
-    {
-        id: 101, sno: 1, smithName: "Murugan", date: "2026-11-05", receipt: 25000, issue: 0, balance: 125000, remark: "Advance received",
-        imageFile: placeholderImage("Cash receipt", "#0c376a", "#1d5fb0"),
-        pdfFile: PLACEHOLDER_PDF,
-    },
-    {
-        id: 102, sno: 2, smithName: "Selvam", date: "2026-11-05", receipt: 0, issue: 12000, balance: 48000, remark: "Making charge paid",
-        cameraImage: placeholderImage("Camera photo", "#b45309", "#f59e0b"),
-    },
-    { id: 103, sno: 3, smithName: "Karthik", date: "2026-11-04", receipt: 8000, issue: 0, balance: 32500, remark: "Old balance" },
-    { id: 104, sno: 4, smithName: "Raja", date: "2026-11-04", receipt: 0, issue: 5500, balance: 21000, remark: "Stone setting" },
-    { id: 105, sno: 5, smithName: "Murugan", date: "2026-11-03", receipt: 15000, issue: 0, balance: 100000, remark: "" },
-];
-
-const DUMMY_RECENT_WEIGHT: RecentTransaction[] = [
-    {
-        id: 201, sno: 1, smithName: "Selvam", date: "2026-11-05", receipt: 52.35, issue: 0, balance: 210.4, remark: "22K chain return",
-        imageFile: placeholderImage("Chain return", "#065f46", "#10b981"),
-        cameraImage: placeholderImage("Weighing scale", "#334155", "#64748b"),
-        pdfFile: PLACEHOLDER_PDF,
-    },
-    { id: 202, sno: 2, smithName: "Murugan", date: "2026-11-05", receipt: 0, issue: 80.0, balance: 158.05, remark: "Gold issued for bangles" },
-    { id: 203, sno: 3, smithName: "Raja", date: "2026-11-04", receipt: 24.12, issue: 0, balance: 96.5, remark: "Ring return" },
-    { id: 204, sno: 4, smithName: "Karthik", date: "2026-11-04", receipt: 0, issue: 40.25, balance: 72.38, remark: "" },
-    { id: 205, sno: 5, smithName: "Selvam", date: "2026-11-03", receipt: 18.6, issue: 0, balance: 158.05, remark: "Earrings" },
-];
+const num = (v: unknown) => (typeof v === "number" ? v : parseFloat(String(v ?? 0)) || 0);
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-    if (USE_DUMMY_DASHBOARD) {
-        await delay(400);
-        return { ...DUMMY_SUMMARY, updatedAt: new Date().toISOString() };
-    }
-    // TODO: replace with the real endpoint when the backend adds it.
-    const { data } = await getAxiosInstance().get<DashboardSummary>("smith/dashboard/summary");
-    return data;
+    const d = await api.get<DashboardApi>("transaction/dashboard");
+    return {
+        totalWeight: num(d.totalWeightBalance),
+        totalAmount: num(d.totalAmount),
+        smithCount: d.smithCount ?? 0,
+        weightTransactions: d.totalWeightTransactions ?? 0,
+        amountTransactions: d.totalAmountTransactions ?? 0,
+        totalTransactions: d.totalTransactions ?? 0,
+        updatedAt: new Date().toISOString(),
+    };
 }
 
-export async function fetchRecentCashTransactions(limit = 5): Promise<RecentTransaction[]> {
-    if (USE_DUMMY_DASHBOARD) {
-        await delay(500);
-        return DUMMY_RECENT_CASH.slice(0, limit);
-    }
-    // TODO: replace with the real endpoint when the backend adds it.
-    const { data } = await getAxiosInstance().get<RecentTransaction[]>("smith/dashboard/recent-cash", { params: { limit } });
-    return data;
+/** Latest transactions of one type, newest first, with smith name and running balance. */
+async function fetchRecent(kind: FlowKind, limit: number): Promise<RecentTransaction[]> {
+    const [rows, smiths] = await Promise.all([fetchTransactions({ trantype: tranTypeOf(kind) }), fetchSmithTransactions()]);
+    const names = new Map(smiths.map((s) => [s.id, s.name]));
+
+    // Running balance per smith, oldest first.
+    const balanceById = new Map<number, number>();
+    const running = new Map<number, number>();
+    [...rows]
+        .sort((a, b) => (a.trandate === b.trandate ? a.id - b.id : a.trandate < b.trandate ? -1 : 1))
+        .forEach((t) => {
+            const next = (running.get(t.smithId) ?? 0) + num(t.receipt) - num(t.issue);
+            running.set(t.smithId, next);
+            balanceById.set(t.id, next);
+        });
+
+    const newest = [...rows].sort((a: TransactionApi, b: TransactionApi) =>
+        a.trandate === b.trandate ? b.id - a.id : a.trandate < b.trandate ? 1 : -1
+    );
+    return newest.slice(0, limit).map((t, i) => ({
+        id: t.id,
+        sno: i + 1,
+        smithId: t.smithId,
+        smithName: names.get(t.smithId) ?? `Smith ${t.smithId}`,
+        date: t.trandate,
+        receipt: num(t.receipt),
+        issue: num(t.issue),
+        balance: balanceById.get(t.id) ?? 0,
+        remark: t.remark ?? "",
+        media: (t.media ?? []).map((m) => ({ id: m.id, url: m.url })),
+    }));
 }
 
-export async function fetchRecentWeightTransactions(limit = 5): Promise<RecentTransaction[]> {
-    if (USE_DUMMY_DASHBOARD) {
-        await delay(500);
-        return DUMMY_RECENT_WEIGHT.slice(0, limit);
-    }
-    // TODO: replace with the real endpoint when the backend adds it.
-    const { data } = await getAxiosInstance().get<RecentTransaction[]>("smith/dashboard/recent-weight", { params: { limit } });
-    return data;
-}
+export const fetchRecentCashTransactions = (limit = 5) => fetchRecent("cash", limit);
+export const fetchRecentWeightTransactions = (limit = 5) => fetchRecent("weight", limit);

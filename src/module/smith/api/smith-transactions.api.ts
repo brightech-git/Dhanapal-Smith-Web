@@ -1,163 +1,208 @@
-import { getAxiosInstance } from "@/lib/api/client";
-import { useAuth } from "@/src/features/auth/lib/auth-context";
+// Smith balances and cash/weight ledger rows on top of the backend's single
+// /transactions resource (trantype A = amount/cash, W = weight).
+//
+// The screens still work with "cash" and "weight" rows ({ date, receipts,
+// payments, remarks, balance }); this file maps them to and from the API.
 
+import { getAxiosInstance } from "@/lib/api/client";
+import { api, toApiDate, type ApiEnvelope, unwrap } from "@/lib/api/envelope";
+import type { FlowKind } from "@/src/module/smith/type/smith-dashboard.types";
+
+export type TranType = "A" | "W";
+export const tranTypeOf = (kind: FlowKind): TranType => (kind === "cash" ? "A" : "W");
+
+export interface MediaItem {
+    id: number;
+    tranid: number;
+    url: string;
+}
+
+/** Backend TransactionResponse. */
+export interface TransactionApi {
+    id: number;
+    smithId: number;
+    trandate: string;
+    remark: string | null;
+    issue: number;
+    receipt: number;
+    trantype: TranType;
+    media: MediaItem[];
+}
+
+/** One smith with current balances (GET /smiths/balance). */
 export interface SmithTransaction {
     id: number;
     smithId: string;
     name: string;
     date: string;
     cashBalance: number;
-    weightBalance: number ;
+    weightBalance: number;
 }
 
 export interface NewSmithTransaction {
-    smithId: string | number; 
+    smithId: string | number;
     name: string;
     date: string;
     cashBalance: number;
     weightBalance: number;
 }
 
-/** Attachment URLs on a cash/weight row (set via the /files upload). */
-export interface FlowAttachmentFields {
-    remarks?: string | null;
-    imageFile?: string | null;
-    pdfFile?: string | null;
-    cameraImage?: string | null;
-}
-
-export interface SmithFlow extends FlowAttachmentFields {
+/** A cash or weight ledger row as the screens use it. */
+export interface SmithFlow {
     id: number;
+    smithId: string;
+    date: string; // YYYY-MM-DD
     receipts: number;
     payments: number;
-    date: string;
-    balance?: number;
-    weightDifference?: number | null;
-}
-
-export interface SmithTransactionDetail extends SmithTransaction {
-    cashFlows: SmithFlow[];
-    weightFlows: SmithFlow[];
-}
-
-
-export interface CashFlow extends FlowAttachmentFields {
-    id: number;
-    receipts: number;
-    payments: number;
-    date: string;
+    remarks: string;
+    /** Running balance (receipts minus payments) up to and including this row. */
     balance: number;
+    weightDifference: number;
+    media: MediaItem[];
 }
+export type CashFlow = SmithFlow;
+export type WeightFlow = SmithFlow;
 
-export interface WeightFlow extends FlowAttachmentFields {
+export interface SmithTransactionDetail {
     id: number;
-    receipts: number;
-    payments: number;
-    date: string;
-    weightDifference: number | null;
+    cashBalance: number;
+    weightBalance: number;
+    transactions: TransactionApi[];
 }
 
-export const addTransaction = async (payload: NewSmithTransaction) => {
-    const axiosInstance = getAxiosInstance();
-    //console.log(axiosInstance, 'base at smithFullDetail')
-    const response = await axiosInstance.post("/smith/transactions", payload);
-    return response.data as NewSmithTransaction;
+// Last known record per id: PUT replaces the whole record, so partial edits merge into this.
+const cache = new Map<number, TransactionApi>();
+const remember = (t: TransactionApi) => {
+    cache.set(t.id, t);
+    return t;
 };
-// Fetch all smith transactions
-export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.get("/smith/transactions");
-    const data = Array.isArray(response.data) ? response.data : [];
 
-    return data.map((item: any) => ({
-        id: item.id,
-        smithId: item.smithId,
-        name: item.name,
-        date: item.date,
-        cashBalance: item.cashBalance,
-        weightBalance: item.weightBalance,
+const num = (v: unknown) => {
+    const n = typeof v === "number" ? v : parseFloat(String(v ?? 0));
+    return isNaN(n) ? 0 : n;
+};
+
+/** Oldest first with a running balance, like a ledger. */
+export const toFlows = (rows: TransactionApi[]): SmithFlow[] => {
+    let running = 0;
+    return [...rows]
+        .sort((a, b) => (a.trandate === b.trandate ? a.id - b.id : a.trandate < b.trandate ? -1 : 1))
+        .map((t) => {
+            running += num(t.receipt) - num(t.issue);
+            return {
+                id: t.id,
+                smithId: String(t.smithId),
+                date: t.trandate,
+                receipts: num(t.receipt),
+                payments: num(t.issue),
+                remarks: t.remark ?? "",
+                balance: running,
+                weightDifference: running,
+                media: t.media ?? [],
+            };
+        });
+};
+
+// Exactly the fields TransactionRequest accepts (unknown properties are rejected).
+const toRequest = (t: Omit<TransactionApi, "id" | "media">, mediaUrls?: string[] | null) => ({
+    smithId: t.smithId,
+    trandate: toApiDate(t.trandate),
+    remark: t.remark && t.remark.trim() ? t.remark.trim() : null,
+    issue: num(t.issue),
+    receipt: num(t.receipt),
+    trantype: t.trantype,
+    ...(mediaUrls !== undefined ? { mediaUrls } : {}),
+});
+
+/** Screen field names → API field names. */
+const applyPatch = (t: TransactionApi, patch: Record<string, unknown>): TransactionApi => {
+    const next = { ...t };
+    if ("date" in patch) next.trandate = toApiDate(String(patch.date ?? ""));
+    if ("receipts" in patch) next.receipt = num(patch.receipts);
+    if ("payments" in patch) next.issue = num(patch.payments);
+    if ("remarks" in patch) next.remark = (patch.remarks as string) ?? null;
+    return next;
+};
+
+export const fetchTransaction = async (id: number) => remember(await api.get<TransactionApi>(`transactions/${id}`));
+
+const current = async (id: number) => cache.get(id) ?? (await fetchTransaction(id));
+
+export const fetchTransactions = async (params: { smithId?: number | string; trantype?: TranType } = {}) =>
+    ((await api.get<TransactionApi[]>("transactions", params)) ?? []).map(remember);
+
+export const fetchSmithTransactionsBySmith = async (smithId: number | string, trantype?: TranType) =>
+    ((await api.get<TransactionApi[]>(`transactions/smiths/${smithId}`, trantype ? { trantype } : undefined)) ?? []).map(remember);
+
+// ---- Balances
+export const fetchSmithTransactions = async (): Promise<SmithTransaction[]> => {
+    const rows = await api.get<{ smithId: number; smithName: string; weight: number; amount: number }[]>("smiths/balance");
+    return (rows ?? []).map((r) => ({
+        id: r.smithId,
+        smithId: String(r.smithId),
+        name: r.smithName,
+        date: "",
+        cashBalance: num(r.amount),
+        weightBalance: num(r.weight),
     }));
 };
 
-
-// Fetch one smith transaction with flows
-export const fetchSmithTransactionDetail = async (id: number): Promise<SmithTransactionDetail> => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.get(`/smith/transactions/${id}`);
-    return response.data;
+/** Balances and every transaction of one smith (used before deleting the smith). */
+export const fetchSmithTransactionDetail = async (smithId: number): Promise<SmithTransactionDetail> => {
+    const transactions = await fetchSmithTransactionsBySmith(smithId);
+    const sum = (type: TranType) =>
+        transactions.filter((t) => t.trantype === type).reduce((s, t) => s + num(t.receipt) - num(t.issue), 0);
+    return { id: smithId, cashBalance: sum("A"), weightBalance: sum("W"), transactions };
 };
 
-// Cash Flow APIs
-export const addCashFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.post(`smith/cash?smithId=${smithId}`, payload);
-    return response.data;
-};
-
-export const updateCashFlow = async (id: number, payload: Partial<SmithFlow>) => {
-
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.put(`smith/cash/${id}`, payload);
-    return response.data;
-};
-
-export const deleteCashFlow = async (id: number) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.delete(`smith/cash/${id}`);
-    return response.data;
-};
-
-// Weight Flow APIs
-export const addWeightFlow = async (smithId: string, payload: Partial<SmithFlow>) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.post(`smith/weight?smithId=${smithId}`, payload);
-    return response.data;
-};
-
-export const updateWeightFlow = async (id: number, payload: Partial<SmithFlow>) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.put(`smith/weight/${id}`, payload);
-    return response.data;
-};
-
-export const deleteWeightFlow = async (id: number) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.delete(`smith/weight/${id}`);
-    return response.data;
-};
-
-export const fetchCashFlows = async (smithId: string): Promise<CashFlow[]> => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.get(`/smith/cash?smithId=${smithId}`);
-    return response.data;
-};
-
-export const fetchWeightFlows = async (smithId: string): Promise<WeightFlow[]> => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.get(`/smith/weight?smithId=${smithId}`);
-    return response.data;
-};
-export const patchCashFlow = async (id: number, payload: Partial<CashFlow>) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.patch(`smith/cash/${id}`, payload);
-    return response.data;
-};
-
-// Weight Flow partial update
-export const patchWeightFlow = async (id: number, payload: Partial<WeightFlow>) => {
-    const axiosInstance = getAxiosInstance();
-    const response = await axiosInstance.patch(`smith/weight/${id}`, payload);
-    return response.data;
-};
+/** Smiths have no separate transaction header any more; kept so callers still work. */
+export const addTransaction = async (_payload: NewSmithTransaction) => undefined;
 
 export const deleteSmithTransaction = async (id: number) => {
-    try {
+    await api.delete(`transactions/${id}`);
+    cache.delete(id);
+};
 
-        const axiosInstance = getAxiosInstance();
-        const response = await axiosInstance.delete(`/smith/transactions/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error("Delete transaction failed:", error);
-        throw error;
-    }
+// ---- Cash / weight rows
+export const fetchFlows = async (smithId: string, kind: FlowKind) => toFlows(await fetchSmithTransactionsBySmith(smithId, tranTypeOf(kind)));
+export const fetchCashFlows = (smithId: string) => fetchFlows(smithId, "cash");
+export const fetchWeightFlows = (smithId: string) => fetchFlows(smithId, "weight");
+
+export const addFlow = async (smithId: string, kind: FlowKind, data: Record<string, unknown>) => {
+    const draft = applyPatch(
+        { id: 0, smithId: Number(smithId), trandate: toApiDate(new Date()), remark: null, issue: 0, receipt: 0, trantype: tranTypeOf(kind), media: [] },
+        data
+    );
+    return remember(await api.post<TransactionApi>("transactions", toRequest(draft)));
+};
+export const addCashFlow = (smithId: string, data: Record<string, unknown>) => addFlow(smithId, "cash", data);
+export const addWeightFlow = (smithId: string, data: Record<string, unknown>) => addFlow(smithId, "weight", data);
+
+/** Changes some fields of a row; the rest (and its attachments) are kept. */
+export const patchFlow = async (id: number, patch: Record<string, unknown>) => {
+    const next = applyPatch(await current(id), patch);
+    return remember(await api.put<TransactionApi>(`transactions/${id}`, toRequest(next)));
+};
+export const patchCashFlow = patchFlow;
+export const patchWeightFlow = patchFlow;
+
+export const deleteCashFlow = deleteSmithTransaction;
+export const deleteWeightFlow = deleteSmithTransaction;
+
+/**
+ * Adds files to a row and/or removes existing ones in one multipart PUT.
+ * keepUrls: the existing media URLs to keep (undefined keeps them all).
+ */
+export const saveTransactionMedia = async (id: number, files: File[], keepUrls?: string[]) => {
+    const t = await current(id);
+    const form = new FormData();
+    form.append(
+        "transaction",
+        new Blob([JSON.stringify(toRequest(t, keepUrls))], { type: "application/json" })
+    );
+    files.forEach((f) => form.append("files", f, f.name));
+    const { data } = await getAxiosInstance().put<ApiEnvelope<TransactionApi>>(`transactions/${id}`, form, {
+        headers: { "Content-Type": undefined as unknown as string },
+    });
+    return remember(unwrap(data));
 };

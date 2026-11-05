@@ -71,7 +71,7 @@ const SmithDetailsForm: React.FC = () => {
 
         requiredFields.forEach((field) => {
             if (!formData[field]) {
-                newErrors[field] = `${field.replace(/([A-Z])/g, " $1").trim()} is required`;
+                newErrors[field] = field === "pname" ? "Smith name is required" : `${field} is required`;
             }
         });
 
@@ -107,7 +107,7 @@ const SmithDetailsForm: React.FC = () => {
             addToast({
                 type: "error",
                 title: "Error",
-                message: `Failed to ${editId ? "update" : "create"} Smith`,
+                message: (error as Error)?.message || `Failed to ${editId ? "update" : "create"} Smith`,
             });
         } finally {
             setFormLoading(false);
@@ -138,6 +138,7 @@ const SmithDetailsForm: React.FC = () => {
                 handleChange(field, type === "number" ? parseInt(e.target.value) || 0 : e.target.value)
             }
             variant="outlined"
+            slotProps={type === "date" ? { inputLabel: { shrink: true } } : undefined}
             error={!!errors[field]}
             helperText={errors[field]}
             disabled={formLoading || fetchLoading}
@@ -182,15 +183,10 @@ const SmithDetailsForm: React.FC = () => {
             </Typography>
             <form onSubmit={handleSubmit}>
                 <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Title", "title")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Initial", "initial")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Party Name", "pname")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Middle Name", "mname")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Sur Name", "sname")}</Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Smith Name", "pname")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Door No", "doorno")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Address 1", "address1")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Address 2", "address2")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Address 3", "address3")}</Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Street", "address1")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Area", "area")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("City", "city")}</Grid>
 
@@ -253,15 +249,12 @@ const SmithDetailsForm: React.FC = () => {
                     </Grid>
 
 
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Country", "country")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Pincode", "pincode")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Mobile", "mobile")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Email", "email")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("System ID", "systemid")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Cost ID", "costid")}</Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("Date of Birth", "dob", "date")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("PAN", "pan")}</Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("GST No", "gstno")}</Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>{renderTextField("State ID", "stateid", "number")}</Grid>
 
                     {/* Active */}
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>

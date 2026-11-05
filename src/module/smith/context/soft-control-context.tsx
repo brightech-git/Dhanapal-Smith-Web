@@ -38,7 +38,8 @@ export const SoftControlProvider: React.FC<SoftControlProviderProps> = ({  child
             const data = await fetchSoftControls();
             setSoftControls(data);
         } catch (err: any) {
-            console.error("Error fetching soft controls:", err);
+            // The current backend has no soft control route; the defaults apply.
+            console.warn("Soft controls unavailable, using defaults:", err?.message);
             setError(err.message || "Failed to load soft controls");
         } finally {
             setLoading(false);
@@ -86,8 +87,12 @@ export interface SoftControlFlags {
 
 /** Reads the soft controls the Smith screens depend on. */
 export const useSoftControlFlags = (): SoftControlFlags => {
-    const { softControls, loading } = useSoftControls();
+    const { softControls, loading, error } = useSoftControls();
     return React.useMemo(() => {
+        // The current backend has no soft control endpoint: fall back to showing everything.
+        if (error) {
+            return { grandTotal: true, rowDelete: true, saveButton: false, showDashboard: true, dashboardPosition: "above" as const, loading };
+        }
         const list = Array.isArray(softControls) ? softControls : [];
         const value = (...names: string[]) => {
             const wanted = names.map(normalise);
@@ -103,5 +108,5 @@ export const useSoftControlFlags = (): SoftControlFlags => {
             dashboardPosition: position === "B" || position === "BELOW" ? "below" : "above",
             loading,
         };
-    }, [softControls, loading]);
+    }, [softControls, loading, error]);
 };

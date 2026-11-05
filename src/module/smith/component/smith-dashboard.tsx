@@ -12,6 +12,7 @@ import SmithManager from "@/src/module/smith/component/smith-manager";
 import EditableCell from "@/src/components/ui/editable-cell";
 import { useToast } from "@/src/providers/toast-provider";
 import PrintTable from "@/src/components/print/print-table";
+import { toApiDate } from "@/lib/api/envelope";
 import { useSoftControlFlags } from "@/src/module/smith/context/soft-control-context";
 import { Delete } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
@@ -213,7 +214,7 @@ export default function SmithsPage() {
             addToast({
                 type: 'success',
                 title: 'Smith Created',
-                message: `Smith "${newSmith.pname}" created successfully with empty transaction!`
+                message: `Smith "${newSmith.pname}" created`
             });
 
         } catch (error: any) {
@@ -239,7 +240,7 @@ export default function SmithsPage() {
         }
 
         const today = new Date();
-        const displayDate = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+        const displayDate = toApiDate(today);
 
         const newRow = {
             id: null,
@@ -270,7 +271,7 @@ export default function SmithsPage() {
         }
 
         const today = new Date();
-        const formattedDate = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+        const formattedDate = toApiDate(today);
 
         const newRow = {
             id: null,
@@ -320,12 +321,14 @@ export default function SmithsPage() {
                     date: field === 'date' ? convertDateToAPIFormat(newValue) : convertDateToAPIFormat(row.date || ''),
                     receipts: field === 'receipts' ? parseFloat(newValue) : parseFloat(row.receipts) || 0,
                     payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
+                    remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
                 await addWeight(selectedSmithId, dataToSend);
             }
             await refetchWeightFlows(selectedSmithId);
         } catch (error) {
             console.error("Error saving weight data:", error);
+            addToast({ type: 'error', title: 'Save failed', message: (error as any)?.message || 'Could not save the weight row.' });
         }
     };
 
@@ -341,12 +344,14 @@ export default function SmithsPage() {
                     date: field === 'date' ? convertDateToAPIFormat(newValue) : convertDateToAPIFormat(row.date || ''),
                     receipts: field === 'receipts' ? parseFloat(newValue) : parseFloat(row.receipts) || 0,
                     payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
+                    remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
                 await addCash(selectedSmithId, dataToSend);
             }
             await refetchCashFlows(selectedSmithId);
         } catch (error) {
             console.error("Error saving cash data:", error);
+            addToast({ type: 'error', title: 'Save failed', message: (error as any)?.message || 'Could not save the cash row.' });
         }
     };
 
@@ -899,8 +904,7 @@ export default function SmithsPage() {
                         label="Current total weight"
                         value={summary?.totalWeight ?? 0}
                         format={formatWeight}
-                        change={summary?.weightChange}
-                        footnote="since yesterday"
+                        footnote={summary ? `${summary.weightTransactions} weight entries` : undefined}
                         icon={Scale}
                         tone="primary"
                         loading={summaryQuery.isLoading}
@@ -910,8 +914,7 @@ export default function SmithsPage() {
                         label="Current total amount"
                         value={summary?.totalAmount ?? 0}
                         format={formatAmount}
-                        change={summary?.amountChange}
-                        footnote="since yesterday"
+                        footnote={summary ? `${summary.amountTransactions} cash entries` : undefined}
                         icon={IndianRupee}
                         tone="secondary"
                         loading={summaryQuery.isLoading}
@@ -921,7 +924,7 @@ export default function SmithsPage() {
                         label="Smiths"
                         value={summary?.smithCount ?? (transactions?.length || 0)}
                         format={(v) => Math.round(v).toString()}
-                        footnote="with open balances"
+                        footnote={summary ? `${summary.totalTransactions} transactions in all` : "registered smiths"}
                         icon={UsersIcon}
                         tone="emerald"
                         loading={summaryQuery.isLoading}
@@ -1205,7 +1208,7 @@ export default function SmithsPage() {
                     detail &&
                     setAttachTarget({
                         kind: detail.kind,
-                        row: { id: r.id, date: r.date, remarks: r.remark, imageFile: r.imageFile, pdfFile: r.pdfFile, cameraImage: r.cameraImage },
+                        row: { id: r.id, date: r.date, remarks: r.remark, media: r.media ?? [] },
                     })
                 }
             />
