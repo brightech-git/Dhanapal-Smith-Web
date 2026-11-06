@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -16,6 +16,9 @@ export interface ConfirmDialogProps {
     onCancel: () => void;
 }
 
+// One short ease-out tween: the default spring overshoots and looks like the dialog opens twice.
+const FADE = { duration: 0.16, ease: "easeOut" } as const;
+
 /** Small themed confirm dialog (replaces window.confirm). */
 export default function ConfirmDialog({
     open,
@@ -28,6 +31,10 @@ export default function ConfirmDialog({
     onCancel,
 }: ConfirmDialogProps) {
     const [mounted, setMounted] = useState(false);
+    // Callers often clear the item as they close, so keep the last open text for the fade-out.
+    const last = useRef({ title, message, confirmLabel });
+    if (open) last.current = { title, message, confirmLabel };
+    ({ title, message, confirmLabel } = last.current);
     useEffect(() => setMounted(true), []);
     useEffect(() => {
         if (!open) return;
@@ -45,6 +52,7 @@ export default function ConfirmDialog({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    transition={FADE}
                     data-enter-nav="off"
                 >
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => !busy && onCancel()} />
@@ -53,9 +61,10 @@ export default function ConfirmDialog({
                         aria-modal="true"
                         aria-label={title}
                         className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-foreground shadow-2xl"
-                        initial={{ scale: 0.95, y: 8 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.95, y: 8 }}
+                        initial={{ scale: 0.97 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.97 }}
+                        transition={FADE}
                     >
                         <div className="flex gap-3">
                             <span

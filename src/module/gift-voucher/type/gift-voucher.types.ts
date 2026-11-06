@@ -38,7 +38,14 @@ export interface GiftTran {
     createdAt: string;
 }
 
-/** POST/PUT /gift-transactions body. Issues get their tag from the server, so tagno is for receipts only. */
+/** POST /gift-transactions/issue: amount is per piece; one tagged row (piece 1) is created per piece. */
+export interface GiftIssueInput {
+    introducerId: number;
+    amount: number;
+    piece: number; // 1 to 1000
+}
+
+/** PUT /gift-transactions/{id}: edits one stored row (an unreceived issue keeps piece 1 and its tag). */
 export interface GiftTranInput {
     introducerId: number;
     amount: number;

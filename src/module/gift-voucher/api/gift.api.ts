@@ -1,5 +1,5 @@
 import { api } from "@/lib/api/envelope";
-import type { GiftFilter, GiftRemaining, GiftTran, GiftTranInput, Introducer, IntroducerInput } from "../type/gift-voucher.types";
+import type { GiftFilter, GiftIssueInput, GiftRemaining, GiftTran, GiftTranInput, Introducer, IntroducerInput } from "../type/gift-voucher.types";
 
 export { getApiErrorMessage } from "@/lib/api/envelope";
 
@@ -56,6 +56,16 @@ export const fetchGifts = async (filter: GiftFilter = {}) =>
     ((await api.get<GiftTran[]>("gift-transactions", params(filter))) ?? []).map(toGift);
 export const fetchRemaining = async (filter: Omit<GiftFilter, "type"> = {}) =>
     ((await api.get<GiftRemaining[]>("gift-transactions/remaining", params(filter))) ?? []).map(toRemaining);
-export const createGift = async (input: GiftTranInput) => toGift(await api.post<GiftTran>("gift-transactions", giftBody(input)));
+/** Issues `piece` gifts of `amount` each; returns one row (with its own tag) per piece, sharing a tranId. */
+export const issueGifts = async (input: GiftIssueInput) =>
+    ((await api.post<GiftTran[]>("gift-transactions/issue", {
+        introducerId: input.introducerId,
+        amount: num(input.amount),
+        piece: Math.trunc(num(input.piece)),
+    })) ?? []).map(toGift);
+
+/** Receives (fully redeems) the given tags in one go; any bad tag fails the whole request. */
+export const receiveGifts = async (tagnos: string[]) =>
+    ((await api.post<GiftTran[]>("gift-transactions/receipt", tagnos.map((t) => t.trim()))) ?? []).map(toGift);
 export const updateGift = async (id: number, input: GiftTranInput) => toGift(await api.put<GiftTran>(`gift-transactions/${id}`, giftBody(input)));
 export const deleteGift = (id: number) => api.delete(`gift-transactions/${id}`);

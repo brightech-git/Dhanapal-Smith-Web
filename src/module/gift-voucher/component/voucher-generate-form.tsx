@@ -1,57 +1,48 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Inbox, Loader2, Pencil, Printer, RotateCcw, Search, TicketPlus, Ticket, Trash2 } from "lucide-react";
+import { Inbox, Loader2, Pencil, Printer, RotateCcw, Search, TicketPlus, Ticket, Trash2, X } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
 import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import VoucherPrinterSetup from "./voucher-printer-setup";
 import { isPrinterConfigured, printVoucherTagsViaProtocol } from "../api/printer-protocol";
 import { getApiErrorMessage } from "../api/gift.api";
-import { useDeleteGift, useGifts, useIntroducers, useRemaining, useSaveGift } from "../hook/use-gift";
+import { useDeleteGift, useGifts, useIntroducers, useIssueGifts, useRemaining, useUpdateGift } from "../hook/use-gift";
 import { formatAmount, formatDateTime, parseAmount, parsePiece } from "../lib/format";
 import type { GiftTran } from "../type/gift-voucher.types";
 
 type Values = { introducerId: string; amount: string; piece: string };
-const EMPTY: Values = { introducerId: "", amount: "", piece: "" };
+const EMPTY: Values = { introducerId: "", amount: "", piece: "1" };
+const MAX_PCS = 1000;
 
-export const validateAmountPiece = (amount: string, piece: string) => {
-    const e: Partial<Record<"amount" | "piece", string>> = {};
+const validateAmount = (amount: string) => {
     const a = parseAmount(amount);
-    const p = parsePiece(piece);
-    if (isNaN(a) || a < 0) e.amount = "Amount can't be negative";
-    else if (!/^\d*(\.\d{0,4})?$/.test(amount.trim())) e.amount = "Up to 4 decimals";
-    if (isNaN(p) || p < 0 || !Number.isInteger(p)) e.piece = "Pcs must be a whole number";
-    if (!e.amount && !e.piece && a === 0 && p === 0) e.amount = "Enter an amount or pcs";
-    return e;
+    if (isNaN(a) || a < 0) return "Amount can't be negative";
+    if (!/^\d*(\.\d{0,4})?$/.test(amount.trim())) return "Up to 4 decimals";
+    return undefined;
 };
 
-const printTag = (tagno: string, notify: (msg: string) => void) => {
-    if (!isPrinterConfigured()) {
-        notify("Finish the tag printer setup above to print tags.");
-        return;
-    }
-    printVoucherTagsViaProtocol([{ voucherCode: tagno }], 1);
-};
-
-/** Issue a gift tag: introducer, amount and pcs. The server assigns the tag number. */
+/** Issue gifts: introducer, amount per piece and pcs. The server creates one tag per piece. */
 export default function VoucherGenerateForm() {
     const { addToast } = useToast();
     const introducers = useIntroducers();
-    const save = useSaveGift();
+    const issue = useIssueGifts();
+    const update = useUpdateGift();
     const remove = useDeleteGift();
 
     const [values, setValues] = useState<Values>(EMPTY);
     const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
     const [editing, setEditing] = useState<GiftTran | null>(null);
-    const [lastIssued, setLastIssued] = useState<GiftTran | null>(null);
+    const [batch, setBatch] = useState<GiftTran[]>([]);
     const [search, setSearch] = useState("");
     const [toDelete, setToDelete] = useState<GiftTran | null>(null);
     const firstRef = useRef<HTMLSelectElement>(null);
 
     const issues = useGifts({ type: "I" });
     const outstanding = useRemaining({});
-    const remainingByTag = useMemo(() => new Map((outstanding.data ?? []).map((r) => [r.tagno.toLowerCase(), r])), [outstanding.data]);
+    const pendingTags = useMemo(() => new Set((outstanding.data ?? []).map((r) => r.tagno.toLowerCase())), [outstanding.data]);
+    const busy = issue.isPending || update.isPending;
 
     const active = (introducers.data ?? []).filter((i) => i.active !== "N" || String(i.id) === values.introducerId);
 
@@ -63,9 +54,20 @@ export default function VoucherGenerateForm() {
         return q ? list.filter((g) => g.tagno.toLowerCase().includes(q) || g.introducerName?.toLowerCase().includes(q)) : list;
     }, [issues.data, search]);
 
+    const pcs = parsePiece(values.piece);
+    const perPiece = parseAmount(values.amount);
+    const total = !editing && pcs > 0 && !isNaN(perPiece) ? perPiece * pcs : null;
+
     const set = (k: keyof Values, v: string) => {
         setValues((p) => ({ ...p, [k]: v }));
         if (errors[k]) setErrors((p) => ({ ...p, [k]: undefined }));
+    };
+
+    const notifyPrinter = (message: string) => addToast({ type: "warning", title: "Printer not set up", message });
+    const printTags = (tags: string[]) => {
+        if (!tags.length) return;
+        if (!isPrinterConfigured()) return notifyPrinter("Finish the tag printer setup above to print tags.");
+        printVoucherTagsViaProtocol(tags.map((voucherCode) => ({ voucherCode })), 1);
     };
 
     const reset = () => {
@@ -76,36 +78,50 @@ export default function VoucherGenerateForm() {
     };
 
     const startEdit = (g: GiftTran) => {
+        if (!pendingTags.has(g.tagno.toLowerCase())) {
+            addToast({ type: "info", title: "Already received", message: `Tag ${g.tagno} was received, so it can't be changed.` });
+            return;
+        }
         setEditing(g);
-        setValues({ introducerId: String(g.introducerId), amount: g.amount ? String(g.amount) : "", piece: g.piece ? String(g.piece) : "" });
+        setValues({ introducerId: String(g.introducerId), amount: g.amount ? String(g.amount) : "", piece: "1" });
         setErrors({});
         firstRef.current?.focus();
     };
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const found: Partial<Record<keyof Values, string>> = { ...validateAmountPiece(values.amount, values.piece) };
+        const found: Partial<Record<keyof Values, string>> = {};
         if (!values.introducerId) found.introducerId = "Choose an introducer";
+        const amountError = validateAmount(values.amount);
+        if (amountError) found.amount = amountError;
+        if (!editing && (!Number.isInteger(pcs) || pcs < 1 || pcs > MAX_PCS)) found.piece = `Pcs must be 1 to ${MAX_PCS}`;
         setErrors(found);
         if (Object.keys(found).length) {
             document.getElementById(`issue-${Object.keys(found)[0]}`)?.focus();
             return;
         }
+        const amount = parseAmount(values.amount) || 0;
         try {
-            const saved = await save.mutateAsync({
-                id: editing?.id,
-                input: { introducerId: Number(values.introducerId), amount: parseAmount(values.amount), piece: parsePiece(values.piece), issRec: "I" },
-            });
             if (editing) {
+                const saved = await update.mutateAsync({
+                    id: editing.id,
+                    input: { introducerId: Number(values.introducerId), tagno: editing.tagno, amount, piece: 1, issRec: "I" },
+                });
                 addToast({ type: "success", title: "Issue updated", message: saved.tagno });
             } else {
-                setLastIssued(saved);
-                addToast({ type: "success", title: "Gift issued", message: `Tag ${saved.tagno}` });
-                printTag(saved.tagno, (message) => addToast({ type: "warning", title: "Printer not set up", message }));
+                const saved = await issue.mutateAsync({ introducerId: Number(values.introducerId), amount, piece: pcs });
+                setBatch(saved);
+                const tags = saved.map((g) => g.tagno);
+                addToast({
+                    type: "success",
+                    title: saved.length === 1 ? "Gift issued" : `${saved.length} gifts issued`,
+                    message: saved.length === 1 ? `Tag ${tags[0]}` : `Tags ${tags[0]} to ${tags[tags.length - 1]}`,
+                });
+                printTags(tags);
             }
             reset();
         } catch (err) {
-            addToast({ type: "error", title: editing ? "Couldn't update the issue" : "Couldn't issue the gift", message: getApiErrorMessage(err) });
+            addToast({ type: "error", title: editing ? "Couldn't update the issue" : "Couldn't issue the gifts", message: getApiErrorMessage(err) });
         }
     };
 
@@ -115,7 +131,7 @@ export default function VoucherGenerateForm() {
             await remove.mutateAsync(toDelete.id);
             addToast({ type: "success", title: "Issue deleted", message: toDelete.tagno });
             if (editing?.id === toDelete.id) reset();
-            if (lastIssued?.id === toDelete.id) setLastIssued(null);
+            setBatch((b) => b.filter((g) => g.id !== toDelete.id));
         } catch (err) {
             addToast({ type: "error", title: "Couldn't delete the issue", message: getApiErrorMessage(err) });
         } finally {
@@ -126,17 +142,19 @@ export default function VoucherGenerateForm() {
     const fieldError = (k: keyof Values) =>
         errors[k] && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors[k]}</p>;
 
+    const batchTotal = batch.reduce((s, g) => s + g.amount, 0);
+
     return (
         <div className="space-y-4">
             <VoucherPrinterSetup />
 
             <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                     <section className={card}>
                         <CardHeader
                             icon={editing ? Pencil : TicketPlus}
-                            title={editing ? `Edit issue ${editing.tagno}` : "Issue a gift"}
-                            subtitle={editing ? "The tag number stays the same" : "Press Enter to move to the next field"}
+                            title={editing ? `Edit issue ${editing.tagno}` : "Issue gifts"}
+                            subtitle={editing ? "The tag number stays the same" : "One tag is printed for each piece"}
                         />
                         <form onSubmit={submit} className="space-y-4 p-5" noValidate>
                             <Field label="Introducer" htmlFor="issue-introducerId">
@@ -158,7 +176,7 @@ export default function VoucherGenerateForm() {
                                 {fieldError("introducerId")}
                             </Field>
                             <div className="grid grid-cols-2 gap-3">
-                                <Field label="Amount" htmlFor="issue-amount">
+                                <Field label="Amount per piece" htmlFor="issue-amount">
                                     <input
                                         id="issue-amount"
                                         inputMode="decimal"
@@ -175,18 +193,28 @@ export default function VoucherGenerateForm() {
                                         id="issue-piece"
                                         inputMode="numeric"
                                         autoComplete="off"
-                                        placeholder="0"
-                                        className={`${inputClass} text-right ${errors.piece ? "border-red-500" : ""}`}
+                                        placeholder="1"
+                                        disabled={!!editing}
+                                        className={`${inputClass} text-right disabled:opacity-60 ${errors.piece ? "border-red-500" : ""}`}
                                         value={values.piece}
-                                        onChange={(e) => set("piece", e.target.value.replace(/\D/g, ""))}
+                                        onChange={(e) => set("piece", e.target.value.replace(/\D/g, "").slice(0, 4))}
                                     />
                                     {fieldError("piece")}
                                 </Field>
                             </div>
-                            <p className="text-xs text-muted-foreground">Enter an amount, pcs, or both.</p>
+                            {editing ? (
+                                <p className="text-xs text-muted-foreground">Each tag is one piece. Received tags can&apos;t be changed.</p>
+                            ) : (
+                                <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                                    <span className="text-muted-foreground">
+                                        {pcs > 0 ? `${pcs} ${pcs === 1 ? "tag" : "tags"}` : "Tags"} · Total
+                                    </span>
+                                    <span className="font-semibold tabular-nums">₹{formatAmount(total ?? 0)}</span>
+                                </div>
+                            )}
                             <div className="flex flex-wrap gap-2">
-                                <button type="submit" data-enter-submit className={primaryButton} disabled={save.isPending}>
-                                    {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketPlus className="h-4 w-4" />}
+                                <button type="submit" data-enter-submit className={primaryButton} disabled={busy}>
+                                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketPlus className="h-4 w-4" />}
                                     {editing ? "Update issue" : "Issue"}
                                 </button>
                                 <button type="button" className={ghostButton} onClick={reset}>
@@ -197,34 +225,39 @@ export default function VoucherGenerateForm() {
                         </form>
                     </section>
 
-                    {lastIssued && (
-                        <section className={`${card} flex items-center gap-4 p-5`}>
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-primary-text">
-                                <Ticket className="h-6 w-6" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs text-muted-foreground">Last issued tag</p>
-                                <p className="truncate text-xl font-bold tracking-wide">{lastIssued.tagno}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {lastIssued.introducerName} · ₹{formatAmount(lastIssued.amount)} · {lastIssued.piece} pcs
-                                </p>
+                    {batch.length > 0 && (
+                        <section className={card}>
+                            <CardHeader
+                                icon={Ticket}
+                                title={batch.length === 1 ? "Last issued tag" : `Last issued ${batch.length} tags`}
+                                subtitle={`${batch[0].introducerName} · ₹${formatAmount(batchTotal)}`}
+                                actions={
+                                    <div className="flex gap-1">
+                                        <button type="button" className={ghostButton} onClick={() => printTags(batch.map((g) => g.tagno))}>
+                                            <Printer className="h-4 w-4" /> Print all
+                                        </button>
+                                        <button type="button" className={iconButton} title="Hide" aria-label="Hide last issued tags" onClick={() => setBatch([])}>
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                }
+                            />
+                            <div className="flex max-h-48 flex-wrap gap-1.5 overflow-auto p-4">
+                                {batch.map((g) => (
+                                    <span key={g.id} className="rounded-lg bg-accent-soft px-2.5 py-1 text-sm font-semibold tracking-wide text-primary-text">
+                                        {g.tagno}
+                                    </span>
+                                ))}
                             </div>
-                            <button
-                                type="button"
-                                className={ghostButton}
-                                onClick={() => printTag(lastIssued.tagno, (message) => addToast({ type: "warning", title: "Printer not set up", message }))}
-                            >
-                                <Printer className="h-4 w-4" /> Print
-                            </button>
                         </section>
                     )}
                 </div>
 
-                <section className={`${card} overflow-hidden`}>
+                <section className={`${card} min-w-0 overflow-hidden`}>
                     <CardHeader
                         icon={Ticket}
                         title="Issued gifts"
-                        subtitle={`${issues.data?.length ?? 0} issues`}
+                        subtitle={`${issues.data?.length ?? 0} tags`}
                         actions={
                             <div className="relative w-full sm:w-64" data-enter-nav="off">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -239,14 +272,14 @@ export default function VoucherGenerateForm() {
                         }
                     />
                     <div className="relative max-h-[560px] overflow-auto">
-                        <table className="w-full min-w-[680px] text-sm">
+                        <table className="w-full min-w-[640px] text-sm">
                             <thead className="sticky top-0 bg-card">
                                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                                     <th className="px-5 py-2.5 font-medium">Tag no</th>
+                                    <th className="px-3 py-2.5 font-medium">Batch</th>
                                     <th className="px-3 py-2.5 font-medium">Introducer</th>
                                     <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                                    <th className="px-3 py-2.5 text-right font-medium">Pcs</th>
-                                    <th className="px-3 py-2.5 text-right font-medium">Pending</th>
+                                    <th className="px-3 py-2.5 text-right font-medium">Status</th>
                                     <th className="px-5 py-2.5 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
@@ -266,20 +299,20 @@ export default function VoucherGenerateForm() {
                                     </tr>
                                 )}
                                 {rows.map((g) => {
-                                    const pending = remainingByTag.get(g.tagno.toLowerCase());
+                                    const pending = pendingTags.has(g.tagno.toLowerCase());
                                     return (
                                         <tr key={g.id} className={`transition-colors hover:bg-muted/60 ${editing?.id === g.id ? "bg-accent-soft" : ""}`}>
                                             <td className="px-5 py-3">
                                                 <p className="font-semibold tracking-wide">{g.tagno}</p>
                                                 <p className="text-xs text-muted-foreground">{formatDateTime(g.createdAt)}</p>
                                             </td>
+                                            <td className="px-3 py-3 tabular-nums text-muted-foreground">#{g.tranId}</td>
                                             <td className="px-3 py-3">{g.introducerName}</td>
                                             <td className="px-3 py-3 text-right tabular-nums">₹{formatAmount(g.amount)}</td>
-                                            <td className="px-3 py-3 text-right tabular-nums">{g.piece}</td>
                                             <td className="px-3 py-3 text-right text-xs">
                                                 {pending ? (
                                                     <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
-                                                        ₹{formatAmount(pending.remainingAmount)} · {pending.remainingPiece} pcs
+                                                        Not received
                                                     </span>
                                                 ) : (
                                                     <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-700 dark:text-emerald-400">
@@ -289,15 +322,16 @@ export default function VoucherGenerateForm() {
                                             </td>
                                             <td className="px-5 py-3">
                                                 <div className="flex justify-end gap-1">
-                                                    <button
-                                                        className={iconButton}
-                                                        title="Print tag"
-                                                        aria-label={`Print tag ${g.tagno}`}
-                                                        onClick={() => printTag(g.tagno, (message) => addToast({ type: "warning", title: "Printer not set up", message }))}
-                                                    >
+                                                    <button className={iconButton} title="Print tag" aria-label={`Print tag ${g.tagno}`} onClick={() => printTags([g.tagno])}>
                                                         <Printer className="h-4 w-4" />
                                                     </button>
-                                                    <button className={iconButton} title="Edit" aria-label={`Edit ${g.tagno}`} onClick={() => startEdit(g)}>
+                                                    <button
+                                                        className={`${iconButton} disabled:opacity-40`}
+                                                        title={pending ? "Edit" : "Received tags can't be edited"}
+                                                        aria-label={`Edit ${g.tagno}`}
+                                                        disabled={!pending}
+                                                        onClick={() => startEdit(g)}
+                                                    >
                                                         <Pencil className="h-4 w-4" />
                                                     </button>
                                                     <button
@@ -330,7 +364,7 @@ export default function VoucherGenerateForm() {
             <ConfirmDialog
                 open={!!toDelete}
                 title={`Delete issue ${toDelete?.tagno}?`}
-                message="A tag that has receipts can't be deleted; delete its receipts first."
+                message="A received tag can't be deleted; delete its receipt first."
                 confirmLabel="Delete"
                 busy={remove.isPending}
                 onConfirm={confirmDelete}

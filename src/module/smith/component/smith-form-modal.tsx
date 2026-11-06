@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2, Pencil, Save, UserPlus } from "lucide-react";
 import Modal from "@/src/components/ui/modal";
+import DateInput from "@/src/components/ui/date-input";
 import { Field, ghostButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { INDIAN_STATES, partyFieldError } from "@/src/lib/party-validation";
 import { useSmithDetails } from "@/src/module/smith/context/smith-details-context";
@@ -101,7 +102,15 @@ export default function SmithFormModal({ open, smith, initialName, onClose, onSa
                 {FIELDS.map((f) => (
                     <div key={f.key} className={f.wide ? "sm:col-span-2" : ""}>
                         <Field label={f.label} htmlFor={`smith-${f.key}`}>
-                            {f.key === "state" ? (
+                            {f.type === "date" ? (
+                                <DateInput
+                                    id={`smith-${f.key}`}
+                                    className={`${inputClass} ${errors[f.key] ? "border-red-500" : ""}`}
+                                    value={(values[f.key] as string) ?? ""}
+                                    maxDate={new Date()}
+                                    onChange={(v) => set(f.key, v)}
+                                />
+                            ) : f.key === "state" ? (
                                 <select id="smith-state" className={inputClass} value={values.state ?? ""} onChange={(e) => set("state", e.target.value)}>
                                     <option value="">Select state…</option>
                                     {INDIAN_STATES.map((s) => (

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api/gift.api";
-import type { GiftFilter, GiftTranInput, IntroducerInput } from "../type/gift-voucher.types";
+import type { GiftFilter, GiftIssueInput, GiftTranInput, IntroducerInput } from "../type/gift-voucher.types";
 
 export const giftKeys = {
     all: ["gift"] as const,
@@ -37,12 +37,19 @@ export function useDeleteIntroducer() {
     return useMutation({ mutationFn: (id: number) => api.deleteIntroducer(id), onSuccess: invalidate });
 }
 
-export function useSaveGift() {
+export function useIssueGifts() {
     const invalidate = useInvalidate();
-    return useMutation({
-        mutationFn: ({ id, input }: { id?: number; input: GiftTranInput }) => (id != null ? api.updateGift(id, input) : api.createGift(input)),
-        onSuccess: invalidate,
-    });
+    return useMutation({ mutationFn: (input: GiftIssueInput) => api.issueGifts(input), onSuccess: invalidate });
+}
+
+export function useUpdateGift() {
+    const invalidate = useInvalidate();
+    return useMutation({ mutationFn: ({ id, input }: { id: number; input: GiftTranInput }) => api.updateGift(id, input), onSuccess: invalidate });
+}
+
+export function useReceiveGifts() {
+    const invalidate = useInvalidate();
+    return useMutation({ mutationFn: (tagnos: string[]) => api.receiveGifts(tagnos), onSuccess: invalidate });
 }
 
 export function useDeleteGift() {
