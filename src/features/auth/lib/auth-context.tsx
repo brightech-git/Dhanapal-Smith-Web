@@ -29,28 +29,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [allDetails, setAllDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Validate the server session and refresh assignments by the authenticated user ID.
+    // Restore the saved login on refresh. There is no expiry: the session lasts until
+    // logout or until the browser tab is closed (sessionStorage).
     useEffect(() => {
         let cancelled = false;
-        const restore = async () => {
-            try {
-                const saved = sessionStorage.getItem("authSession");
-                if (!saved) return;
-                const parsed = JSON.parse(saved);
-                if (Date.now() >= parsed.expiry) throw new Error("Session expired");
-                const profile = await api.get<any>("users/me");
-                if (cancelled) return;
-                const details = { ...profile, userName: profile.username, admin: !!profile.isadmin,
-                    projectName: parsed.allDetails?.projectName ?? "SMITH" };
+        try {
+            const saved = sessionStorage.getItem("authSession");
+            const details = saved ? JSON.parse(saved)?.allDetails : null;
+            if (details) {
+                const baseUrl = window?.appConfig?.MAIN_URL;
+                if (baseUrl) getAxiosInstance(baseUrl);
                 setAllDetails(details);
                 setIsAuthenticated(true);
-            } catch {
-                sessionStorage.removeItem("authSession");
-            } finally {
-                if (!cancelled) setIsLoading(false);
+                // Pick up permission changes made since login; on any error keep the saved ones.
+                if (!details.isadmin && details.sno && baseUrl) {
+                    api.get<any[]>(`user-roles/${details.sno}/permissions`)
+                        .then((roleTran) => {
+                            if (cancelled || !Array.isArray(roleTran)) return;
+                            const next = { ...details, roleTran };
+                            setAllDetails(next);
+                            sessionStorage.setItem("authSession", JSON.stringify({ allDetails: next }));
+                        })
+                        .catch(() => undefined);
+                }
             }
-        };
-        void restore();
+        } catch {
+            sessionStorage.removeItem("authSession");
+        } finally {
+            setIsLoading(false);
+        }
         return () => { cancelled = true; };
     }, []);
 
@@ -61,10 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // still pass one as a fallback when the response has none.
         const details = { ...response, projectName: response?.projectName ?? projectName };
 
-        const session = {
-            expiry: Date.now() + 30 * 60 * 1000, // 30 min
-            allDetails: details,
-        };
+        const session = { allDetails: details };
 
         queryClient.clear();
         setAllDetails(details);
@@ -80,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const logout = () => {
         queryClient.clear();
-        void api.post("users/logout").catch(() => undefined);
         resetAxiosInstance();
         setIsAuthenticated(false);
         setAllDetails(null);
