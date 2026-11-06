@@ -18,6 +18,9 @@ export interface ModalProps {
     footer?: React.ReactNode;
 }
 
+// One short ease-out tween (no spring overshoot, no second fade on the panel).
+const FADE = { duration: 0.18, ease: "easeOut" } as const;
+
 /** Themed modal dialog. Enter navigation works inside it (role=dialog). */
 export default function Modal({ open, title, subtitle, icon: Icon, busy, size = "lg", onClose, children, footer }: ModalProps) {
     const [mounted, setMounted] = useState(false);
@@ -38,17 +41,17 @@ export default function Modal({ open, title, subtitle, icon: Icon, busy, size = 
     return createPortal(
         <AnimatePresence>
             {open && (
-                <motion.div className="fixed inset-0 z-[1300] flex items-end justify-center sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div className="fixed inset-0 z-[1300] flex items-end justify-center sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={FADE}>
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => !busy && onClose()} />
                     <motion.div
                         role="dialog"
                         aria-modal="true"
                         aria-label={title}
                         className={`relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-foreground shadow-2xl sm:rounded-2xl ${size === "lg" ? "sm:max-w-2xl" : "sm:max-w-md"}`}
-                        initial={{ y: 24, opacity: 0.6 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 24, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        initial={{ y: 12 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: 12 }}
+                        transition={FADE}
                     >
                         <header className="flex items-center gap-3 border-b border-border px-5 py-4">
                             {Icon && (
