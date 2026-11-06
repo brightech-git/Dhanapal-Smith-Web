@@ -23,13 +23,8 @@ export const useUsers = () => useQuery({ queryKey: roleKeys.users, queryFn: api.
 export function useSaveRole() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: async ({ roleId, input }: { roleId?: number; input: RoleMasterInput }) => {
-            if (roleId != null) return api.updateRole(roleId, input);
-            // The backend wants the new roleId from the client: next after the highest.
-            const roles = qc.getQueryData<{ roleId: number }[]>(roleKeys.roles) ?? (await api.fetchRoles());
-            const nextId = roles.reduce((max, r) => Math.max(max, r.roleId), 0) + 1;
-            return api.createRole(input, nextId);
-        },
+        mutationFn: async ({ roleId, input }: { roleId?: number; input: RoleMasterInput }) =>
+            roleId != null ? api.updateRole(roleId, input) : api.createRole(input),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: roleKeys.roles });
             qc.invalidateQueries({ queryKey: roleKeys.userRoles });

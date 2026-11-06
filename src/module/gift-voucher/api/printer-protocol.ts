@@ -19,7 +19,10 @@
 //      navigate to giftvoucherprint://launch. Windows resolves that
 //      protocol to the .bat, which picks up the just-downloaded file and
 //      sends it to the printer — no dialogs, no drivers, no QZ Tray.
-import { VoucherGeneration } from "@/src/module/gift-voucher/type/gift-voucher.types";
+/** One printed tag: the code shown as text and as a barcode. */
+export interface VoucherTag {
+    voucherCode: string;
+}
 
 // ─── File / protocol names ──────────────────────────────────────────────
 // Distinct from RTM POS's "myposbilling" so both apps can coexist on the
@@ -191,7 +194,7 @@ function buildPageHeader(): string {
  * labels per voucher — one voucher tag per physical page. Each tag has two
  * fields: the voucher code as text, and the same code as a barcode.
  */
-export function buildVoucherLabelContent(vouchers: VoucherGeneration[], copies: number = 1): string {
+export function buildVoucherLabelContent(vouchers: VoucherTag[], copies: number = 1): string {
     const labelQueue: string[] = [];
     for (const voucher of vouchers) {
         const voucherCode = String(voucher.voucherCode || "");
@@ -221,7 +224,7 @@ export function buildVoucherLabelContent(vouchers: VoucherGeneration[], copies: 
  * Requires the one-time setup (see VoucherPrinterSetup) to already be done
  * on this computer.
  */
-export function printVoucherTagsViaProtocol(vouchers: VoucherGeneration[], copies: number = 1): void {
+export function printVoucherTagsViaProtocol(vouchers: VoucherTag[], copies: number = 1): void {
     const content = buildVoucherLabelContent(vouchers, copies);
     downloadFile(content, SRC_FILENAME);
     setTimeout(() => {

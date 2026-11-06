@@ -1,241 +1,245 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-    Box,
-    Button,
-    Typography,
-    Grid,
-    TextField,
-    Autocomplete,
-    Paper,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel,
-} from "@mui/material";
-import Table, { TableColumn } from "@/src/components/ui/table";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { useIntroducers } from "@/src/module/gift-voucher/context/introducer-context";
-import { useToast } from "@/src/providers/toast-provider";
-import { VoucherService } from "@/src/module/gift-voucher/api/voucher.api";
-import { formatDateForAPI } from "@/src/utils/format/formatDateForAPI";
-import { Introducer, VoucherReportRequest, VoucherReportResponse } from "@/src/module/gift-voucher/type/gift-voucher.types";
+import { BarChart3, Inbox, Loader2, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CardHeader, Field, card, ghostButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
+import { fetchGifts, getApiErrorMessage } from "../api/gift.api";
+import { useIntroducers } from "../hook/use-gift";
+import { formatAmount, formatDateTime } from "../lib/format";
+import type { GiftTran } from "../type/gift-voucher.types";
 
-const VoucherReport: React.FC = () => {
-    const today = new Date().toISOString().split("T")[0]
-    const { activeIntroducers } = useIntroducers();
-    const { addToast } = useToast();
+type View = "summary" | "pending" | "I" | "R";
+type Filters = { view: View; introducerId: string; tagno: string; search: string; from: string; to: string };
+const EMPTY: Filters = { view: "summary", introducerId: "", tagno: "", search: "", from: "", to: "" };
 
-    const [issRec, setIssRec] = useState<string>("");
-    const [selectedIntroducer, setSelectedIntroducer] = useState<Introducer | null>(null);
-    const [batchNo, setBatchNo] = useState<string>("");
-    const [voucherNo, setVoucherNo] = useState<string>("");
-    const [mobileNo, setMobileNo] = useState<string>("");
-    const [fromDate, setFromDate] = useState<Date | null>(null);
-    const [toDate, setToDate] = useState<Date | null>(null);
-
-    const [loading, setLoading] = useState(false);
-    const [rows, setRows] = useState<VoucherReportResponse[]>([]);
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const request: VoucherReportRequest = {
-                issRec: (issRec as "I" | "R" | "") || undefined,
-                introducerId: selectedIntroducer?.introducerId,
-                batchNo: batchNo ? Number(batchNo) : undefined,
-                voucherNo: voucherNo ? Number(voucherNo) : undefined,
-                mobileNo: mobileNo || undefined,
-                fromDate: fromDate ? formatDateForAPI(fromDate) : undefined,
-                toDate: toDate ? formatDateForAPI(toDate) : undefined,
-            };
-
-            const result = await VoucherService.getTallyReport(request);
-            setRows(result);
-        } catch (error: any) {
-            addToast({
-                type: "error",
-                title: "Error",
-                message: error?.response?.data?.message || "Failed to fetch report",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const columns: TableColumn[] = useMemo(
-        () => [
-            {
-                key: "sno",
-                label: "S.No",
-                align: "center",
-                headalign: "center",
-                width: "60px",
-                render: (_v: any, _row: any, index: number) => <span className="font-semibold">{index + 1}</span>,
-            },
-            { key: "batchNo", label: "Batch No", align: "center", headalign: "center", width: "90px" },
-            { key: "introducerName", label: "Introducer", align: "left", headalign: "center", width: "160px" },
-            { key: "voucherCode", label: "Voucher Code", align: "left", headalign: "center", width: "140px" },
-            { key: "issuePiece", label: "Issue Pcs", align: "center", headalign: "center", width: "90px" },
-            { key: "returnPiece", label: "Receipt Pcs", align: "center", headalign: "center", width: "90px" },
-            { key: "balancePiece", label: "Balance Pcs", align: "center", headalign: "center", width: "100px" },
-            {
-                key: "issueAmount",
-                label: "Issue Amt",
-                align: "right",
-                headalign: "center",
-                width: "110px",
-                render: (v: number) => (v ?? 0).toFixed(2),
-            },
-            {
-                key: "returnAmount",
-                label: "Receipt Amt",
-                align: "right",
-                headalign: "center",
-                width: "110px",
-                render: (v: number) => (v ?? 0).toFixed(2),
-            },
-            {
-                key: "balanceAmount",
-                label: "Balance Amt",
-                align: "right",
-                headalign: "center",
-                width: "110px",
-                render: (v: number) => (v ?? 0).toFixed(2),
-            },
-        ],
-        []
-    );
-
-    return (
-        <Box className="p-2">
-            <Typography
-                variant="h6"
-                className="font-semibold mb-3"
-                sx={{ fontSize: { xs: "1rem", md: "1.3rem" }, fontWeight: 600 }}
-            >
-                Voucher Tally Report
-            </Typography>
-
-            <Paper elevation={1} className="p-3 mb-3">
-                <form onSubmit={handleSearch}>
-                    <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <FormControl fullWidth size="small">
-                                <InputLabel id="issrec-label">Type</InputLabel>
-                                <Select
-                                    labelId="issrec-label"
-                                    label="Type"
-                                    value={issRec}
-                                    onChange={(e) => setIssRec(e.target.value)}
-                                >
-                                    <MenuItem value="">All</MenuItem>
-                                    <MenuItem value="I">Issue</MenuItem>
-                                    <MenuItem value="R">Receipt</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <Autocomplete
-                                options={activeIntroducers}
-                                getOptionLabel={(option) => option.introducerName}
-                                value={selectedIntroducer}
-                                onChange={(_e, newValue) => setSelectedIntroducer(newValue)}
-                                size="small"
-                                renderInput={(params) => <TextField {...params} label="Introducer" />}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="Batch No"
-                                type="number"
-                                value={batchNo}
-                                onChange={(e) => setBatchNo(e.target.value)}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="Voucher No"
-                                type="number"
-                                value={voucherNo}
-                                onChange={(e) => setVoucherNo(e.target.value)}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                label="Mobile No"
-                                value={mobileNo}
-                                onChange={(e) => setMobileNo(e.target.value)}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <DatePicker
-                                selected={fromDate}
-                                onChange={(date: Date | null) => setFromDate(date)}
-                                dateFormat="dd-MM-yyyy"
-                                placeholderText="dd-mm-yyyy"
-                                isClearable
-                                maxDate={new Date()  ?? undefined}
-
-                                customInput={
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        label="From Date"
-                                        InputLabelProps={{ shrink: true }}
-
-                                    />
-                                }
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                            <DatePicker
-                                selected={toDate}
-                                onChange={(date: Date | null) => setToDate(date)}
-                                dateFormat="dd-MM-yyyy"
-                                placeholderText="dd-mm-yyyy"
-                                
-                                isClearable
-                                minDate={fromDate ?? undefined}
-                                maxDate={new Date()}
-                                customInput={
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        label="To Date"
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                }
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }} className="flex justify-end">
-                            <Button variant="contained" color="primary" type="submit" disabled={loading}>
-                                {loading ? "Searching..." : "Search"}
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </form>
-            </Paper>
-
-            <Table columns={columns} data={rows} showRows={0} fixedHeight="420px" loading={loading} />
-        </Box>
-    );
+type TagRow = {
+    tagno: string;
+    introducerName: string;
+    createdAt: string;
+    issuedAmount: number;
+    issuedPiece: number;
+    receivedAmount: number;
+    receivedPiece: number;
 };
 
-export default VoucherReport;
+const localDate = (v: string) => {
+    const d = new Date(/[zZ]$/.test(v) ? v : `${v}Z`);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+/** One row per tag: what was issued, what came back and what is pending. */
+const summarise = (rows: GiftTran[]): TagRow[] => {
+    const tags = new Map<string, TagRow>();
+    rows.filter((g) => g.issRec === "I").forEach((g) =>
+        tags.set(g.tagno.toLowerCase(), {
+            tagno: g.tagno, introducerName: g.introducerName, createdAt: g.createdAt,
+            issuedAmount: g.amount, issuedPiece: g.piece, receivedAmount: 0, receivedPiece: 0,
+        })
+    );
+    rows.filter((g) => g.issRec === "R").forEach((g) => {
+        const t = tags.get(g.tagno.toLowerCase());
+        if (t) {
+            t.receivedAmount += g.amount;
+            t.receivedPiece += g.piece;
+        }
+    });
+    return Array.from(tags.values());
+};
+
+/** Gift report: per-tag balances, pending tags, or the issue / receipt entries. */
+export default function VoucherReport() {
+    const introducers = useIntroducers();
+    const [draft, setDraft] = useState<Filters>(EMPTY);
+    const [applied, setApplied] = useState<Filters>(EMPTY);
+
+    const serverFilter = {
+        introducerId: applied.introducerId ? Number(applied.introducerId) : undefined,
+        tagno: applied.tagno.trim() || undefined,
+        search: applied.search.trim() || undefined,
+    };
+    const query = useQuery({
+        queryKey: ["gift", "report", serverFilter],
+        // The per-tag views need both issues and receipts, so fetch everything matching and split here.
+        queryFn: () => fetchGifts({ type: "A", ...serverFilter }),
+    });
+
+    const inRange = (createdAt: string) => {
+        const d = localDate(createdAt);
+        return (!applied.from || d >= applied.from) && (!applied.to || d <= applied.to);
+    };
+
+    const entries = useMemo(
+        () => (query.data ?? []).filter((g) => (applied.view === "I" || applied.view === "R" ? g.issRec === applied.view : true) && inRange(g.createdAt)),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [query.data, applied]
+    );
+    const tags = useMemo(() => {
+        const all = summarise(query.data ?? []).filter((t) => inRange(t.createdAt));
+        return applied.view === "pending"
+            ? all.filter((t) => t.issuedAmount > t.receivedAmount || t.issuedPiece > t.receivedPiece)
+            : all;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [query.data, applied]);
+
+    const byTag = applied.view === "summary" || applied.view === "pending";
+    const total = (key: keyof TagRow) => tags.reduce((n, t) => n + Number(t[key]), 0);
+    const entryTotal = (key: "amount" | "piece") => entries.reduce((n, g) => n + g[key], 0);
+    const set = (k: keyof Filters, v: string) => setDraft((p) => ({ ...p, [k]: v }));
+    const th = "px-3 py-2.5 font-medium";
+    const num = "px-3 py-2.5 text-right tabular-nums";
+
+    return (
+        <div className="space-y-4">
+            <section className={card}>
+                <CardHeader icon={BarChart3} title="Gift report" subtitle="Press Enter to move to the next filter; Enter on the last one searches" />
+                <form
+                    className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-6"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        setApplied(draft);
+                    }}
+                >
+                    <Field label="View" htmlFor="rep-view">
+                        <select id="rep-view" className={inputClass} value={draft.view} onChange={(e) => set("view", e.target.value)}>
+                            <option value="summary">By tag (all)</option>
+                            <option value="pending">By tag (pending only)</option>
+                            <option value="I">Issue entries</option>
+                            <option value="R">Receipt entries</option>
+                        </select>
+                    </Field>
+                    <Field label="Introducer" htmlFor="rep-introducer">
+                        <select id="rep-introducer" className={inputClass} value={draft.introducerId} onChange={(e) => set("introducerId", e.target.value)}>
+                            <option value="">All introducers</option>
+                            {(introducers.data ?? []).map((i) => (
+                                <option key={i.id} value={i.id}>
+                                    {i.introducerName}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                    <Field label="Tag no" htmlFor="rep-tag">
+                        <input id="rep-tag" className={inputClass} autoComplete="off" value={draft.tagno} onChange={(e) => set("tagno", e.target.value.toUpperCase())} />
+                    </Field>
+                    <Field label="Name / mobile" htmlFor="rep-search">
+                        <input id="rep-search" className={inputClass} autoComplete="off" value={draft.search} onChange={(e) => set("search", e.target.value)} />
+                    </Field>
+                    <Field label="From date" htmlFor="rep-from">
+                        <input id="rep-from" type="date" className={inputClass} value={draft.from} onChange={(e) => set("from", e.target.value)} />
+                    </Field>
+                    <Field label="To date" htmlFor="rep-to">
+                        <input id="rep-to" type="date" className={inputClass} value={draft.to} onChange={(e) => set("to", e.target.value)} />
+                    </Field>
+                    <div className="flex gap-2 sm:col-span-2 lg:col-span-6 lg:justify-end">
+                        <button type="button" className={ghostButton} onClick={() => { setDraft(EMPTY); setApplied(EMPTY); }}>
+                            Reset
+                        </button>
+                        <button type="submit" data-enter-submit className={primaryButton} disabled={query.isFetching}>
+                            {query.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            Search
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section className={`${card} overflow-hidden`}>
+                <div className="relative max-h-[600px] overflow-auto">
+                    {byTag ? (
+                        <table className="w-full min-w-[820px] text-sm">
+                            <thead className="sticky top-0 bg-card">
+                                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                                    <th className={`${th} pl-5`}>S.No</th>
+                                    <th className={th}>Tag no</th>
+                                    <th className={th}>Introducer</th>
+                                    <th className={`${th} text-right`}>Issued ₹</th>
+                                    <th className={`${th} text-right`}>Issued pcs</th>
+                                    <th className={`${th} text-right`}>Received ₹</th>
+                                    <th className={`${th} text-right`}>Received pcs</th>
+                                    <th className={`${th} text-right`}>Pending ₹</th>
+                                    <th className={`${th} pr-5 text-right`}>Pending pcs</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {tags.map((t, i) => (
+                                    <tr key={t.tagno} className="hover:bg-muted/50">
+                                        <td className="px-3 py-2.5 pl-5 text-muted-foreground">{i + 1}</td>
+                                        <td className="px-3 py-2.5">
+                                            <p className="font-semibold tracking-wide">{t.tagno}</p>
+                                            <p className="text-xs text-muted-foreground">{formatDateTime(t.createdAt)}</p>
+                                        </td>
+                                        <td className="px-3 py-2.5">{t.introducerName}</td>
+                                        <td className={num}>{formatAmount(t.issuedAmount)}</td>
+                                        <td className={num}>{t.issuedPiece}</td>
+                                        <td className={num}>{formatAmount(t.receivedAmount)}</td>
+                                        <td className={num}>{t.receivedPiece}</td>
+                                        <td className={`${num} font-semibold`}>{formatAmount(t.issuedAmount - t.receivedAmount)}</td>
+                                        <td className={`${num} pr-5 font-semibold`}>{t.issuedPiece - t.receivedPiece}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            {tags.length > 0 && (
+                                <tfoot className="sticky bottom-0 bg-accent-soft font-semibold">
+                                    <tr>
+                                        <td colSpan={3} className="px-3 py-2.5 pl-5 text-right">Total ({tags.length} tags)</td>
+                                        <td className={num}>{formatAmount(total("issuedAmount"))}</td>
+                                        <td className={num}>{total("issuedPiece")}</td>
+                                        <td className={num}>{formatAmount(total("receivedAmount"))}</td>
+                                        <td className={num}>{total("receivedPiece")}</td>
+                                        <td className={num}>{formatAmount(total("issuedAmount") - total("receivedAmount"))}</td>
+                                        <td className={`${num} pr-5`}>{total("issuedPiece") - total("receivedPiece")}</td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    ) : (
+                        <table className="w-full min-w-[640px] text-sm">
+                            <thead className="sticky top-0 bg-card">
+                                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                                    <th className={`${th} pl-5`}>S.No</th>
+                                    <th className={th}>Date</th>
+                                    <th className={th}>Tag no</th>
+                                    <th className={th}>Introducer</th>
+                                    <th className={`${th} text-right`}>Amount</th>
+                                    <th className={`${th} pr-5 text-right`}>Pcs</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {entries.map((g, i) => (
+                                    <tr key={g.id} className="hover:bg-muted/50">
+                                        <td className="px-3 py-2.5 pl-5 text-muted-foreground">{i + 1}</td>
+                                        <td className="px-3 py-2.5">{formatDateTime(g.createdAt)}</td>
+                                        <td className="px-3 py-2.5 font-semibold tracking-wide">{g.tagno}</td>
+                                        <td className="px-3 py-2.5">{g.introducerName}</td>
+                                        <td className={num}>{formatAmount(g.amount)}</td>
+                                        <td className={`${num} pr-5`}>{g.piece}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            {entries.length > 0 && (
+                                <tfoot className="sticky bottom-0 bg-accent-soft font-semibold">
+                                    <tr>
+                                        <td colSpan={4} className="px-3 py-2.5 pl-5 text-right">Total ({entries.length} entries)</td>
+                                        <td className={num}>{formatAmount(entryTotal("amount"))}</td>
+                                        <td className={`${num} pr-5`}>{entryTotal("piece")}</td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    )}
+                    {!query.isLoading && (byTag ? tags.length : entries.length) === 0 && (
+                        <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                            <Inbox className="mx-auto mb-2 h-6 w-6" />
+                            {query.isError ? `Couldn't load the report. ${getApiErrorMessage(query.error)}` : "Nothing matches these filters"}
+                        </div>
+                    )}
+                    {query.isLoading && (
+                        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                        </div>
+                    )}
+                </div>
+            </section>
+        </div>
+    );
+}

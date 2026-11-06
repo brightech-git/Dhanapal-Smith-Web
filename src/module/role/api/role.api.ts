@@ -3,14 +3,14 @@ import type { AppUser, RoleMaster, RoleMasterInput, RoleTran, UserRole } from ".
 
 export { getApiErrorMessage } from "@/lib/api/envelope";
 
-// ---- Roles: /roles (roleId is assigned by the client on create)
+// ---- Roles: /roles (the server assigns roleId on create)
 export const fetchRoles = async (): Promise<RoleMaster[]> => (await api.get<RoleMaster[]>("roles")) ?? [];
 
-export const createRole = async (input: RoleMasterInput, roleId: number): Promise<RoleMaster> =>
-    api.post<RoleMaster>("roles", { roleId, roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
+export const createRole = async (input: RoleMasterInput): Promise<RoleMaster> =>
+    api.post<RoleMaster>("roles", { roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
 
 export const updateRole = async (roleId: number, input: RoleMasterInput): Promise<RoleMaster> =>
-    api.put<RoleMaster>(`roles/${roleId}`, { roleId, roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
+    api.put<RoleMaster>(`roles/${roleId}`, { roleName: input.roleName, active: input.active, adminAccess: input.adminAccess });
 
 export const deleteRole = async (roleId: number): Promise<void> => api.delete(`roles/${roleId}`);
 

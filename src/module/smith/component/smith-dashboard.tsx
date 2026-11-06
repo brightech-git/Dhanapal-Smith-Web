@@ -329,6 +329,11 @@ export default function SmithsPage() {
                     payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
                     remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
+                // The backend needs a receipt or a payment: keep the row local until one is entered.
+                if (!(dataToSend.receipts > 0) && !(dataToSend.payments > 0)) {
+                    setWeightBalanceData((prev) => prev.map((r) => (r === row ? { ...r, [field]: newValue } : r)));
+                    return;
+                }
                 await addWeight(selectedSmithId, dataToSend);
             }
             await refetchWeightFlows(selectedSmithId);
@@ -352,6 +357,11 @@ export default function SmithsPage() {
                     payments: field === 'payments' ? parseFloat(newValue) : parseFloat(row.payments) || 0,
                     remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
+                // The backend needs a receipt or a payment: keep the row local until one is entered.
+                if (!(dataToSend.receipts > 0) && !(dataToSend.payments > 0)) {
+                    setCashBalanceData((prev) => prev.map((r) => (r === row ? { ...r, [field]: newValue } : r)));
+                    return;
+                }
                 await addCash(selectedSmithId, dataToSend);
             }
             await refetchCashFlows(selectedSmithId);
