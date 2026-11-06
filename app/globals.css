@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* Dark mode is a `.dark` class on <html> (set by ThemeScript), same as the
+   Saving Scheme frontend. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens. --primary, --secondary, --accent and --ring are overridden
+   at runtime by the theme studio preset (src/theme/presets.ts). */
+:root {
+  --primary: #0c376a;
+  --primary-foreground: #ffffff;
+  --secondary: #d4a017;
+  --accent: #eef4fb;
+  --ring: #0c376a80;
+
+  --background: #f6f8fb;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --accent-soft: var(--accent);
+  --primary-text: var(--primary);
+
+  /* Older names still used by some screens. */
+  --primary-text-color: var(--foreground);
+  --primary-background-color: var(--primary);
+}
+
+.dark {
+  --background: #0f141c;
+  --foreground: #f1f5f9;
+  --card: #161c26;
+  --muted: #1e2632;
+  --muted-foreground: #94a3b8;
+  --border: #ffffff1a;
+  /* The light accent surfaces are too bright on dark: derive from primary. */
+  --accent-soft: color-mix(in srgb, var(--primary) 22%, var(--card));
+  --primary-text: color-mix(in srgb, var(--primary) 55%, white);
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  /* Shades derived from the active primary, so bg-primary-600 and friends
+     follow the chosen preset. */
+  --color-primary-50: color-mix(in srgb, var(--primary) 6%, white);
+  --color-primary-100: color-mix(in srgb, var(--primary) 12%, white);
+  --color-primary-200: color-mix(in srgb, var(--primary) 25%, white);
+  --color-primary-300: color-mix(in srgb, var(--primary) 40%, white);
+  --color-primary-400: color-mix(in srgb, var(--primary) 65%, white);
+  --color-primary-500: color-mix(in srgb, var(--primary) 85%, white);
+  --color-primary-600: var(--primary);
+  --color-primary-700: color-mix(in srgb, var(--primary) 85%, black);
+  --color-primary-800: color-mix(in srgb, var(--primary) 70%, black);
+  --color-primary-900: color-mix(in srgb, var(--primary) 55%, black);
+
+  /* Existing screens use Tailwind's blue for their buttons and highlights;
+     point it at the theme so they re-color with the preset too. */
+  --color-blue-50: var(--color-primary-50);
+  --color-blue-100: var(--color-primary-100);
+  --color-blue-200: var(--color-primary-200);
+  --color-blue-300: var(--color-primary-300);
+  --color-blue-400: var(--color-primary-400);
+  --color-blue-500: var(--color-primary-500);
+  --color-blue-600: var(--color-primary-600);
+  --color-blue-700: var(--color-primary-700);
+  --color-blue-800: var(--color-primary-800);
+  --color-blue-900: var(--color-primary-900);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.custom-datepicker-popper {
+  z-index: 10000 !important;
+}
+
+/* Custom scrollbar for light theme */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* DatePicker should appear above dialogs, dropdowns and tables */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
