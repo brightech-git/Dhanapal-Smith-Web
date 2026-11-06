@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Inbox, Loader2, Pencil, Plus, RotateCcw, Save, Search, Trash2, Users } from "lucide-react";
+import { ChevronDown, Inbox, Loader2, Pencil, Plus, RotateCcw, Save, Search, Trash2, Users } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
 import { CardHeader, Field, StatusBadge, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { getApiErrorMessage } from "../api/gift.api";
 import { useDeleteIntroducer, useIntroducers, useSaveIntroducer } from "../hook/use-gift";
 import type { Introducer, IntroducerInput } from "../type/gift-voucher.types";
+import { partyFieldError } from "@/src/lib/party-validation";
 
 const EMPTY: IntroducerInput = {
     introducerName: "", initial: "", active: "Y", mobile: "", email: "", doorno: "", street: "", area: "",
@@ -25,18 +26,24 @@ const validate = (v: IntroducerInput): Partial<Record<keyof IntroducerInput, str
     const e: Partial<Record<keyof IntroducerInput, string>> = {};
     const t = (s: string | null) => (s ?? "").trim();
     if (!t(v.introducerName)) e.introducerName = "Name is required";
-    if (t(v.mobile) && !/^\+?[0-9]{7,15}$/.test(t(v.mobile))) e.mobile = "7 to 15 digits";
-    if (t(v.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t(v.email))) e.email = "Invalid email";
-    if (t(v.pincode) && !/^[1-9][0-9]{5}$/.test(t(v.pincode))) e.pincode = "6 digits, not starting with 0";
-    if (t(v.pan) && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(t(v.pan).toUpperCase())) e.pan = "Format ABCDE1234F";
-    if (t(v.gstno) && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(t(v.gstno).toUpperCase())) e.gstno = "15-character GST number";
+    (["mobile", "email", "pincode", "pan", "gstno"] as const).forEach((k) => {
+        const err = partyFieldError(k, v[k]);
+        if (err) e[k] = err;
+    });
     return e;
 };
 
-const FIELDS: { key: keyof IntroducerInput; label: string; type?: string; upper?: boolean; wide?: boolean; max?: number }[] = [
-    { key: "introducerName", label: "Introducer name", upper: true, wide: true, max: 150 },
-    { key: "initial", label: "Initial", upper: true, max: 20 },
+type FieldDef = { key: keyof IntroducerInput; label: string; type?: string; upper?: boolean; wide?: boolean; max?: number };
+
+/** Always shown: name and mobile are enough to create an introducer. */
+const BASIC: FieldDef[] = [
+    { key: "introducerName", label: "Introducer name", upper: true, max: 150 },
     { key: "mobile", label: "Mobile", type: "tel", max: 16 },
+];
+
+/** Shown under "More options". */
+const MORE: FieldDef[] = [
+    { key: "initial", label: "Initial", upper: true, max: 20 },
     { key: "email", label: "Email", type: "email", max: 254 },
     { key: "doorno", label: "Door no", max: 50 },
     { key: "street", label: "Street", max: 150 },
@@ -61,11 +68,14 @@ export default function IntroducerManager() {
     const [errors, setErrors] = useState<Partial<Record<keyof IntroducerInput, string>>>({});
     const [search, setSearch] = useState("");
     const [toDelete, setToDelete] = useState<Introducer | null>(null);
+    const [more, setMore] = useState(false);
     const nameRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setValues(editing ? fromRow(editing) : EMPTY);
         setErrors({});
+        // Open the extra fields when the introducer being edited already has some filled in.
+        setMore(!!editing && (editing.active === "N" || MORE.some((f) => !!editing[f.key as keyof Introducer])));
         nameRef.current?.focus();
     }, [editing]);
 
@@ -88,7 +98,9 @@ export default function IntroducerManager() {
         e.preventDefault();
         const found = validate(values);
         setErrors(found);
+        if (Object.keys(found).some((k) => MORE.some((f) => f.key === k))) setMore(true);
         if (Object.keys(found).length) {
+            await new Promise((r) => setTimeout(r, 0));
             document.getElementById(`intro-${Object.keys(found)[0]}`)?.focus();
             return;
         }
@@ -114,47 +126,64 @@ export default function IntroducerManager() {
         }
     };
 
+    const renderField = (f: FieldDef) => (
+        <div key={f.key} className={f.wide ? "sm:col-span-2" : ""}>
+            <Field label={f.label} htmlFor={`intro-${f.key}`}>
+                <input
+                    id={`intro-${f.key}`}
+                    ref={f.key === "introducerName" ? nameRef : undefined}
+                    type={f.type ?? "text"}
+                    maxLength={f.max}
+                    autoComplete="off"
+                    className={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
+                    value={(values[f.key] as string) ?? ""}
+                    onChange={(e) => {
+                        const v = f.upper ? e.target.value.toUpperCase() : e.target.value;
+                        setValues((p) => ({ ...p, [f.key]: v }));
+                        if (errors[f.key]) setErrors((p) => ({ ...p, [f.key]: undefined }));
+                    }}
+                />
+                {errors[f.key] && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors[f.key]}</p>}
+            </Field>
+        </div>
+    );
+
     return (
         <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
             <section className={card}>
                 <CardHeader
                     icon={editing ? Pencil : Plus}
                     title={editing ? "Edit introducer" : "New introducer"}
-                    subtitle={editing ? `Introducer ID ${editing.id}` : "Press Enter to move to the next field"}
+                    subtitle={editing ? `Introducer ID ${editing.id}` : "Name and mobile are enough. Press Enter to move on."}
                 />
                 <form onSubmit={submit} className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2" noValidate>
-                    {FIELDS.map((f) => (
-                        <div key={f.key} className={f.wide ? "sm:col-span-2" : ""}>
-                            <Field label={f.label} htmlFor={`intro-${f.key}`}>
-                                <input
-                                    id={`intro-${f.key}`}
-                                    ref={f.key === "introducerName" ? nameRef : undefined}
-                                    type={f.type ?? "text"}
-                                    maxLength={f.max}
-                                    autoComplete="off"
-                                    className={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
-                                    value={(values[f.key] as string) ?? ""}
-                                    onChange={(e) => {
-                                        const v = f.upper ? e.target.value.toUpperCase() : e.target.value;
-                                        setValues((p) => ({ ...p, [f.key]: v }));
-                                        if (errors[f.key]) setErrors((p) => ({ ...p, [f.key]: undefined }));
-                                    }}
-                                />
-                                {errors[f.key] && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors[f.key]}</p>}
+                    {BASIC.map(renderField)}
+                    <button
+                        type="button"
+                        onClick={() => setMore((m) => !m)}
+                        aria-expanded={more}
+                        className="flex items-center gap-1.5 justify-self-start text-sm font-medium text-primary-text hover:underline sm:col-span-2"
+                    >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${more ? "rotate-180" : ""}`} />
+                        {more ? "Fewer options" : "More options"}
+                        {!more && <span className="font-normal text-muted-foreground">(address, email, PAN, GST, status)</span>}
+                    </button>
+                    {more && (
+                        <>
+                            {MORE.map(renderField)}
+                            <Field label="Status" htmlFor="intro-active">
+                                <select
+                                    id="intro-active"
+                                    className={inputClass}
+                                    value={values.active}
+                                    onChange={(e) => setValues((p) => ({ ...p, active: e.target.value }))}
+                                >
+                                    <option value="Y">Active</option>
+                                    <option value="N">Inactive</option>
+                                </select>
                             </Field>
-                        </div>
-                    ))}
-                    <Field label="Status" htmlFor="intro-active">
-                        <select
-                            id="intro-active"
-                            className={inputClass}
-                            value={values.active}
-                            onChange={(e) => setValues((p) => ({ ...p, active: e.target.value }))}
-                        >
-                            <option value="Y">Active</option>
-                            <option value="N">Inactive</option>
-                        </select>
-                    </Field>
+                        </>
+                    )}
                     <div className="flex flex-wrap items-end gap-2 sm:col-span-2">
                         <button type="submit" data-enter-submit className={primaryButton} disabled={save.isPending}>
                             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

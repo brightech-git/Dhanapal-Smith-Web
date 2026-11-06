@@ -4,12 +4,13 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/src/theme/theme-context";
 import Table from "@/src/components/ui/table";
-import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, Users as UsersIcon, ClipboardList, CalendarDays, History } from "lucide-react";
+import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, Users as UsersIcon, ClipboardList, CalendarDays, History, UserPlus } from "lucide-react";
 import { formatCurrency, } from "@/src/utils/format/format";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useSmithDetails } from '@/src/module/smith/context/smith-details-context'
 import SmithManager from "@/src/module/smith/component/smith-manager";
 import EditableCell from "@/src/components/ui/editable-cell";
+import SmithFormModal from "./smith-form-modal";
 import { useToast } from "@/src/providers/toast-provider";
 import PrintTable from "@/src/components/print/print-table";
 import { validateTransactionValues } from "../lib/transaction-validation";
@@ -98,6 +99,7 @@ export default function SmithsPage() {
     const [selectedSmithName, setSelectedSmithName] = useState<string>("");
     const [activeTable, setActiveTable] = useState<"weight" | "cash" | null>(null);
     const [isCreatingSmith, setIsCreatingSmith] = useState(false);
+    const [smithModalOpen, setSmithModalOpen] = useState(false);
     const [newSmithName, setNewSmithName] = useState("");
 
     
@@ -1064,6 +1066,16 @@ export default function SmithsPage() {
                                     <Plus size={14} />
                                     Create
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSmithModalOpen(true)}
+                                    title="Create a smith with full details"
+                                    aria-label="Create a smith with full details"
+                                    className={`${actionButton} border border-border bg-card !text-foreground hover:bg-muted`}
+                                >
+                                    <UserPlus size={14} />
+                                    <span className="hidden sm:inline">Full details</span>
+                                </button>
                             </div>
                         </div>
                         <Table
@@ -1241,6 +1253,18 @@ export default function SmithsPage() {
                     if (!selectedSmithId || !attachTarget) return;
                     if (attachTarget.kind === "cash") refetchCashFlows(selectedSmithId);
                     else refetchWeightFlows(selectedSmithId);
+                }}
+            />
+            <SmithFormModal
+                open={smithModalOpen}
+                initialName={newSmithName}
+                onClose={() => setSmithModalOpen(false)}
+                onSaved={(saved) => {
+                    setNewSmithName("");
+                    if (saved.smithId) {
+                        setSelectedSmithId(String(saved.smithId));
+                        setSelectedSmithName(saved.pname || "");
+                    }
                 }}
             />
         </div>

@@ -1,646 +1,324 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { OrderService, Order } from "@/src/module/smith-order/api/order.api";
-import { Pencil, Trash2, Plus, Save, X, Calendar } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { CalendarDays, CalendarRange, ClipboardList, Inbox, Loader2, Pencil, Plus, Printer, RotateCcw, Save, Search, Sun, Trash2 } from "lucide-react";
+import { useToast } from "@/src/providers/toast-provider";
+import ConfirmDialog from "@/src/components/ui/confirm-dialog";
+import { getApiErrorMessage, toApiDate } from "@/lib/api/envelope";
+import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
+import { useDeleteOrder, useOrders, useSaveOrder } from "../hook/use-orders";
+import type { Order } from "../api/order.api";
 
-/* -------------------- Date Utilities -------------------- */
-const toBackendDate = (uiDate: string): string => {
-  const [dd, mm, yyyy] = uiDate.split("/");
-  return `${yyyy}-${mm}-${dd}`;
+const today = () => toApiDate(new Date());
+const parse = (d: string) => new Date(`${d}T00:00:00`);
+const longDate = (d: string) => parse(d).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+const dayLabel = (d: string) => {
+    const diff = Math.round((parse(today()).getTime() - parse(d).getTime()) / 86400000);
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    if (diff === -1) return "Tomorrow";
+    return longDate(d);
 };
 
-const toUIDate = (dbDate: string): string => {
-  if (!dbDate) return "";
-  const [yyyy, mm, dd] = dbDate.split("-");
-  return `${dd}/${mm}/${yyyy}`;
-};
+type Range = "all" | "today" | "week" | "month";
 
-const autoSlashDate = (value: string) => {
-  const n = value.replace(/[^0-9]/g, "");
-  if (n.length <= 2) return n;
-  if (n.length <= 4) return `${n.slice(0, 2)}/${n.slice(2)}`;
-  return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4, 8)}`;
-};
+/** Smith orders: quick entry form beside a searchable list grouped by date. */
+export default function SmithOrderPage() {
+    const { addToast } = useToast();
+    const orders = useOrders();
+    const save = useSaveOrder();
+    const remove = useDeleteOrder();
 
-const isValidDate = (dateStr: string): boolean => {
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!regex.test(dateStr)) return false;
-  
-  const [day, month, year] = dateStr.split('/').map(Number);
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
-  
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-};
+    const [editing, setEditing] = useState<Order | null>(null);
+    const [date, setDate] = useState(today());
+    const [items, setItems] = useState("");
+    const [errors, setErrors] = useState<{ date?: string; items?: string }>({});
+    const [search, setSearch] = useState("");
+    const [range, setRange] = useState<Range>("all");
+    const [toDelete, setToDelete] = useState<Order | null>(null);
+    const itemsRef = useRef<HTMLTextAreaElement>(null);
+    const dateRef = useRef<HTMLInputElement>(null);
 
-/* -------------------- Toast System -------------------- */
-type ToastMessage = {
-  id: number;
-  text: string;
-  type: 'success' | 'error';
-};
+    useEffect(() => {
+        setDate(editing?.orderDate || today());
+        setItems(editing?.orderItems ?? "");
+        setErrors({});
+        (editing ? itemsRef : dateRef).current?.focus();
+    }, [editing]);
 
-const Toast = ({ toasts, removeToast }: { toasts: ToastMessage[], removeToast: (id: number) => void }) => (
-  <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-md">
-    {toasts.map(toast => (
-      <div
-        key={toast.id}
-        className={`p-4 rounded-lg shadow-lg animate-slideIn flex items-center justify-between ${
-          toast.type === 'success' 
-            ? 'bg-green-500 text-white' 
-            : 'bg-red-500 text-white'
-        }`}
-      >
-        <span className="text-sm font-medium">{toast.text}</span>
-        <button
-          onClick={() => removeToast(toast.id)}
-          className="ml-4 hover:opacity-80"
-        >
-          <X size={16} />
-        </button>
-      </div>
-    ))}
-  </div>
-);
+    const all = orders.data ?? [];
+    const counts = useMemo(() => {
+        const t = today();
+        const month = t.slice(0, 7);
+        return { total: all.length, today: all.filter((o) => o.orderDate === t).length, month: all.filter((o) => o.orderDate?.startsWith(month)).length };
+    }, [all]);
 
-/* -------------------- Constants -------------------- */
-const PAGE_SIZE = 10;
-
-/* -------------------- Component -------------------- */
-export default function OrderPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [editingId, setEditingId] = useState<number | "NEW" | null>(null);
-  const [tempOrder, setTempOrder] = useState<Order>({
-    orderDate: "",
-    orderItems: "",
-  } as Order);
-  const [page, setPage] = useState(1);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [errors, setErrors] = useState<{date?: string; items?: string}>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const tableEndRef = useRef<HTMLTableRowElement>(null);
-  const dateInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-
-  /* -------------------- Toast Functions -------------------- */
-  const showToast = (text: string, type: 'success' | 'error') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, text, type }]);
-    setTimeout(() => {
-      removeToast(id);
-    }, 4000);
-  };
-
-  const removeToast = (id: number) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  /* -------------------- Load Orders -------------------- */
-  const loadOrders = async () => {
-    try {
-      const data = await OrderService.getAllOrders();
-      setOrders(data ?? []);
-    } catch (error) {
-      showToast("Failed to load orders", 'error');
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  /* -------------------- Pagination -------------------- */
-  const totalPages = Math.ceil(orders.length / PAGE_SIZE);
-  const pagedOrders = orders.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
-
-  /* -------------------- Validation -------------------- */
-  const validateOrder = (order: Order): boolean => {
-    const newErrors: {date?: string; items?: string} = {};
-    
-    if (!order.orderDate.trim()) {
-      newErrors.date = "Date is required";
-    } else if (!isValidDate(order.orderDate)) {
-      newErrors.date = "Invalid date format (DD/MM/YYYY)";
-    }
-    
-    if (!order.orderItems.trim()) {
-      newErrors.items = "Description is required";
-    } else if (order.orderItems.length > 500) {
-      newErrors.items = "Description too long (max 500 characters)";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  /* -------------------- Handlers -------------------- */
-  const handleAddRow = () => {
-    setIsAddingNew(true);
-    setEditingId("NEW");
-    setTempOrder({
-      id: Date.now(),
-      orderDate: "",
-      orderItems: "",
-    } as Order);
-    setErrors({});
-    
-    // Go to last page if there are many pages
-    if (totalPages > 1) {
-      setPage(totalPages);
-    }
-    
-    setTimeout(() => {
-      tableEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!validateOrder(tempOrder)) {
-      showToast("Please fix validation errors", 'error');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // For new order
-      if (editingId === "NEW") {
-        const orderToSave = {
-          orderDate: toBackendDate(tempOrder.orderDate),
-          orderItems: tempOrder.orderItems,
+    const groups = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        const t = parse(today()).getTime();
+        const inRange = (d: string) => {
+            if (range === "all") return true;
+            const diff = (t - parse(d).getTime()) / 86400000;
+            if (range === "today") return diff === 0;
+            if (range === "week") return diff >= 0 && diff < 7;
+            return d.slice(0, 7) === today().slice(0, 7);
         };
-        
-        await OrderService.createOrder(orderToSave);
-        showToast("Order created successfully", 'success');
-        
-        // Reset states and reload
-        setEditingId(null);
-        setIsAddingNew(false);
-        await loadOrders();
-      }
-      // For editing existing order
-      else if (typeof editingId === 'number') {
-        await OrderService.updateOrder(editingId, {
-          orderDate: toBackendDate(tempOrder.orderDate),
-          orderItems: tempOrder.orderItems,
-        });
-        showToast("Order updated successfully", 'success');
-        setEditingId(null);
-        await loadOrders();
-      }
-    } catch (error: any) {
-      console.error("Save error:", error);
-      showToast(error.message || "Failed to save order", 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+        const list = all
+            .filter((o) => inRange(o.orderDate) && (!q || o.orderItems.toLowerCase().includes(q) || longDate(o.orderDate).toLowerCase().includes(q)))
+            .sort((a, b) => b.orderDate.localeCompare(a.orderDate) || (b.id ?? 0) - (a.id ?? 0));
+        const map = new Map<string, Order[]>();
+        list.forEach((o) => map.set(o.orderDate, [...(map.get(o.orderDate) ?? []), o]));
+        return Array.from(map.entries());
+    }, [all, search, range]);
+    const shown = groups.reduce((n, [, l]) => n + l.length, 0);
 
-  const handleEdit = (order: Order) => {
-    setEditingId(order.id || "NEW");
-    setTempOrder({
-      ...order,
-      orderDate: order.orderDate && order.orderDate.includes('-') ? toUIDate(order.orderDate) : order.orderDate || "",
-    });
-    setErrors({});
-  };
+    const reset = () => {
+        setEditing(null);
+        setDate(today());
+        setItems("");
+        setErrors({});
+        dateRef.current?.focus();
+    };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setIsAddingNew(false);
-    setErrors({});
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this order?")) return;
-    
-    try {
-      await OrderService.deleteOrder(id);
-      showToast("Order deleted successfully", 'success');
-      await loadOrders();
-    } catch (error) {
-      showToast("Failed to delete order", 'error');
-      console.error(error);
-    }
-  };
-
-  const openDatePicker = (index: number) => {
-    const input = dateInputRefs.current[index];
-    if (input) {
-      input.showPicker();
-    }
-  };
-
-  /* -------------------- UI -------------------- */
-  return (
-    <div className="min-h-screen bg-muted p-3">
-      <style jsx>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        .animate-slideIn { animation: slideIn 0.3s ease-out; }
-      `}</style>
-
-      <Toast toasts={toasts} removeToast={removeToast} />
-
-      {/* Header */}
-      <div className="bg-card rounded-lg shadow-sm p-4 mb-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Order Management</h1>
-            <p className="text-xs text-muted-foreground">
-              {orders.length} orders • {isAddingNew ? "Adding new order" : "Ready to add"}
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={handleAddRow}
-              disabled={isSaving || isAddingNew}
-              className={`flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium transition-colors ${
-                isSaving || isAddingNew ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-              }`}
-            >
-              <Plus size={14} /> Add Row
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* TABLE CONTAINER */}
-      <div className="bg-card rounded-lg shadow-sm overflow-hidden max-h-[calc(100vh-140px)]">
-        <div className="overflow-auto h-full">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-primary text-primary-foreground">
-              <tr>
-                <th className="p-2 text-left font-medium w-14">SNO</th>
-                <th className="p-2 text-left font-medium w-36">Order Date</th>
-                <th className="p-2 text-left font-medium">Order Description</th>
-                <th className="p-2 text-center font-medium w-24">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-border">
-              {/* Existing orders */}
-              {pagedOrders.map((order, i) => {
-                const isEdit = editingId === order.id;
-                const globalIndex = (page - 1) * PAGE_SIZE + i + 1;
-
-                return (
-                  <tr 
-                    key={order.id} 
-                    className="hover:bg-muted"
-                    data-enter-nav={isEdit ? "" : undefined}
-                  >
-                    {/* Serial Number */}
-                    <td className="p-2">
-                      <div className="font-medium text-foreground pl-1">
-                        {globalIndex}
-                      </div>
-                    </td>
-
-                    {/* Date Cell */}
-                    <td className="p-2">
-                      {isEdit ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <input
-                              ref={el => {
-                                dateInputRefs.current[i] = el;
-                              }}
-                              type="date"
-                              value={tempOrder.orderDate && tempOrder.orderDate.includes('/') ? '' : tempOrder.orderDate}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  setTempOrder(prev => ({
-                                    ...prev,
-                                    orderDate: toUIDate(e.target.value),
-                                  }));
-                                }
-                              }}
-                              className="hidden"
-                            />
-                            <input
-                              type="text"
-                              value={tempOrder.orderDate || ""}
-                              maxLength={10}
-                              placeholder="DD/MM/YYYY"
-                              onChange={(e) =>
-                                setTempOrder(prev => ({
-                                  ...prev,
-                                  orderDate: autoSlashDate(e.target.value),
-                                }))
-                              }
-                              className={`w-full px-2 py-1 border rounded text-sm ${
-                                errors.date ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
-                              }`}
-                            />
-                            <button
-                              onClick={() => openDatePicker(i)}
-                              className="p-1.5 border border-border rounded hover:bg-muted transition-colors"
-                              type="button"
-                              title="Open date picker"
-                            >
-                              <Calendar size={14} />
-                            </button>
-                          </div>
-                          {errors.date && (
-                            <div className="text-xs text-red-600">{errors.date}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-foreground text-sm">
-                          {order.orderDate && order.orderDate.includes('-') ? toUIDate(order.orderDate) : order.orderDate}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Description Cell */}
-                    <td className="p-2">
-                      {isEdit ? (
-                        <div>
-                          <textarea
-                            rows={1}
-                            value={tempOrder.orderItems || ""}
-                            onChange={(e) =>
-                              setTempOrder(prev => ({
-                                ...prev,
-                                orderItems: e.target.value,
-                              }))
-                            }
-                            className={`w-full px-2 py-1 border rounded text-sm resize-none min-h-[38px] ${
-                              errors.items ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
-                            }`}
-                            onInput={(e) => {
-                              const target = e.target as HTMLTextAreaElement;
-                              target.style.height = 'auto';
-                              target.style.height = Math.min(target.scrollHeight, 80) + 'px';
-                            }}
-                            placeholder="Enter order description..."
-                          />
-                          {errors.items && (
-                            <div className="text-xs text-red-600 mt-1">{errors.items}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div 
-                          className="text-foreground line-clamp-2 cursor-help text-sm"
-                          title={order.orderItems}
-                        >
-                          {order.orderItems}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Actions Cell */}
-                    <td className="p-2">
-                      <div className="flex justify-center gap-1">
-                        {isEdit ? (
-                          <>
-                            <button
-                              onClick={handleSaveEdit}
-                              disabled={isSaving}
-                              className={`p-1.5 rounded transition-colors ${
-                                isSaving
-                                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                                  : 'text-green-600 hover:text-green-800 hover:bg-green-50'
-                              }`}
-                              title="Save"
-                            >
-                              <Save size={14} />
-                            </button>
-                            <button
-                              onClick={handleCancel}
-                              disabled={isSaving}
-                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                              title="Cancel"
-                            >
-                              <X size={14} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleEdit(order)}
-                              disabled={isSaving || isAddingNew}
-                              className="p-1.5 text-primary-text hover:text-primary-text hover:bg-accent-soft rounded transition-colors disabled:opacity-50"
-                              title="Edit"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(order.id!)}
-                              disabled={isSaving || isAddingNew}
-                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {/* New Row (only when adding) */}
-              {isAddingNew && (
-                <tr 
-                  ref={tableEndRef}
-                  className="bg-green-50 hover:bg-green-100"
-                  data-enter-nav
-                >
-                  <td className="p-2">
-                    <div className="font-medium text-foreground pl-1">
-                      {orders.length + 1}
-                      <span className="ml-1 text-xs text-green-600">●</span>
-                    </div>
-                  </td>
-
-                  <td className="p-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <input
-                          ref={el => {
-                            dateInputRefs.current[pagedOrders.length] = el;
-                          }}
-                          type="date"
-                          value={tempOrder.orderDate && tempOrder.orderDate.includes('/') ? '' : tempOrder.orderDate}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              setTempOrder(prev => ({
-                                ...prev,
-                                orderDate: toUIDate(e.target.value),
-                              }));
-                            }
-                          }}
-                          className="hidden"
-                        />
-                        <input
-                          type="text"
-                          value={tempOrder.orderDate || ""}
-                          maxLength={10}
-                          placeholder="DD/MM/YYYY"
-                          onChange={(e) =>
-                            setTempOrder(prev => ({
-                              ...prev,
-                              orderDate: autoSlashDate(e.target.value),
-                            }))
-                          }
-                          className={`w-full px-2 py-1 border rounded text-sm ${
-                            errors.date ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
-                          }`}
-                        />
-                        <button
-                          onClick={() => openDatePicker(pagedOrders.length)}
-                          className="p-1.5 border border-border rounded hover:bg-muted transition-colors"
-                          type="button"
-                          title="Open date picker"
-                        >
-                          <Calendar size={14} />
-                        </button>
-                      </div>
-                      {errors.date && (
-                        <div className="text-xs text-red-600">{errors.date}</div>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="p-2">
-                    <div>
-                      <textarea
-                        rows={1}
-                        value={tempOrder.orderItems || ""}
-                        onChange={(e) =>
-                          setTempOrder(prev => ({
-                            ...prev,
-                            orderItems: e.target.value,
-                          }))
-                        }
-                        className={`w-full px-2 py-1 border rounded text-sm resize-none min-h-[38px] ${
-                          errors.items ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'border-border'
-                        }`}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = Math.min(target.scrollHeight, 80) + 'px';
-                        }}
-                        placeholder="Enter order description..."
-                      />
-                      {errors.items && (
-                        <div className="text-xs text-red-600 mt-1">{errors.items}</div>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="p-2">
-                    <div className="flex justify-center gap-1">
-                      <button
-                        onClick={handleSaveEdit}
-                        disabled={isSaving}
-                        className={`p-1.5 rounded transition-colors ${
-                          isSaving
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                            : 'text-green-600 hover:text-green-800 hover:bg-green-50'
-                        }`}
-                        title="Save"
-                      >
-                        <Save size={14} />
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={isSaving}
-                        className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                        title="Cancel"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-
-              {/* Empty State */}
-              {orders.length === 0 && !isAddingNew && (
-                <tr>
-                  <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-sm">No orders found</div>
-                      <button
-                        onClick={handleAddRow}
-                        className="text-primary-text hover:text-primary-text text-sm font-medium transition-colors"
-                      >
-                        Add your first order
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* PAGINATION */}
-      {totalPages > 0 && (
-        <div className="flex flex-wrap justify-center gap-1 mt-3">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="p-1.5 rounded disabled:opacity-30 hover:bg-muted transition-colors"
-            title="Previous"
-          >
-            ◀
-          </button>
-          
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (page <= 3) {
-              pageNum = i + 1;
-            } else if (page >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = page - 2 + i;
+    const submit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        const found: typeof errors = {};
+        if (!date) found.date = "Choose a date";
+        if (!items.trim()) found.items = "Describe the order";
+        setErrors(found);
+        if (found.date) return dateRef.current?.focus();
+        if (found.items) return itemsRef.current?.focus();
+        try {
+            await save.mutateAsync({ id: editing?.id, order: { orderDate: date, orderItems: items } });
+            addToast({ type: "success", title: editing ? "Order updated" : "Order added", message: `${dayLabel(date)} · ${items.trim().slice(0, 60)}` });
+            if (editing) reset();
+            else {
+                setItems("");
+                itemsRef.current?.focus(); // keep the date for the next order of the same day
             }
-            
-            return (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={`min-w-8 h-8 px-2 rounded text-sm transition-colors ${
-                  page === pageNum
-                    ? 'bg-blue-600 text-white'
-                    : 'text-foreground hover:bg-muted'
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="p-1.5 rounded disabled:opacity-30 hover:bg-muted transition-colors"
-            title="Next"
-          >
-            ▶
-          </button>
+        } catch (err) {
+            addToast({ type: "error", title: "Couldn't save the order", message: getApiErrorMessage(err) });
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!toDelete?.id) return;
+        try {
+            await remove.mutateAsync(toDelete.id);
+            addToast({ type: "success", title: "Order deleted", message: longDate(toDelete.orderDate) });
+            if (editing?.id === toDelete.id) reset();
+        } catch (err) {
+            addToast({ type: "error", title: "Couldn't delete the order", message: getApiErrorMessage(err) });
+        } finally {
+            setToDelete(null);
+        }
+    };
+
+    const stat = (Icon: React.ElementType, label: string, value: number, tone: string) => (
+        <div className={`${card} flex items-center gap-3 p-4`}>
+            <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone}`}>
+                <Icon className="h-5 w-5" />
+            </span>
+            <div>
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-xl font-bold tabular-nums">{orders.isLoading ? "–" : value}</p>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
+
+    return (
+        <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
+                    <p className="text-sm text-muted-foreground">Note each smith order with its date and details.</p>
+                </div>
+                <button type="button" className={`${ghostButton} print:hidden`} onClick={() => window.print()} disabled={!shown}>
+                    <Printer className="h-4 w-4" /> Print list
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 print:hidden">
+                {stat(ClipboardList, "All orders", counts.total, "bg-accent-soft text-primary-text")}
+                {stat(Sun, "Today", counts.today, "bg-amber-500/10 text-amber-600 dark:text-amber-400")}
+                {stat(CalendarRange, "This month", counts.month, "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400")}
+            </div>
+
+            <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)]">
+                <section className={`${card} lg:sticky lg:top-20 print:hidden`}>
+                    <CardHeader
+                        icon={editing ? Pencil : Plus}
+                        title={editing ? "Edit order" : "New order"}
+                        subtitle={editing ? `Order #${editing.id}` : "Enter moves on; Enter in details saves (Shift+Enter for a new line)"}
+                    />
+                    <form onSubmit={submit} className="space-y-4 p-5" noValidate>
+                        <Field label="Order date" htmlFor="order-date">
+                            <div className="flex gap-2">
+                                <input
+                                    id="order-date"
+                                    ref={dateRef}
+                                    type="date"
+                                    className={`${inputClass} ${errors.date ? "border-red-500" : ""}`}
+                                    value={date}
+                                    onChange={(e) => {
+                                        setDate(e.target.value);
+                                        setErrors((p) => ({ ...p, date: undefined }));
+                                    }}
+                                />
+                                <button type="button" tabIndex={-1} className={`${ghostButton} shrink-0 px-3`} onClick={() => setDate(today())}>
+                                    Today
+                                </button>
+                            </div>
+                            {errors.date && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.date}</p>}
+                        </Field>
+                        <Field label="Order details" htmlFor="order-items">
+                            <textarea
+                                id="order-items"
+                                ref={itemsRef}
+                                rows={5}
+                                placeholder="e.g. 2 bangles 22K, 18 g each — deliver by Friday"
+                                className={`${inputClass} h-auto resize-y py-2.5 leading-relaxed ${errors.items ? "border-red-500" : ""}`}
+                                value={items}
+                                onChange={(e) => {
+                                    setItems(e.target.value);
+                                    setErrors((p) => ({ ...p, items: undefined }));
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                                        e.preventDefault();
+                                        submit();
+                                    }
+                                }}
+                            />
+                            <div className="flex justify-between text-xs">
+                                <span className="font-medium text-red-600 dark:text-red-400">{errors.items}</span>
+                                <span className="text-muted-foreground">{items.trim().length} characters</span>
+                            </div>
+                        </Field>
+                        <div className="flex flex-wrap gap-2">
+                            <button type="submit" className={primaryButton} disabled={save.isPending}>
+                                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {editing ? "Update order" : "Add order"}
+                            </button>
+                            <button type="button" className={ghostButton} onClick={reset}>
+                                <RotateCcw className="h-4 w-4" />
+                                {editing ? "Cancel" : "Clear"}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section className={`${card} overflow-hidden`}>
+                    <CardHeader
+                        icon={CalendarDays}
+                        title="Order book"
+                        subtitle={`${shown} of ${all.length} orders`}
+                        actions={
+                            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto print:hidden" data-enter-nav="off">
+                                <div className="flex rounded-xl border border-border p-0.5 text-xs font-medium">
+                                    {(["all", "today", "week", "month"] as const).map((r) => (
+                                        <button
+                                            key={r}
+                                            type="button"
+                                            onClick={() => setRange(r)}
+                                            className={`rounded-lg px-2.5 py-1.5 transition ${
+                                                range === r ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                            }`}
+                                        >
+                                            {{ all: "All", today: "Today", week: "7 days", month: "Month" }[r]}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                        className={`${inputClass} h-9 pl-9`}
+                                        placeholder="Search orders..."
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        aria-label="Search orders"
+                                    />
+                                </div>
+                            </div>
+                        }
+                    />
+                    <div className="max-h-[calc(100vh-320px)] min-h-[240px] overflow-y-auto print:max-h-none">
+                        {orders.isLoading && (
+                            <div className="space-y-3 p-5">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+                                ))}
+                            </div>
+                        )}
+                        {orders.isError && (
+                            <div className="px-5 py-12 text-center text-sm text-red-600 dark:text-red-400">
+                                Couldn&apos;t load orders. {getApiErrorMessage(orders.error)}
+                                <button className="ml-2 font-semibold underline" onClick={() => orders.refetch()}>
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+                        {!orders.isLoading && !orders.isError && shown === 0 && (
+                            <div className="px-5 py-14 text-center text-sm text-muted-foreground">
+                                <Inbox className="mx-auto mb-2 h-7 w-7" />
+                                {search || range !== "all" ? "No orders match" : "No orders yet. Add the first one on the left."}
+                            </div>
+                        )}
+                        {groups.map(([day, list]) => (
+                            <div key={day}>
+                                <div className="sticky top-0 z-10 flex items-center justify-between border-y border-border bg-muted/70 px-5 py-1.5 text-xs font-semibold backdrop-blur">
+                                    <span>{dayLabel(day)}</span>
+                                    <span className="font-normal text-muted-foreground">
+                                        {dayLabel(day) !== longDate(day) ? `${longDate(day)} · ` : ""}
+                                        {list.length} order{list.length > 1 ? "s" : ""}
+                                    </span>
+                                </div>
+                                <ul className="divide-y divide-border">
+                                    <AnimatePresence initial={false}>
+                                        {list.map((o) => (
+                                            <motion.li
+                                                key={o.id}
+                                                layout
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className={`group flex items-start gap-3 px-5 py-3 transition-colors hover:bg-muted/50 ${editing?.id === o.id ? "bg-accent-soft" : ""}`}
+                                            >
+                                                <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">#{o.id}</span>
+                                                <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm">{o.orderItems || "—"}</p>
+                                                <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 print:hidden">
+                                                    <button className={iconButton} title="Edit" aria-label={`Edit order ${o.id}`} onClick={() => setEditing(o)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        className={`${iconButton} hover:bg-red-500/10 hover:text-red-600`}
+                                                        title="Delete"
+                                                        aria-label={`Delete order ${o.id}`}
+                                                        onClick={() => setToDelete(o)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </motion.li>
+                                        ))}
+                                    </AnimatePresence>
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+
+            <ConfirmDialog
+                open={!!toDelete}
+                title={`Delete order #${toDelete?.id}?`}
+                message={toDelete ? `${longDate(toDelete.orderDate)} · ${toDelete.orderItems.slice(0, 80)}` : undefined}
+                confirmLabel="Delete"
+                busy={remove.isPending}
+                onConfirm={confirmDelete}
+                onCancel={() => setToDelete(null)}
+            />
+        </div>
+    );
 }

@@ -1,6 +1,5 @@
-import axios from "axios";
-import type { ApiEnvelope } from "@/lib/api/envelope";
-import { getApiErrorMessage } from "@/lib/api/envelope";
+import { api, getApiErrorMessage } from "@/lib/api/envelope";
+import { getAxiosInstance } from "@/lib/api/client";
 
 export interface AuthRequest {
     userName: string;
@@ -33,12 +32,8 @@ const authService = {
         const MAIN_URL = window?.appConfig?.MAIN_URL;
         if (!MAIN_URL) throw new Error("MAIN_URL not loaded from config.json");
         try {
-            const { data } = await axios.post<ApiEnvelope<LoginResponse>>(`${MAIN_URL.replace(/\/$/, "")}/users/login`, {
-                username: userName,
-                password,
-            }, { withCredentials: true });
-            if (!data?.success) throw new Error(data?.message || "Login failed");
-            const p = data.data;
+            getAxiosInstance(MAIN_URL);
+            const p = await api.post<LoginResponse>("users/login", { username: userName, password });
             // Keep the field names the rest of the app already reads (userName, admin, projectName).
             return {
                 ...p,

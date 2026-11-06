@@ -8,8 +8,9 @@ import {
     Typography,
     IconButton,
 } from "@mui/material";
-import { Delete } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
+import { Delete, Edit } from "@mui/icons-material";
+import { Plus } from "lucide-react";
+import SmithFormModal from "./smith-form-modal";
 import Table from "@/src/components/ui/table";
 import EditableCell from "@/src/components/ui/editable-cell";
 import { useSmithDetails } from "@/src/module/smith/context/smith-details-context";
@@ -31,10 +32,11 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
     const { smiths, fetchAll, updateSmith, deleteSmith } = useSmithDetails();
     const { transactions, getDetail, deleteTransaction } = useSmithTransactionsContext();
     const { addToast } = useToast();
-    const router = useRouter();
 
     const [loading, setLoading] = useState(true);
     const [showAll, setShowAll] = useState(false);
+    // undefined = closed, null = new smith, a row = edit that smith
+    const [formSmith, setFormSmith] = useState<SmithDetails | null | undefined>(undefined);
 
     // 🔹 Fetch smiths
     useEffect(() => {
@@ -159,9 +161,12 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             label: "Actions",
             align: "center" as const,
             headalign: "center" as const,
-            width: "80px",
+            width: "90px",
             render: (_v: any, row: SmithDetails) => (
                 <div className="flex justify-center">
+                    <IconButton size="small" color="primary" aria-label={`Edit ${row.pname}`} onClick={() => setFormSmith(row)}>
+                        <Edit fontSize="small" />
+                    </IconButton>
                     <IconButton
                         size="small"
                         color="error"
@@ -191,8 +196,11 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     Smith Management
                 </Typography>
 
+                <div className="mt-2 flex items-center gap-2">
+                    <Button variant="contained" size="small" startIcon={<Plus size={16} />} onClick={() => setFormSmith(null)}>
+                        Add smith
+                    </Button>
                 {smiths.length > 0 && (
-                    <div className="flex justify-center mt-2">
                         <Button
                             variant="outlined"
                             size="small"
@@ -200,8 +208,8 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                         >
                             {showAll ? "Show Less" : "Show All"}
                         </Button>
-                    </div>
                 )}
+                </div>
             </div>
 
             {loading ? (
@@ -218,7 +226,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     >
                         {visibleSmiths.length === 0 ? (
                             <div className="text-center py-4 text-muted-foreground">
-                                Click "See All" to view and manage smiths
+                                Click &quot;Show All&quot; to view and manage smiths
                             </div>
                         ) : (
                                     <Table columns={columns} data={visibleSmiths} showRows={10} fixedHeight={"300px"} />
@@ -226,6 +234,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     </motion.div>
                 </>
             )}
+            <SmithFormModal open={formSmith !== undefined} smith={formSmith} onClose={() => setFormSmith(undefined)} />
         </Box>
     );
 };

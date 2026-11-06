@@ -13,7 +13,7 @@ export const APP_MENUS: AppMenu[] = [
     { menuId: "dashboard", label: "Dashboard", group: "Smith", path: "/", description: "Totals and recent transactions" },
     { menuId: "transactions", label: "Smith transactions", group: "Smith", path: "/", description: "Cash and weight ledger" },
     { menuId: "orders", label: "Orders", group: "Smith", path: "/smiths/order", description: "Smith orders" },
-    { menuId: "smiths", label: "Smith details", group: "Smith", path: "/smiths/create", description: "Create and edit smiths" },
+    { menuId: "smiths", label: "Smith details", group: "Smith", description: "Create and edit smiths (dashboard)" },
     { menuId: "gift-voucher", label: "Gift voucher", group: "Gift Voucher", path: "/gift-voucher", description: "Issue, return and report" },
     { menuId: "users", label: "Users", group: "Administration", description: "User accounts" },
     { menuId: "roles", label: "Roles", group: "Administration", path: "/roles", description: "Role master" },

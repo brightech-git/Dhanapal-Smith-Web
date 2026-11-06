@@ -1,13 +1,18 @@
+import type { AxiosRequestConfig } from "axios";
 import { getAxiosInstance } from "@/lib/api/client";
 
-/** Every /api/v1 response is { success, message, data }. */
-export interface ApiEnvelope<T> {
+/**
+ * The one response shape of every backend call, success or error:
+ * { success, message, data }, with the full record (or list) in data.
+ */
+export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data: T;
 }
 
-export const unwrap = <T,>(body: ApiEnvelope<T>): T => {
+/** Returns data, or throws the backend's message when success is false. */
+export const unwrap = <T,>(body: ApiResponse<T>): T => {
     if (body && body.success === false) throw new Error(body.message || "Request failed");
     return body?.data;
 };
@@ -21,14 +26,22 @@ export const getApiErrorMessage = (error: unknown, fallback = "Something went wr
     return e?.message || fallback;
 };
 
-/** Thin typed wrappers that unwrap the envelope. */
+/**
+ * Every API call goes through these: they type the ApiResponse and return its data.
+ * Pass a FormData body for multipart requests.
+ */
+const form = (body: unknown, config?: AxiosRequestConfig): AxiosRequestConfig | undefined =>
+    body instanceof FormData ? { ...config, headers: { ...config?.headers, "Content-Type": undefined } } : config;
+
 export const api = {
     get: async <T,>(url: string, params?: Record<string, unknown>) =>
-        unwrap((await getAxiosInstance().get<ApiEnvelope<T>>(url, { params })).data),
-    post: async <T,>(url: string, body?: unknown) => unwrap((await getAxiosInstance().post<ApiEnvelope<T>>(url, body)).data),
-    put: async <T,>(url: string, body?: unknown) => unwrap((await getAxiosInstance().put<ApiEnvelope<T>>(url, body)).data),
+        unwrap((await getAxiosInstance().get<ApiResponse<T>>(url, { params })).data),
+    post: async <T,>(url: string, body?: unknown, config?: AxiosRequestConfig) =>
+        unwrap((await getAxiosInstance().post<ApiResponse<T>>(url, body, form(body, config))).data),
+    put: async <T,>(url: string, body?: unknown, config?: AxiosRequestConfig) =>
+        unwrap((await getAxiosInstance().put<ApiResponse<T>>(url, body, form(body, config))).data),
     delete: async (url: string) => {
-        unwrap((await getAxiosInstance().delete<ApiEnvelope<null>>(url)).data);
+        unwrap((await getAxiosInstance().delete<ApiResponse<null>>(url)).data);
     },
 };
 

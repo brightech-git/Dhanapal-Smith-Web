@@ -5,8 +5,7 @@
 // payments, remarks, balance }); this file maps them to and from the API.
 
 import { validateTransactionValues } from "../lib/transaction-validation";
-import { getAxiosInstance } from "@/lib/api/client";
-import { api, toApiDate, type ApiEnvelope, unwrap } from "@/lib/api/envelope";
+import { api, toApiDate } from "@/lib/api/envelope";
 import type { FlowKind } from "@/src/module/smith/type/smith-dashboard.types";
 
 export type TranType = "A" | "W";
@@ -205,8 +204,5 @@ export const saveTransactionMedia = async (id: number, files: File[], keepUrls?:
         new Blob([JSON.stringify(toRequest(t, keepUrls))], { type: "application/json" })
     );
     files.forEach((f) => form.append("files", f, f.name));
-    const { data } = await getAxiosInstance().put<ApiEnvelope<TransactionApi>>(`transactions/${id}`, form, {
-        headers: { "Content-Type": undefined as unknown as string },
-    });
-    return remember(unwrap(data));
+    return remember(await api.put<TransactionApi>(`transactions/${id}`, form));
 };

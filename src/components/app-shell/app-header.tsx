@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronDown, ClipboardList, Gem, Gift, LayoutDashboard, LogOut, Menu, Moon, ShieldCheck, Sun, Users, X } from "lucide-react";
+import { ChevronDown, ClipboardList, Gem, Gift, LayoutDashboard, LogOut, Menu, Moon, ShieldCheck, Sun, X } from "lucide-react";
 import { useTheme } from "@/src/theme/theme-context";
 import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
 import { useNavigation } from "@/src/providers/navigation-provider";
@@ -16,7 +16,6 @@ const APP_TITLE = "Smith Management System";
 const SMITH_NAV = [
     { label: "Dashboard", path: "/", icon: LayoutDashboard },
     { label: "Orders", path: "/smiths/order", icon: ClipboardList },
-    { label: "Smiths", path: "/smiths/create", icon: Users },
     { label: "Roles", path: "/roles", icon: ShieldCheck },
 ];
 const GV_NAV = [{ label: "Gift Voucher", path: "/gift-voucher", icon: Gift }];
