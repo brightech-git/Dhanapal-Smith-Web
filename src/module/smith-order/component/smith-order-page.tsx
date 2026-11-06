@@ -9,6 +9,7 @@ import { getApiErrorMessage, toApiDate } from "@/lib/api/envelope";
 import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { useDeleteOrder, useOrders, useSaveOrder } from "../hook/use-orders";
 import type { Order } from "../api/order.api";
+import { formatDateForShow } from "@/src/utils/format/formatDateForAPI";
 
 const today = () => toApiDate(new Date());
 const parse = (d: string) => new Date(`${d}T00:00:00`);
@@ -285,8 +286,10 @@ export default function SmithOrderPage() {
                                                 exit={{ opacity: 0 }}
                                                 className={`group flex items-start gap-3 px-5 py-3 transition-colors hover:bg-muted/50 ${editing?.id === o.id ? "bg-accent-soft" : ""}`}
                                             >
-                                                <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">#{o.id}</span>
+                                                <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{o.id}</span>
+                                                <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{formatDateForShow(day)}</span>
                                                 <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm">{o.orderItems || "—"}</p>
+                                                
                                                 <div className="flex shrink-0 gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 print:hidden">
                                                     <button className={iconButton} title="Edit" aria-label={`Edit order ${o.id}`} onClick={() => setEditing(o)}>
                                                         <Pencil className="h-4 w-4" />
