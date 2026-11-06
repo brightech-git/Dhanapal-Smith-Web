@@ -24,7 +24,7 @@ export default function GiftVoucherPage() {
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-6">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Gift Voucher</h1>
-                <p className="text-sm text-muted-foreground">Issue gift tags with amount and pcs, receive them back, and track what is pending.</p>
+                <p className="text-sm text-muted-foreground">Issue gift tags by amount and pcs, receive them back by tag, and see the report.</p>
             </div>
 
             <nav className="inline-flex flex-wrap gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm" role="tablist">
