@@ -330,7 +330,7 @@ export default function SmithsPage() {
                     remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
                 // The backend needs a receipt or a payment: keep the row local until one is entered.
-                if (!(dataToSend.receipts > 0) && !(dataToSend.payments > 0)) {
+                if (!(dataToSend.receipts || 0) && !(dataToSend.payments || 0)) {
                     setWeightBalanceData((prev) => prev.map((r) => (r === row ? { ...r, [field]: newValue } : r)));
                     return;
                 }
@@ -358,7 +358,7 @@ export default function SmithsPage() {
                     remarks: field === 'remarks' ? newValue : row.remarks ?? '',
                 };
                 // The backend needs a receipt or a payment: keep the row local until one is entered.
-                if (!(dataToSend.receipts > 0) && !(dataToSend.payments > 0)) {
+                if (!(dataToSend.receipts || 0) && !(dataToSend.payments || 0)) {
                     setCashBalanceData((prev) => prev.map((r) => (r === row ? { ...r, [field]: newValue } : r)));
                     return;
                 }
