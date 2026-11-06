@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, CalendarRange, ClipboardList, Inbox, Loader2, Pencil, Plus, Printer, RotateCcw, Save, Search, Sun, Trash2 } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
@@ -37,6 +36,10 @@ export default function SmithOrderPage() {
     const [search, setSearch] = useState("");
     const [range, setRange] = useState<Range>("all");
     const [toDelete, setToDelete] = useState<Order | null>(null);
+    // Keeps the dialog's text while it fades out after toDelete is cleared.
+    const lastDelete = useRef<Order | null>(null);
+    if (toDelete) lastDelete.current = toDelete;
+    const shownDelete = toDelete ?? lastDelete.current;
     const itemsRef = useRef<HTMLTextAreaElement>(null);
     const dateRef = useRef<HTMLInputElement>(null);
 
@@ -275,14 +278,9 @@ export default function SmithOrderPage() {
                                     </span>
                                 </div>
                                 <ul className="divide-y divide-border">
-                                    <AnimatePresence initial={false}>
                                         {list.map((o) => (
-                                            <motion.li
+                                            <li
                                                 key={o.id}
-                                                layout
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
                                                 className={`group flex items-start gap-3 px-5 py-3 transition-colors hover:bg-muted/50 ${editing?.id === o.id ? "bg-accent-soft" : ""}`}
                                             >
                                                 <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">#{o.id}</span>
@@ -300,9 +298,8 @@ export default function SmithOrderPage() {
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </div>
-                                            </motion.li>
+                                            </li>
                                         ))}
-                                    </AnimatePresence>
                                 </ul>
                             </div>
                         ))}
@@ -312,8 +309,8 @@ export default function SmithOrderPage() {
 
             <ConfirmDialog
                 open={!!toDelete}
-                title={`Delete order #${toDelete?.id}?`}
-                message={toDelete ? `${longDate(toDelete.orderDate)} · ${toDelete.orderItems.slice(0, 80)}` : undefined}
+                title={`Delete order #${shownDelete?.id ?? ""}?`}
+                message={shownDelete ? `${longDate(shownDelete.orderDate)} · ${shownDelete.orderItems.slice(0, 80)}` : undefined}
                 confirmLabel="Delete"
                 busy={remove.isPending}
                 onConfirm={confirmDelete}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -28,6 +28,10 @@ export default function ConfirmDialog({
     onCancel,
 }: ConfirmDialogProps) {
     const [mounted, setMounted] = useState(false);
+    // Callers often clear the item as they close, so keep the last open text for the fade-out.
+    const last = useRef({ title, message, confirmLabel });
+    if (open) last.current = { title, message, confirmLabel };
+    ({ title, message, confirmLabel } = last.current);
     useEffect(() => setMounted(true), []);
     useEffect(() => {
         if (!open) return;
