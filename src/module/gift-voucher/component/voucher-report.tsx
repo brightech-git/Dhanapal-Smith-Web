@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { BarChart3, Inbox, Loader2, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import DateInput from "@/src/components/ui/date-input";
 import { CardHeader, Field, card, ghostButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { fetchGifts, getApiErrorMessage } from "../api/gift.api";
 import { useIntroducers } from "../hook/use-gift";
@@ -126,10 +127,10 @@ export default function VoucherReport() {
                         <input id="rep-search" className={inputClass} autoComplete="off" value={draft.search} onChange={(e) => set("search", e.target.value)} />
                     </Field>
                     <Field label="From date" htmlFor="rep-from">
-                        <input id="rep-from" type="date" className={inputClass} value={draft.from} onChange={(e) => set("from", e.target.value)} />
+                        <DateInput id="rep-from" className={inputClass} value={draft.from} onChange={(v) => set("from", v)} />
                     </Field>
                     <Field label="To date" htmlFor="rep-to">
-                        <input id="rep-to" type="date" className={inputClass} value={draft.to} onChange={(e) => set("to", e.target.value)} />
+                        <DateInput id="rep-to" className={inputClass} value={draft.to} onChange={(v) => set("to", v)} />
                     </Field>
                     <div className="flex gap-2 sm:col-span-2 lg:col-span-6 lg:justify-end">
                         <button type="button" className={ghostButton} onClick={() => { setDraft(EMPTY); setApplied(EMPTY); }}>

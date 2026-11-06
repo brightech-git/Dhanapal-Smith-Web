@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Inbox, Loader2, Pencil, Plus, RotateCcw, Save, Search, Trash2, Users } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
+import DateInput from "@/src/components/ui/date-input";
 import { CardHeader, Field, StatusBadge, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { getApiErrorMessage } from "../api/gift.api";
 import { useDeleteIntroducer, useIntroducers, useSaveIntroducer } from "../hook/use-gift";
@@ -129,6 +130,15 @@ export default function IntroducerManager() {
     const renderField = (f: FieldDef) => (
         <div key={f.key} className={f.wide ? "sm:col-span-2" : ""}>
             <Field label={f.label} htmlFor={`intro-${f.key}`}>
+                {f.type === "date" ? (
+                    <DateInput
+                        id={`intro-${f.key}`}
+                        className={`${inputClass} ${errors[f.key] ? "border-red-500" : ""}`}
+                        value={(values[f.key] as string) ?? ""}
+                        maxDate={new Date()}
+                        onChange={(v) => setValues((p) => ({ ...p, [f.key]: v }))}
+                    />
+                ) : (
                 <input
                     id={`intro-${f.key}`}
                     ref={f.key === "introducerName" ? nameRef : undefined}
@@ -143,6 +153,7 @@ export default function IntroducerManager() {
                         if (errors[f.key]) setErrors((p) => ({ ...p, [f.key]: undefined }));
                     }}
                 />
+                )}
                 {errors[f.key] && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors[f.key]}</p>}
             </Field>
         </div>

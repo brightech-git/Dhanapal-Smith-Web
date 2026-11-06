@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarRange, ClipboardList, Inbox, Loader2, Pencil, Plus, Printer, RotateCcw, Save, Search, Sun, Trash2 } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
+import DateInput from "@/src/components/ui/date-input";
 import { getApiErrorMessage, toApiDate } from "@/lib/api/envelope";
 import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryButton } from "@/src/module/role/component/ui";
 import { useDeleteOrder, useOrders, useSaveOrder } from "../hook/use-orders";
@@ -158,17 +159,18 @@ export default function SmithOrderPage() {
                     <form onSubmit={submit} className="space-y-4 p-5" noValidate>
                         <Field label="Order date" htmlFor="order-date">
                             <div className="flex gap-2">
-                                <input
-                                    id="order-date"
-                                    ref={dateRef}
-                                    type="date"
-                                    className={`${inputClass} ${errors.date ? "border-red-500" : ""}`}
-                                    value={date}
-                                    onChange={(e) => {
-                                        setDate(e.target.value);
-                                        setErrors((p) => ({ ...p, date: undefined }));
-                                    }}
-                                />
+                                <div className="min-w-0 flex-1">
+                                    <DateInput
+                                        id="order-date"
+                                        inputRef={dateRef}
+                                        className={`${inputClass} ${errors.date ? "border-red-500" : ""}`}
+                                        value={date}
+                                        onChange={(v) => {
+                                            setDate(v);
+                                            setErrors((p) => ({ ...p, date: undefined }));
+                                        }}
+                                    />
+                                </div>
                                 <button type="button" tabIndex={-1} className={`${ghostButton} shrink-0 px-3`} onClick={() => setDate(today())}>
                                     Today
                                 </button>

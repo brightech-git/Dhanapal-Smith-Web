@@ -34,6 +34,33 @@ const fieldsIn = (container: HTMLElement) =>
             isVisible(el)
     );
 
+/**
+ * Moves focus from a field to the next one in its form / [data-enter-nav] container,
+ * or submits on the last field. Returns false when the field is not in a container.
+ * Widgets that swallow Enter themselves (e.g. the date picker) call this directly.
+ */
+export function moveToNextField(target: HTMLElement): boolean {
+    const container = target.closest<HTMLElement>(CONTAINER_SELECTOR);
+    if (!container) return false;
+    const fields = fieldsIn(container);
+    const index = fields.indexOf(target);
+    if (index === -1) return false;
+
+    const next = fields[index + 1];
+    if (next) {
+        next.focus();
+        if (next instanceof HTMLInputElement && ["text", "number", "email", "tel", "password", "search"].includes(next.type)) {
+            next.select();
+        }
+        return true;
+    }
+
+    const submit = container.querySelector<HTMLButtonElement>("[data-enter-submit]");
+    if (submit && !submit.disabled) submit.click();
+    else if (container instanceof HTMLFormElement) container.requestSubmit();
+    return true;
+}
+
 export function useEnterNavigation() {
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -47,26 +74,7 @@ export function useEnterNavigation() {
             if (table && !(optIn && table.contains(optIn))) return;
             if (target.getAttribute("aria-expanded") === "true") return; // let an open dropdown pick its option
 
-            const container = target.closest<HTMLElement>(CONTAINER_SELECTOR);
-            if (!container) return;
-
-            const fields = fieldsIn(container);
-            const index = fields.indexOf(target);
-            if (index === -1) return;
-            e.preventDefault();
-
-            const next = fields[index + 1];
-            if (next) {
-                next.focus();
-                if (next instanceof HTMLInputElement && ["text", "number", "email", "tel", "password", "search"].includes(next.type)) {
-                    next.select();
-                }
-                return;
-            }
-
-            const submit = container.querySelector<HTMLButtonElement>("[data-enter-submit]");
-            if (submit && !submit.disabled) submit.click();
-            else if (container instanceof HTMLFormElement) container.requestSubmit();
+            if (moveToNextField(target)) e.preventDefault();
         };
         // Bubble phase on document: React handlers (which run first) can preventDefault to opt out.
         document.addEventListener("keydown", onKeyDown);
