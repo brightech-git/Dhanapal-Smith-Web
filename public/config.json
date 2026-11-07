@@ -5,7 +5,7 @@
             "LINK": "https://jaigurujewellers.com/",
             "BASEURL": "https://est.brightechsoftware.com/api/v1",
 
-            "MAIN_URL": "http://localhost:8130/api/v1",
+            "MAIN_URL": "http://192.168.0.5:8130/api/v1",
 
             "MAIN_URLs": "https://smith.dhanapaljewellery.com/api/v1",
             "USERNAME": "JAIGURU",
