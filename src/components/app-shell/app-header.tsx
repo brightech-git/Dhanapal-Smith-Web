@@ -1,301 +1,151 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronDown, ClipboardList, Gem, Gift, LayoutDashboard, LogOut, Menu, Moon, ShieldCheck, Sun, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, ChevronDown, ChevronRight, Clock, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun } from "lucide-react";
 import { useTheme } from "@/src/theme/theme-context";
 import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
-import { useNavigation } from "@/src/providers/navigation-provider";
-import { useAuth } from "@/src/features/auth/lib/auth-context";
+import type { NavItem } from "@/src/config/nav-menu";
 
-import { canAccessPath } from "@/src/features/auth/lib/access";
+const focus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const iconButton = `flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${focus}`;
 
-const APP_TITLE = "Smith Management System";
+const pad = (n: number) => String(n).padStart(2, "0");
+const formatDate = (d: Date) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+const timeFormat = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
 
-const SMITH_NAV = [
-    { label: "Dashboard", path: "/", icon: LayoutDashboard },
-    { label: "Orders", path: "/smiths/order", icon: ClipboardList },
-    { label: "Roles", path: "/roles", icon: ShieldCheck },
-];
-const GV_NAV = [{ label: "Gift Voucher", path: "/gift-voucher", icon: Gift }];
-
-const iconButton =
-    "flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-const isActivePath = (pathname: string, path: string) =>
-    path === "/" ? pathname === "/" : pathname.startsWith(path);
-
-const AppHeader: React.FC = () => {
+export default function AppHeader({ trail, fallbackTitle, drawerOpen, onOpen, collapsed, onToggle, userName, role, onLogout }: {
+    trail: NavItem[];
+    fallbackTitle: string;
+    collapsed: boolean;
+    onToggle: () => void;
+    drawerOpen: boolean;
+    onOpen: () => void;
+    userName: string;
+    role: string;
+    onLogout: () => void;
+}) {
     const { mode, toggleMode } = useTheme();
-    const { navigateWithAnimation } = useNavigation();
-    const { allDetails, logout } = useAuth();
-    const pathname = usePathname() || "/";
-    const router = useRouter();
-    const reduceMotion = useReducedMotion();
+    const [now, setNow] = useState<Date | null>(null);
 
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const userMenuRef = useRef<HTMLDivElement>(null);
-
-    const isGV = pathname === "/gift-voucher" || pathname.startsWith("/gift-voucher/");
-    const navItems = [...SMITH_NAV, ...GV_NAV].filter((item) => canAccessPath(allDetails, item.path));
-    const moduleName = isGV ? "Gift Voucher" : "Smith Dashboard";
-    const userName: string = allDetails?.userName || allDetails?.USERNAME || "Admin";
-    const role = allDetails?.admin === false ? "User" : "Administrator";
-    const initials = userName.slice(0, 2).toUpperCase();
-
-    // Close the user menu on outside click or Escape.
     useEffect(() => {
-        if (!userMenuOpen) return;
-        const onClick = (e: MouseEvent) => {
-            if (!userMenuRef.current?.contains(e.target as Node)) setUserMenuOpen(false);
-        };
-        const onKey = (e: KeyboardEvent) => e.key === "Escape" && setUserMenuOpen(false);
-        document.addEventListener("mousedown", onClick);
-        document.addEventListener("keydown", onKey);
-        return () => {
-            document.removeEventListener("mousedown", onClick);
-            document.removeEventListener("keydown", onKey);
-        };
-    }, [userMenuOpen]);
+        const updateClock = () => setNow(new Date());
+        updateClock();
+        const timer = window.setInterval(updateClock, 1000);
+        return () => window.clearInterval(timer);
+    }, []);
 
-    useEffect(() => setDrawerOpen(false), [pathname]);
-
-    const go = (path: string) => {
-        setDrawerOpen(false);
-        if (!isActivePath(pathname, path)) navigateWithAnimation(path, { direction: "forward" });
-    };
-
-    const handleLogout = () => {
-        setDrawerOpen(false);
-        setUserMenuOpen(false);
-        logout();
-        router.push("/login");
-    };
+    const title = trail.at(-1)?.label ?? fallbackTitle;
+    const crumbs = trail.slice(0, -1);
 
     return (
-        <>
-            <motion.header
-                initial={reduceMotion ? false : { y: -24, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="sticky top-0 z-[1100] border-b border-border bg-card/80 backdrop-blur-xl"
-            >
-                {/* Thin brand gradient along the top edge */}
-                <div className="h-0.5 w-full bg-gradient-to-r from-primary via-secondary to-primary" />
+        <header className="sticky top-0 z-[1100] flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card/85 px-3 backdrop-blur-xl sm:gap-3 sm:px-5">
+            <button type="button" className={`${iconButton} lg:hidden`} onClick={onOpen}
+                aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={drawerOpen}>
+                <Menu size={20} />
+            </button>
+            <button type="button" className={`${iconButton} hidden lg:flex`} onClick={onToggle}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-controls="desktop-sidebar" aria-expanded={!collapsed}>
+                {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+            </button>
+            <span aria-hidden className="hidden h-6 w-px bg-border sm:block" />
 
-                <div className="flex h-16 w-full items-center gap-3 px-3 sm:px-5">
-                    <button
-                        type="button"
-                        onClick={() => setDrawerOpen(true)}
-                        className={`${iconButton} lg:hidden`}
-                        aria-label="Open menu"
-                    >
-                        <Menu className="h-5 w-5" />
-                    </button>
-
-                    <button type="button" onClick={() => navItems[0] && go(navItems[0].path)} className="flex items-center gap-2.5 text-left">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-500 text-primary-foreground shadow-sm">
-                            <Gem className="h-[18px] w-[18px]" />
-                        </span>
-                        <span className="hidden sm:block">
-                            <span className="block text-sm font-bold uppercase leading-tight tracking-[0.14em] text-foreground">
-                                {APP_TITLE}
-                            </span>
-                            <span className="block text-[11px] font-medium leading-tight text-muted-foreground">{moduleName}</span>
-                        </span>
-                    </button>
-
-                    {/* Desktop navigation */}
-                    <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Main">
-                        {navItems.map(({ label, path, icon: Icon }) => {
-                            const active = isActivePath(pathname, path);
-                            return (
-                                <button
-                                    key={path}
-                                    type="button"
-                                    onClick={() => go(path)}
-                                    aria-current={active ? "page" : undefined}
-                                    className={`relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors ${
-                                        active ? "text-primary-text" : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                                >
-                                    {active && (
-                                        <motion.span
-                                            layoutId="nav-active"
-                                            className="absolute inset-0 rounded-xl bg-accent-soft"
-                                            transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                                        />
-                                    )}
-                                    <Icon className="relative h-4 w-4" />
-                                    <span className="relative">{label}</span>
-                                </button>
-                            );
-                        })}
+            <div className="min-w-0 flex-1">
+                {crumbs.length > 0 && (
+                    <nav aria-label="Breadcrumb" className="hidden sm:block">
+                        <ol className="flex min-w-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                            {crumbs.map((item) => (
+                                <li key={item.id} className="flex min-w-0 items-center gap-1">
+                                    <span className="truncate">{item.label}</span>
+                                    <ChevronRight size={12} aria-hidden className="shrink-0" />
+                                </li>
+                            ))}
+                        </ol>
                     </nav>
+                )}
+                <p className="truncate text-base font-semibold leading-tight tracking-tight">{title}</p>
+            </div>
 
-                    <div className="ml-auto flex items-center gap-1.5">
-                        <button
-                            type="button"
-                            onClick={toggleMode}
-                            className={iconButton}
-                            aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                            title={mode === "dark" ? "Light mode" : "Dark mode"}
-                        >
-                            <AnimatePresence mode="wait" initial={false}>
-                                <motion.span
-                                    key={mode}
-                                    initial={reduceMotion ? false : { rotate: -90, opacity: 0, scale: 0.6 }}
-                                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                                    exit={reduceMotion ? undefined : { rotate: 90, opacity: 0, scale: 0.6 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    {mode === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-                                </motion.span>
-                            </AnimatePresence>
+            {now && (
+                <div className="hidden shrink-0 items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-1.5 text-xs tabular-nums md:flex">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <CalendarDays size={14} aria-hidden />
+                        <time dateTime={now.toISOString().slice(0, 10)}>{formatDate(now)}</time>
+                    </span>
+                    <span aria-hidden className="h-3.5 w-px bg-border" />
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <Clock size={14} aria-hidden className="text-muted-foreground" />
+                        {timeFormat.format(now)}
+                    </span>
+                </div>
+            )}
+
+            <div className="flex shrink-0 items-center gap-0.5">
+                <button type="button" className={iconButton} onClick={toggleMode}
+                    aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    title={mode === "dark" ? "Light mode" : "Dark mode"}>
+                    {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <ThemeStudioDock triggerClassName={iconButton} />
+            </div>
+            <span aria-hidden className="hidden h-6 w-px bg-border sm:block" />
+            <UserMenu userName={userName} role={role} onLogout={onLogout} />
+        </header>
+    );
+}
+
+function UserMenu({ userName, role, onLogout }: { userName: string; role: string; onLogout: () => void }) {
+    const [open, setOpen] = useState(false);
+    const box = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const onPointer = (event: PointerEvent) => {
+            if (!box.current?.contains(event.target as Node)) setOpen(false);
+        };
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        document.addEventListener("pointerdown", onPointer);
+        document.addEventListener("keydown", onKey);
+        return () => {
+            document.removeEventListener("pointerdown", onPointer);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [open]);
+
+    const initials = userName.slice(0, 2).toUpperCase();
+
+    return (
+        <div ref={box} className="relative shrink-0">
+            <button type="button" onClick={() => setOpen((value) => !value)} aria-haspopup="menu" aria-expanded={open}
+                aria-label={`Account: ${userName}`}
+                className={`flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-muted md:pe-2 ${focus}`}>
+                <span className="grid size-8 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">{initials}</span>
+                <span className="hidden min-w-0 text-start leading-tight md:block">
+                    <span className="block max-w-[9rem] truncate text-sm font-semibold">{userName}</span>
+                    <span className="block text-[11px] text-muted-foreground">{role}</span>
+                </span>
+                <ChevronDown size={14} aria-hidden className={`hidden text-muted-foreground motion-safe:transition-transform md:block ${open ? "rotate-180" : ""}`} />
+            </button>
+            {open && (
+                <div role="menu" className="absolute end-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                    <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-xs font-semibold text-primary-text">{initials}</span>
+                        <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold">{userName}</span>
+                            <span className="block text-xs text-muted-foreground">{role}</span>
+                        </span>
+                    </div>
+                    <div className="p-1.5">
+                        <button type="button" role="menuitem" onClick={() => { setOpen(false); onLogout(); }}
+                            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-muted dark:text-red-400 ${focus}`}>
+                            <LogOut size={16} aria-hidden />
+                            Log out
                         </button>
-
-                        <ThemeStudioDock triggerClassName={iconButton} />
-
-                        <span className="mx-1.5 hidden h-6 w-px bg-border sm:block" />
-
-                        {/* User menu */}
-                        <div className="relative" ref={userMenuRef}>
-                            <button
-                                type="button"
-                                onClick={() => setUserMenuOpen((o) => !o)}
-                                aria-haspopup="menu"
-                                aria-expanded={userMenuOpen}
-                                className="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2 transition-colors hover:bg-muted"
-                            >
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary text-xs font-bold text-white shadow-sm">
-                                    {initials}
-                                </span>
-                                <span className="hidden text-left md:block">
-                                    <span className="block max-w-[140px] truncate text-sm font-semibold leading-tight">{userName}</span>
-                                    <span className="block text-[11px] leading-tight text-muted-foreground">{role}</span>
-                                </span>
-                                <ChevronDown
-                                    className={`hidden h-4 w-4 text-muted-foreground transition-transform md:block ${userMenuOpen ? "rotate-180" : ""}`}
-                                />
-                            </button>
-
-                            <AnimatePresence>
-                                {userMenuOpen && (
-                                    <motion.div
-                                        role="menu"
-                                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                                        transition={{ duration: 0.15 }}
-                                        className="absolute right-0 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-xl"
-                                    >
-                                        <div className="px-3 py-2.5">
-                                            <p className="truncate text-sm font-semibold">{userName}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {role} · {moduleName}
-                                            </p>
-                                        </div>
-                                        <div className="my-1 h-px bg-border" />
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            onClick={handleLogout}
-                                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                                        >
-                                            <LogOut className="h-4 w-4" />
-                                            Log out
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
                     </div>
                 </div>
-            </motion.header>
-
-            {/* Mobile drawer */}
-            <AnimatePresence>
-                {drawerOpen && (
-                    <>
-                        <motion.div
-                            className="fixed inset-0 z-[1200] bg-slate-900/40 backdrop-blur-[2px] lg:hidden"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setDrawerOpen(false)}
-                        />
-                        <motion.aside
-                            className="fixed inset-y-0 left-0 z-[1201] flex w-72 flex-col border-r border-border bg-card shadow-2xl lg:hidden"
-                            initial={{ x: "-100%" }}
-                            animate={{ x: 0 }}
-                            exit={{ x: "-100%" }}
-                            transition={{ type: "spring", stiffness: 380, damping: 38 }}
-                            aria-label="Menu"
-                        >
-                            <div className="flex items-center justify-between border-b border-border px-4 py-4">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-500 text-primary-foreground">
-                                        <Gem className="h-[18px] w-[18px]" />
-                                    </span>
-                                    <span>
-                                        <span className="block text-sm font-bold uppercase tracking-[0.14em]">{APP_TITLE}</span>
-                                        <span className="block text-[11px] text-muted-foreground">{moduleName}</span>
-                                    </span>
-                                </div>
-                                <button type="button" onClick={() => setDrawerOpen(false)} className={iconButton} aria-label="Close menu">
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
-
-                            <nav className="flex-1 space-y-1 p-3" aria-label="Main">
-                                {navItems.map(({ label, path, icon: Icon }, i) => {
-                                    const active = isActivePath(pathname, path);
-                                    return (
-                                        <motion.button
-                                            key={path}
-                                            type="button"
-                                            onClick={() => go(path)}
-                                            initial={{ opacity: 0, x: -12 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.05 + i * 0.04 }}
-                                            className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                                                active ? "bg-accent-soft text-primary-text" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                            }`}
-                                        >
-                                            <Icon className="h-[18px] w-[18px]" />
-                                            {label}
-                                        </motion.button>
-                                    );
-                                })}
-                            </nav>
-
-                            <div className="border-t border-border p-3">
-                                <div className="mb-2 flex items-center gap-3 px-2 py-1.5">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary text-xs font-bold text-white">
-                                        {initials}
-                                    </span>
-                                    <span>
-                                        <span className="block text-sm font-semibold">{userName}</span>
-                                        <span className="block text-xs text-muted-foreground">{role}</span>
-                                    </span>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleLogout}
-                                    className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                                >
-                                    <LogOut className="h-[18px] w-[18px]" />
-                                    Log out
-                                </button>
-                            </div>
-                        </motion.aside>
-                    </>
-                )}
-            </AnimatePresence>
-        </>
+            )}
+        </div>
     );
-};
-
-export default AppHeader;
+}

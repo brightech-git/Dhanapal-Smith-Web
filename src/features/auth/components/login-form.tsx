@@ -28,7 +28,7 @@ import { firstAllowedPath } from "@/src/features/auth/lib/access";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 
 const REMEMBER_KEY = "smith.rememberedUser";
-const APP_TITLE = "Smith Suite";
+const APP_TITLE = "Smith Management";
 const PRODUCT = "Smith & Gift Voucher Suite";
 
 const projectHomePath = (project?: string) =>

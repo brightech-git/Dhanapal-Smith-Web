@@ -10,10 +10,11 @@ import { uploadFlowAttachments } from "../api/smith-attachments.api";
 
 
 export const smithDashboardKeys = {
-    all: ["smith-dashboard"] as const,
+    all: ["smith-dashboard", ] as const,
     summary: () => [...smithDashboardKeys.all, "summary"] as const,
     recentCash: (limit: number) => [...smithDashboardKeys.all, "recent-cash", limit] as const,
     recentWeight: (limit: number) => [...smithDashboardKeys.all, "recent-weight", limit] as const,
+    
 };
 
 /** Current total weight and total amount across all smiths. */

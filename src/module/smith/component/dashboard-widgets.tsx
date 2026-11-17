@@ -41,7 +41,7 @@ export function KpiCard({
     footnote,
 }: {
     label: string;
-    value: number;
+    value: number | null;
     format: (v: number) => string;
     icon: React.ElementType;
     change?: number;
@@ -72,7 +72,7 @@ export function KpiCard({
                 <div className="min-w-0">
                     <p className="text-sm font-medium text-muted-foreground">{label}</p>
                     <p className="mt-2 truncate text-2xl font-bold tracking-tight sm:text-[26px]">
-                        {loading ? <span className="inline-block h-7 w-32 animate-pulse rounded-lg bg-muted" /> : <CountUp value={value} format={format} />}
+                        {loading ? <span className="inline-block h-7 w-32 animate-pulse rounded-lg bg-muted" /> : value === null ? "—" : <CountUp value={value} format={format} />}
                     </p>
                 </div>
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm ${toneClass}`}>

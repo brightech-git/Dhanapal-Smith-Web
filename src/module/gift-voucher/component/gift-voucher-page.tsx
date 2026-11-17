@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BarChart3, TicketPlus, Undo2, Users } from "lucide-react";
 import IntroducerManager from "./introducer-manager";
 import VoucherGenerateForm from "./voucher-generate-form";
 import VoucherReturnForm from "./voucher-return-form";
 import VoucherReport from "./voucher-report";
+import { notifyHashChange } from "@/src/hooks/use-location-hash";
 
 type TabKey = "issue" | "receipt" | "introducers" | "report";
 
@@ -19,6 +20,25 @@ const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
 /** Gift voucher: issue tags (amount and pcs), receive them back, introducers and a report. */
 export default function GiftVoucherPage() {
     const [active, setActive] = useState<TabKey>("issue");
+
+    // The tab lives in the URL hash (#issue, #receipt, ...), so the sidebar can link to it.
+    useEffect(() => {
+        const sync = () => {
+            const key = window.location.hash.replace(/^#/, "");
+            setActive(tabs.some((tab) => tab.key === key) ? (key as TabKey) : "issue");
+        };
+        sync();
+        window.addEventListener("hashchange", sync);
+        return () => window.removeEventListener("hashchange", sync);
+    }, []);
+
+    const select = (key: TabKey) => {
+        setActive(key);
+        if (window.location.hash !== `#${key}`) {
+            window.history.replaceState(null, "", `#${key}`);
+            notifyHashChange();
+        }
+    };
 
     return (
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-6">
@@ -34,7 +54,7 @@ export default function GiftVoucherPage() {
                         type="button"
                         role="tab"
                         aria-selected={active === key}
-                        onClick={() => setActive(key)}
+                        onClick={() => select(key)}
                         className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
                             active === key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}

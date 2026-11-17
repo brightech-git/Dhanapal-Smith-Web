@@ -6,6 +6,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "@/src/providers/toast-provider";
 import { formatDateForAPI } from "@/src/utils/format/formatDateForAPI";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import Decimal from "decimal.js";
+import { activateCell, nextCellPosition } from "./cell-navigation";
 
 interface EditableCellProps {
     value: any;
@@ -14,6 +16,8 @@ interface EditableCellProps {
     className?: string;
     displayValue?: string;
     allowNegative?: boolean;
+    /** For type "number": digits after the decimal point, shown and saved (default 3). */
+    decimals?: number;
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({
@@ -23,10 +27,14 @@ const EditableCell: React.FC<EditableCellProps> = ({
     className = "",
     displayValue,
     allowNegative = false,
+    decimals = 3,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    // The date picker updates its value after our Enter handler runs, so keep
+    // the latest picked date in a ref and read it once the picker is done.
+    const latestDate = useRef<Date | null>(null);
     const { addToast } = useToast();
 
     const parseDate = (val: any) => {
@@ -44,6 +52,10 @@ const EditableCell: React.FC<EditableCellProps> = ({
     );
 
     useEffect(() => {
+        if (isEditing && type === "date") latestDate.current = editValue instanceof Date ? editValue : parseDate(value);
+    }, [isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
         if (isEditing && inputRef.current) {
             inputRef.current.focus();
             if (type !== "date") inputRef.current.select();
@@ -57,7 +69,17 @@ const EditableCell: React.FC<EditableCellProps> = ({
     };
 
     const handleKeyDown = async (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") await saveValue();
+        if (e.key === "Enter") {
+            // Save, then open the next cell in the row (Enter-to-next-field for tables).
+            e.preventDefault();
+            const next = nextCellPosition(e.currentTarget as Element);
+            let override: any = undefined;
+            if (type === "date") {
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                override = latestDate.current;
+            }
+            if (await saveValue(override)) requestAnimationFrame(() => activateCell(next));
+        }
         else if (e.key === "Escape") {
             setIsEditing(false);
             setEditValue(
@@ -72,28 +94,32 @@ const EditableCell: React.FC<EditableCellProps> = ({
         }
     };
 
-    const saveValue = async () => {
-        if (isSaving) return;
+    const saveValue = async (override?: any): Promise<boolean> => {
+        if (isSaving) return false;
         try {
             setIsSaving(true);
-            let finalValue: any = editValue;
+            const current = override !== undefined ? override : editValue;
+            let finalValue: any = current;
 
-            if (type === "date" && editValue) {
-                finalValue = formatDateForAPI(editValue);
+            if (type === "date" && current) {
+                finalValue = formatDateForAPI(current);
             }
 
             if ((type === "number" || type === "numbers") && editValue !== "") {
                 const numValue = Number(editValue);
                 if (!Number.isFinite(numValue) || (!allowNegative && numValue < 0)) throw new Error("Invalid number");
-                finalValue = numValue;
+                finalValue = type === "number"
+                    ? new Decimal(String(editValue).trim()).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP).toNumber()
+                    : numValue;
             }
 
             await onSave(finalValue);
 
             setIsEditing(false);
+            return true;
         } catch (error: any) {
             console.error("Error saving value:", error);
-          
+            return false;
         } finally {
             setIsSaving(false);
         }
@@ -109,7 +135,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
             const yyyy = d.getFullYear();
             return `${dd}-${mm}-${yyyy}`;
         }
-        if (type === "number") return parseFloat(val).toFixed(3);
+        if (type === "number") return Number.isFinite(Number(val)) ? new Decimal(String(val).trim()).toFixed(decimals, Decimal.ROUND_HALF_UP) : "-";
         if (type === "numbers")
             return new Intl.NumberFormat("en-IN").format(parseFloat(val));
         return val;
@@ -119,26 +145,32 @@ const EditableCell: React.FC<EditableCellProps> = ({
     if (isEditing) {
         if (type === "date") {
             return (
+                <div data-cell-nav className="w-full">
                 <DatePicker
                     selected={editValue}
-                    onChange={(date: Date | null) => setEditValue(date)}
+                    onChange={(date: Date | null) => {
+                        latestDate.current = date;
+                        setEditValue(date);
+                    }}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     dateFormat="dd-MM-yyyy"
                     placeholderText="dd-mm-yyyy"
                     todayButton="Today"
                     minDate={new Date("2000-01-01")}
-                    maxDate={new Date("2100-12-31")}
+                    maxDate={new Date()}
                     className={`w-full px-1 py-1 border border-blue-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring ${isSaving ? "opacity-50 cursor-not-allowed" : ""
                         } ${className}`}
                     disabled={isSaving}
                     popperClassName="custom-datepicker-popper"
+                    
                 />
+                </div>
             );
         }
 
         return (
-            <div className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-card">
+            <div data-cell-nav className="flex items-center border border-blue-500 rounded px-2 py-1 w-full bg-card">
                 <input
                     ref={inputRef}
                     type={type === "numbers" ? "text" : type}
@@ -158,8 +190,18 @@ const EditableCell: React.FC<EditableCellProps> = ({
     return (
         <div
             onClick={handleClick}
-            className={`w-full px-1 py-1 cursor-pointer hover:bg-accent-soft rounded transition-colors ${className}`}
-            title="Click to edit"
+            onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "F2") {
+                    e.preventDefault();
+                    setIsEditing(true);
+                }
+            }}
+            role="button"
+            tabIndex={0}
+            data-cell-nav
+            data-cell-edit
+            className={`w-full px-1 py-1 cursor-pointer hover:bg-accent-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
+            title="Click or press Enter to edit"
         >
             {/* ✅ Show displayValue (masked password) if available */}
             {displayValue ?? formatDisplayValue(value)}

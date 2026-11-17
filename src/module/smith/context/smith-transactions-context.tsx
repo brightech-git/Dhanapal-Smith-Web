@@ -1,13 +1,15 @@
 // src/context/smith/SmithTransactionContext.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect, ReactNode } from "react";
 import {
     SmithTransaction,
     SmithTransactionDetail,
     CashFlow,
     WeightFlow,
-    fetchSmithTransactions,
+    fetchTransactionSummary,
+    summarizeSmiths,
+    type TransactionSummaryRow,
     fetchSmithTransactionDetail,
     addCashFlow,
     deleteCashFlow,
@@ -28,6 +30,9 @@ import { smithDashboardKeys } from "@/src/module/smith/hook/use-smith-dashboard"
 
 interface SmithTransactionContextType {
     transactions: SmithTransaction[];
+    /** Metal the summary weight is shown for ("" = all metals). */
+    metalId: string;
+    setMetalId: (metalId: string) => void;
     loading: boolean;
     error: string | null;
     refetch: () => void;
@@ -50,7 +55,9 @@ const SmithTransactionContext = createContext<SmithTransactionContextType | unde
 export const SmithTransactionProvider = ({ children }: { children: ReactNode }) => {
 
     const { isAuthenticated, isLoading: authLoading } = useAuth();
-    const [transactions, setTransactions] = useState<SmithTransaction[]>([]);
+    const [summary, setSummary] = useState<TransactionSummaryRow[]>([]);
+    const [metalId, setMetalId] = useState("G");
+    const transactions = useMemo(() => summarizeSmiths(summary, metalId), [summary, metalId]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -64,13 +71,13 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         }
     };
     const queryClient = useQueryClient();
+
     const loadTransactions = async () => {
         // Totals and recent transactions on the dashboard follow every change.
         queryClient.invalidateQueries({ queryKey: smithDashboardKeys.all });
         setLoading(true);
         try {
-            const data = await fetchSmithTransactions();
-            setTransactions(data);
+            setSummary(await fetchTransactionSummary({metalId}));
             setError(null);
         } catch (err: any) {
             console.error(err);
@@ -89,7 +96,8 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
     };
 
     const getWeightFlows = async (smithId: string) => {
-        return await fetchWeightFlows(smithId);
+        // With a metal chosen, the weight ledger shows that metal's rows only.
+        return await fetchWeightFlows(smithId, metalId);
     };
     const addCash = async (smithId: string, data: Partial<any>) => {
         await addCashFlow(smithId, data);
@@ -136,11 +144,14 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         if (!authLoading && isAuthenticated) {
             loadTransactions();
         }
-    }, [isAuthenticated, authLoading]);
+        // Reload the summary whenever the metal changes.
+    }, [isAuthenticated, authLoading, metalId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <SmithTransactionContext.Provider value={{
             transactions,
+            metalId,
+            setMetalId,
             loading,
             error,
             refetch: loadTransactions,

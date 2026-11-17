@@ -9,6 +9,7 @@ import UserRolePanel from "./user-role-panel";
 
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { canViewMenu } from "@/src/features/auth/lib/access";
+import { notifyHashChange } from "@/src/hooks/use-location-hash";
 
 const TABS = [
     { id: "roles", label: "Roles", icon: ShieldCheck, hint: "Create, edit and delete roles" },
@@ -49,7 +50,10 @@ export default function RolesPage() {
         setTab(next);
         setRoleId(nextRole);
         const hash = next === "permissions" && nextRole != null ? `#permissions/${nextRole}` : `#${next}`;
-        if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+        if (window.location.hash !== hash) {
+            window.history.replaceState(null, "", hash);
+            notifyHashChange();
+        }
     };
 
     return (

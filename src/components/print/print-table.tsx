@@ -43,7 +43,7 @@ const PrintTable = <T extends Record<string, any>>({
 
 }: PrintTableProps<T>) => {
     const printRef = useRef<HTMLDivElement>(null);
-console.log(showTotal ,'showTotal')
+
     const columnsToUse = showTotal === false
         ? columns.map((col) => {
             console.log(col.key, 'col.key')

@@ -160,7 +160,7 @@ export default function SmithOrderPage() {
                     <form onSubmit={submit} className="space-y-4 p-5" noValidate>
                         <Field label="Order date" htmlFor="order-date">
                             <div className="flex gap-2">
-                                <div className="min-w-0 flex-1">
+                                <div className="min-w-0 max-w-[150px] flex-1">
                                     <DateInput
                                         id="order-date"
                                         inputRef={dateRef}
@@ -172,9 +172,9 @@ export default function SmithOrderPage() {
                                         }}
                                     />
                                 </div>
-                                <button type="button" tabIndex={-1} className={`${ghostButton} shrink-0 px-3`} onClick={() => setDate(today())}>
+                                {/* <button type="button" tabIndex={-1} className={`${ghostButton} shrink-0 px-3`} onClick={() => setDate(today())}>
                                     Today
-                                </button>
+                                </button> */}
                             </div>
                             {errors.date && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.date}</p>}
                         </Field>

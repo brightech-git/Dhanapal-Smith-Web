@@ -37,7 +37,7 @@ async function fetchRecent(kind: FlowKind, limit: number): Promise<RecentTransac
     const balanceById = new Map<number, number>();
     const running = new Map<number, number>();
     [...rows]
-        .sort((a, b) => (a.trandate === b.trandate ? a.id - b.id : a.trandate < b.trandate ? -1 : 1))
+        .sort((a, b) => (a.tranDate === b.tranDate ? a.id - b.id : a.tranDate < b.tranDate ? -1 : 1))
         .forEach((t) => {
             const next = (running.get(t.smithId) ?? 0) + num(t.receipt) - num(t.issue);
             running.set(t.smithId, next);
@@ -45,14 +45,14 @@ async function fetchRecent(kind: FlowKind, limit: number): Promise<RecentTransac
         });
 
     const newest = [...rows].sort((a: TransactionApi, b: TransactionApi) =>
-        a.trandate === b.trandate ? b.id - a.id : a.trandate < b.trandate ? 1 : -1
+        a.tranDate === b.tranDate ? b.id - a.id : a.tranDate < b.tranDate ? 1 : -1
     );
     return newest.slice(0, limit).map((t, i) => ({
         id: t.id,
         sno: i + 1,
         smithId: t.smithId,
         smithName: names.get(t.smithId) ?? `Smith ${t.smithId}`,
-        date: t.trandate,
+        date: t.tranDate,
         receipt: num(t.receipt),
         issue: num(t.issue),
         balance: balanceById.get(t.id) ?? 0,
