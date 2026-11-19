@@ -159,7 +159,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
         }
         if (type === "number") return Number.isFinite(Number(val)) ? new Decimal(String(val).trim()).toFixed(decimals, Decimal.ROUND_HALF_UP) : "-";
         if (type === "numbers")
-            return new Intl.NumberFormat("en-IN").format(parseFloat(val));
+            return Number(val).toFixed(2);
         return val;
     };
 

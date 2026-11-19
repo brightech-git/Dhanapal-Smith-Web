@@ -224,6 +224,7 @@ const PrintTable = <T extends Record<string, any>>({
             {/* 🖨️ Print button */}
             <button
                 type="button"
+                data-shortcut="print"
                 disabled={printing}
                 aria-label={printing ? "Loading saved print records" : "Print report"}
                 aria-busy={printing}

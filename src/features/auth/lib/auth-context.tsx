@@ -38,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const details = saved ? JSON.parse(saved)?.allDetails : null;
             if (details) {
                 const baseUrl = window?.appConfig?.MAIN_URL;
+
+                console.log(baseUrl,'baseUrl')
                 if (baseUrl) getAxiosInstance(baseUrl);
                 setAllDetails(details);
                 setIsAuthenticated(true);

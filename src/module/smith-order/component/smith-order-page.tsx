@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarRange, ClipboardList, Inbox, Loader2, Pencil, Plus, Printer, RotateCcw, Save, Search, Sun, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarRange, ClipboardList, Inbox, Loader2, Pencil, Plus, RotateCcw, Save, Search, Sun, Trash2 } from "lucide-react";
 import { useToast } from "@/src/providers/toast-provider";
 import ConfirmDialog from "@/src/components/ui/confirm-dialog";
 import DateInput from "@/src/components/ui/date-input";
@@ -10,6 +10,7 @@ import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryBu
 import { useDeleteOrder, useOrders, useSaveOrder } from "../hook/use-orders";
 import type { Order } from "../api/order.api";
 import { formatDateForShow } from "@/src/utils/format/formatDateForAPI";
+import ReportOutput, { type ReportColumn } from "@/src/module/report/component/report-output";
 import TextInput from "@/src/components/ui/text-input";
 
 const today = () => toApiDate(new Date());
@@ -79,6 +80,15 @@ export default function SmithOrderPage() {
     }, [all, search, range]);
     const shown = groups.reduce((n, [, l]) => n + l.length, 0);
 
+    const exportRows = groups.flatMap(([, orders]) => orders).map((order, index) => ({
+        ...order, resultSet: 1 as const, sno: index + 1,
+    }));
+    const exportColumns: ReportColumn<(typeof exportRows)[number]>[] = [
+        { key: "sno", label: "S.NO", align: "right", render: (order) => order.sno },
+        { key: "date", label: "DATE", render: (order) => formatDateForShow(order.orderDate) },
+        { key: "details", label: "ORDER DETAILS", render: (order) => <span style={{ whiteSpace: "pre-wrap" }}>{order.orderItems}</span> },
+    ];
+
     const reset = () => {
         setEditing(null);
         setDate(today());
@@ -140,9 +150,9 @@ export default function SmithOrderPage() {
                     <h1 className="text-sm font-bold tracking-wide">Orders</h1>
                     <p className="text-sm text-muted-foreground">Note each smith order with its date and details.</p>
                 </div>
-                <button type="button" className={`${ghostButton} print:hidden`} onClick={() => window.print()} disabled={!shown}>
-                    <Printer className="h-4 w-4" /> Print list
-                </button>
+                <ReportOutput title="Order report" columns={exportColumns} rows={exportRows}
+                    subtitle={`Range: ${{ all: "All dates", today: "Today", week: "Last 7 days", month: "This month" }[range]}${search.trim() ? ` · Search: ${search.trim()}` : ""}`}
+                    loading={orders.isFetching} error={orders.isError ? getApiErrorMessage(orders.error) : null} />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 print:hidden">

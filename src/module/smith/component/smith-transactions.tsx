@@ -4,7 +4,6 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useTheme } from "@/src/theme/theme-context";
 import Table from "@/src/components/ui/table";
 import { IndianRupee, Scale, Wallet, Plus, Paperclip, Save, Check, Loader2, UserPlus } from "lucide-react";
-import { formatCurrency, } from "@/src/utils/format/format";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useSmithDetails } from '@/src/module/smith/context/smith-details-context'
 import SmithManager from "@/src/module/smith/component/smith-manager";
@@ -29,6 +28,8 @@ import Register from "@/src/module/user/component/register-form";
 import FlowAttachmentsDialog from "@/src/module/smith/component/flow-attachments-dialog";
 import { attachmentCount } from "@/src/module/smith/api/smith-attachments.api";
 import type { FlowKind } from "@/src/module/smith/type/smith-dashboard.types";
+
+const formatTransactionAmount = (v:number) => v.toFixed(2);
 
 /** Paperclip button for a cash/weight row; disabled until the row is saved. */
 function AttachButton({ row, onClick }: { row: any; onClick: () => void }) {
@@ -587,6 +588,7 @@ export default function SmithTransactionsPage() {
                 <button
                     type="button"
                     data-cell-nav
+                    data-shortcut="save"
                     onClick={() => commitRow(kind, row)}
                     disabled={!dirty || busy}
                     title={dirty ? "Save this row" : "Saved"}
@@ -726,7 +728,7 @@ export default function SmithTransactionsPage() {
             width: "80px",
             render: (v: number, row: any) => (
                 <span onDoubleClick={() => handleCashDoubleClick(row)} className="cursor-pointer hover:underline">
-                    {formatCurrency(v)}
+                    {formatTransactionAmount(v)}
                 </span>
             ),
         },
@@ -1027,7 +1029,7 @@ export default function SmithTransactionsPage() {
             headalign: "right" as const,
             align: "right" as const,
             width: "70px",
-            render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
+            render: (v: number) => <span className="font-medium">{formatTransactionAmount(v || 0)}</span>,
         },
         {
             key: "remarks",
@@ -1102,7 +1104,7 @@ export default function SmithTransactionsPage() {
             align: "right" as const,
             width: "70px",
 
-            render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
+            render: (v: number) => <span className="font-medium">{formatTransactionAmount(v || 0)}</span>,
         },
         {
             key: "remarks",
@@ -1124,11 +1126,11 @@ export default function SmithTransactionsPage() {
 
     return (
         <div className="min-h-screen w-full bg-background text-foreground">
-            <div className="w-full space-y-4 px-2 py-2 sm:px-3 lg:px-4">
+            <div className="w-full space-y-2 px-1">
                 {/* <h1 className="text-2xl font-bold tracking-tight">Smith Transactions</h1> */}
 
                 {/* Ledger workspace */}
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                <div className="grid grid-cols-1 gap-1 xl:grid-cols-12">
                     <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:col-span-3">
                         <div className={cardHeader}>
                             <h2 className="flex items-center gap-2 text-sm font-semibold">
@@ -1208,14 +1210,14 @@ export default function SmithTransactionsPage() {
                                         <td className="border-r border-border pr-1 text-right  text-primary-text">
                                             {transactionTotals.weight.toFixed(3)}
                                         </td>
-                                        <td className="pr-1 text-right text-primary-text">{formatCurrency(transactionTotals.cash)}</td>
+                                        <td className="pr-1 text-right text-primary-text">{formatTransactionAmount(transactionTotals.cash)}</td>
                                     </tr>
                                 </tfoot>
                             )}
                         />
                     </section>
 
-                    <div className="flex min-w-0 flex-col gap-4 xl:col-span-9">
+                    <div className="flex min-w-0 flex-col gap-1 xl:col-span-9">
                         {/* Weight */}
                         <section ref={weightSectionRef} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                             <div className={cardHeader}>
@@ -1233,7 +1235,7 @@ export default function SmithTransactionsPage() {
                                         <div ref={weightPrintRef}>
                                             <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} getPrintData={() => getWeightFlows(selectedSmithId)} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
-                                        <button onClick={handleAddWeightRow} disabled={!!savingRow}
+                                        <button onClick={handleAddWeightRow} disabled={!!savingRow} data-shortcut="add"
                                             title={hasNewWeightRow ? "Go to the current weight row" : "Add a weight transaction"}
                                             className={`${actionButton} bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
@@ -1288,7 +1290,7 @@ export default function SmithTransactionsPage() {
                                         <div ref={cashPrintRef}>
                                             <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} getPrintData={() => getCashFlows(selectedSmithId)} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
-                                        <button onClick={handleAddCashRow} disabled={!!savingRow}
+                                        <button onClick={handleAddCashRow} disabled={!!savingRow} data-shortcut="add"
                                             title={hasNewCashRow ? "Go to the current cash row" : "Add a cash transaction"}
                                             className={`${actionButton} bg-primary disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
@@ -1310,9 +1312,9 @@ export default function SmithTransactionsPage() {
                                     <tfoot className="sticky bottom-0 bg-accent-soft text-xs font-semibold text-foreground">
                                         <tr>
                                             <td colSpan={2} className="border-r border-border pr-4 text-right">Total</td>
-                                            <td className="border-r border-border text-right px-2 py-1">{formatCurrency(cashTotals.receipts)}</td>
-                                            <td className="border-r border-border text-right px-2">{formatCurrency(cashTotals.payments)}</td>
-                                            <td className="border-r border-border text-right px-2">{formatCurrency(cashTotals.balance)}</td>
+                                            <td className="border-r border-border text-right px-2 py-1">{formatTransactionAmount(cashTotals.receipts)}</td>
+                                            <td className="border-r border-border text-right px-2">{formatTransactionAmount(cashTotals.payments)}</td>
+                                            <td className="border-r border-border text-right px-2">{formatTransactionAmount(cashTotals.balance)}</td>
                                             <td></td>
                                             <td></td>
                                         </tr>

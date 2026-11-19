@@ -9,6 +9,7 @@ import { canViewMenu } from "@/src/features/auth/lib/access";
 import { NAV_MENU, filterNav, findTrail, isCurrentPage } from "@/src/config/nav-menu";
 import { useEnterNavigation } from "@/src/hooks/use-enter-navigation";
 import { useLocationHash } from "@/src/hooks/use-location-hash";
+import { ShortcutProvider } from "@/src/providers/shortcut-provider";
 
 export default function AppShell({ children }: { children: ReactNode }) {
     useEnterNavigation();
@@ -38,6 +39,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     const sidebarProps = { sections, pathname, hash, trail };
 
     return (
+        <ShortcutProvider>
         <div className="flex min-h-screen bg-background text-foreground">
             {showNavigation && (
                 <aside id="desktop-sidebar" className={`sticky top-0 hidden h-dvh shrink-0 border-r border-border motion-safe:transition-[width] lg:block ${collapsed ? "w-16" : "w-64"}`}>
@@ -70,5 +72,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </dialog>
             )}
         </div>
+        </ShortcutProvider>
     );
 }

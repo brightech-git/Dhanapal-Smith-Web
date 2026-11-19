@@ -6,7 +6,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
     BarChart3, ClipboardList, Database, FileBarChart, Gift, Hammer, IndianRupee, KeyRound, Layers, LayoutDashboard,
-    Package, Scale, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
+    Keyboard, Package, Scale, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -87,6 +87,7 @@ export const NAV_MENU: NavSection[] = [
                         ],
                     },
                     { id: "soft-controls", label: "SOFT CONTROLS", icon: SlidersHorizontal, href: "/soft-controls", menuId: "soft-controls" },
+                    { id: "keyboard-shortcuts", label: "KEYBOARD SHORTCUTS", icon: Keyboard, href: "/keyboard-shortcuts" },
                 ],
             },
         ],

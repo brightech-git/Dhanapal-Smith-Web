@@ -5,6 +5,7 @@ import { CalendarDays, ChevronDown, ChevronRight, Clock, LogOut, Menu, Moon, Pan
 import { useTheme } from "@/src/theme/theme-context";
 import { ThemeStudioDock } from "@/src/theme/theme-studio-dock";
 import type { NavItem } from "@/src/config/nav-menu";
+import TranDbPicker from "./tran-db-picker";
 
 const focus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const iconButton = `flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${focus}`;
@@ -66,6 +67,7 @@ export default function AppHeader({ trail, fallbackTitle, drawerOpen, onOpen, co
                 <p className="truncate text-sm font-semibold leading-tight tracking-tight">{title}</p>
             </div>
 
+            <TranDbPicker />
             {now && (
                 <div className="hidden shrink-0 items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-1.5 text-xs tabular-nums md:flex">
                     <span className="flex items-center gap-1.5 text-muted-foreground">

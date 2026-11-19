@@ -7,6 +7,7 @@ import ProtectedRoute from "@/src/components/app-shell/protected-route";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { canMenuAction } from "@/src/features/auth/lib/access";
 import MetalForm, { metalQueryKey, metalSaveKey, type Metal  , type ListMetal} from "@/src/module/metal/metal-form";
+import { Edit3Icon } from "lucide-react";
 
 function MetalMaster() {
     const { allDetails } = useAuth();
@@ -36,7 +37,7 @@ function MetalMaster() {
                                     <th scope="col" className="px-4 py-3">METAL NAME</th>
                                     <th scope="col" className="px-4 py-3">DISPLAY ORDER</th>
                                     <th scope="col" className="px-4 py-3">ACTIVE</th>
-                                    {canEdit && <th scope="col" className="px-4 py-3">ACTIONS</th>}
+                                    {canEdit && <th scope="col" className="px-4 py-3">ACTION</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -52,7 +53,7 @@ function MetalMaster() {
                                         </td>
                                         {canEdit && <td className="px-4 py-3"><button type="button" disabled={saving}
                                             aria-label={`Edit ${metal.metalName}`} className="font-medium text-primary-text hover:underline"
-                                            onClick={() => setEditing(metal)}>Edit</button></td>}
+                                            onClick={() => setEditing(metal)}>Edit <Edit3Icon size={20}/></button></td>}
                                     </tr>
                                 ))}
                             </tbody>

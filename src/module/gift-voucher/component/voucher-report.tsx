@@ -9,6 +9,7 @@ import { fetchGifts, getApiErrorMessage } from "../api/gift.api";
 import { useIntroducers } from "../hook/use-gift";
 import { formatAmount, formatDateTime } from "../lib/format";
 import type { GiftTran } from "../type/gift-voucher.types";
+import ReportOutput, { type ReportColumn } from "@/src/module/report/component/report-output";
 import TextInput from "@/src/components/ui/text-input";
 
 type View = "summary" | "pending" | "I" | "R";
@@ -89,6 +90,50 @@ export default function VoucherReport() {
     const total = (key: keyof TagRow) => tags.reduce((n, t) => n + Number(t[key]), 0);
     const entryTotal = (key: "amount" | "piece") => entries.reduce((n, g) => n + g[key], 0);
     const set = (k: keyof Filters, v: string) => setDraft((p) => ({ ...p, [k]: v }));
+    type ExportRow = { resultSet: 1 | 3; cells: Record<string, string | number> };
+    const exportColumns: ReportColumn<ExportRow>[] = [
+        { key: "sno", label: "S.NO", align: "right", render: (row) => row.cells.sno },
+        { key: "date", label: "DATE", render: (row) => row.cells.date },
+        { key: "tagno", label: "TAG NO", render: (row) => row.cells.tagno },
+        { key: "introducer", label: "INTRODUCER", render: (row) => row.cells.introducer },
+        ...(byTag ? [
+            ["issuedAmount", "ISSUED AMOUNT"], ["issuedPiece", "ISSUED PCS"],
+            ["receivedAmount", "RECEIVED AMOUNT"], ["receivedPiece", "RECEIVED PCS"],
+            ["pendingAmount", "PENDING AMOUNT"], ["pendingPiece", "PENDING PCS"],
+        ] : [["amount", "AMOUNT"], ["piece", "PCS"]]).map(([key, label]) => ({
+            key, label, align: "right" as const, render: (row: ExportRow) => row.cells[key],
+        })),
+    ];
+    const exportRows: ExportRow[] = byTag ? tags.map((tag, index) => ({
+        resultSet: 1,
+        cells: {
+            sno: index + 1, date: formatDateTime(tag.createdAt), tagno: tag.tagno, introducer: tag.introducerName,
+            issuedAmount: tag.issuedAmount.toFixed(2), issuedPiece: tag.issuedPiece,
+            receivedAmount: tag.receivedAmount.toFixed(2), receivedPiece: tag.receivedPiece,
+            pendingAmount: (tag.issuedAmount - tag.receivedAmount).toFixed(2), pendingPiece: tag.issuedPiece - tag.receivedPiece,
+        },
+    })) : entries.map((entry, index) => ({
+        resultSet: 1,
+        cells: { sno: index + 1, date: formatDateTime(entry.createdAt), tagno: entry.tagno, introducer: entry.introducerName,
+            amount: entry.amount.toFixed(2), piece: entry.piece },
+    }));
+    if (exportRows.length) exportRows.push({
+        resultSet: 3,
+        cells: byTag ? {
+            sno: "TOTAL", date: "", tagno: "", introducer: "",
+            issuedAmount: total("issuedAmount").toFixed(2), issuedPiece: total("issuedPiece"),
+            receivedAmount: total("receivedAmount").toFixed(2), receivedPiece: total("receivedPiece"),
+            pendingAmount: (total("issuedAmount") - total("receivedAmount")).toFixed(2),
+            pendingPiece: total("issuedPiece") - total("receivedPiece"),
+        } : { sno: "TOTAL", date: "", tagno: "", introducer: "", amount: entryTotal("amount").toFixed(2), piece: entryTotal("piece") },
+    });
+    const exportSubtitle = [
+        { summary: "All tags", pending: "Pending tags", I: "Issue entries", R: "Receipt entries" }[applied.view],
+        applied.introducerId ? introducers.data?.find((entry) => String(entry.id) === applied.introducerId)?.introducerName : "All introducers",
+        applied.tagno ? `Tag: ${applied.tagno}` : "", applied.search ? `Search: ${applied.search}` : "",
+        applied.from ? `From: ${applied.from}` : "", applied.to ? `To: ${applied.to}` : "",
+    ].filter(Boolean).join(" · ");
+
     const th = "px-3 py-2.5 font-medium";
     const num = "px-3 py-2.5 text-right tabular-nums";
 
@@ -146,6 +191,9 @@ export default function VoucherReport() {
             </section>
 
             <section className={`${card} overflow-hidden`}>
+                <ReportOutput key={byTag ? "tags" : "entries"} title="Gift Voucher report" subtitle={exportSubtitle}
+                    columns={exportColumns} rows={exportRows} loading={query.isFetching}
+                    error={query.isError ? getApiErrorMessage(query.error) : null} />
                 <div className="relative max-h-[600px] overflow-auto">
                     {byTag ? (
                         <table className="w-full min-w-[820px] text-sm">

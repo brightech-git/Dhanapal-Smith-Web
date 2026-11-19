@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import { attachTranDb } from "./tran-db";
 
 let axiosInstance: AxiosInstance | null = null;
 let currentBaseUrl: string | null = null;
@@ -17,6 +18,8 @@ export const getAxiosInstance = (baseUrl?: string): AxiosInstance => {
                 "Content-Type": "application/json",
             },
         });
+        // Transaction, dashboard and report requests carry the tranDb request header.
+        attachTranDb(axiosInstance);
 
         // console.log("🔗 Axios initialized with baseURL:", BASEURL);
     }
