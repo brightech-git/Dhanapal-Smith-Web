@@ -63,7 +63,8 @@ const toApi = (d: Partial<SmithDetails>) => ({
 });
 
 export const SmithDetailsService = {
-    getAll: async (): Promise<SmithDetails[]> => ((await api.get<SmithApi[]>("smiths")) ?? []).map(fromApi),
+    getAll: async (search?: string): Promise<SmithDetails[]> =>
+        ((await api.get<SmithApi[]>("smiths", search?.trim() ? { search: search.trim() } : undefined)) ?? []).map(fromApi),
     getById: async (id: number): Promise<SmithDetails> => fromApi(await api.get<SmithApi>(`smiths/${id}`)),
     create: async (details: Partial<SmithDetails>): Promise<SmithDetails> => fromApi(await api.post<SmithApi>("smiths", toApi(details))),
     update: async (details: SmithDetails): Promise<SmithDetails> => fromApi(await api.put<SmithApi>(`smiths/${details.smithId}`, toApi(details))),

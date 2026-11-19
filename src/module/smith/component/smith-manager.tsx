@@ -9,10 +9,10 @@ import {
     IconButton,
 } from "@mui/material";
 import { Delete, Edit } from "@mui/icons-material";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
+import { SmithDetailsService } from "@/src/module/smith/api/smith-details.api";
 import SmithFormModal from "./smith-form-modal";
 import Table from "@/src/components/ui/table";
-import EditableCell from "@/src/components/ui/editable-cell";
 import { useSmithDetails } from "@/src/module/smith/context/smith-details-context";
 import { useToast } from "@/src/providers/toast-provider";
 import { SmithDetails } from "@/src/module/smith/type/smith-details.types";
@@ -29,12 +29,47 @@ type SmithManagerProps = {
 };
 
 const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
-    const { smiths, fetchAll, updateSmith, deleteSmith } = useSmithDetails();
-    const { transactions, getDetail, deleteTransaction } = useSmithTransactionsContext();
+    const { smiths, fetchAll, deleteSmith } = useSmithDetails();
+    const { getDetail, deleteTransaction } = useSmithTransactionsContext();
     const { addToast } = useToast();
 
     const [loading, setLoading] = useState(true);
-    const [showAll, setShowAll] = useState(false);
+    const [search, setSearch] = useState("");
+    const [searchResults, setSearchResults] = useState<SmithDetails[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState(false);
+    const searchTerm = search.trim();
+    const visibleSmiths = searchTerm ? searchResults : smiths;
+
+    // Keep search results local so other smith selectors still have the full list.
+    // Cleanup ignores late responses when the term changes or the component unmounts.
+    useEffect(() => {
+        let active = true;
+        setSearchError(false);
+        if (!searchTerm) {
+            setSearchLoading(false);
+            setSearchResults([]);
+            return;
+        }
+        setSearchLoading(true);
+        const timer = setTimeout(async () => {
+            try {
+                const matches = await SmithDetailsService.getAll(searchTerm);
+                if (active) setSearchResults(matches);
+            } catch {
+                if (active) {
+                    setSearchResults([]);
+                    setSearchError(true);
+                }
+            } finally {
+                if (active) setSearchLoading(false);
+            }
+        }, 300);
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
+    }, [searchTerm, smiths]);
     // undefined = closed, null = new smith, a row = edit that smith
     const [formSmith, setFormSmith] = useState<SmithDetails | null | undefined>(undefined);
 
@@ -44,7 +79,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         const loadSmiths = async () => {
             try {
                 await fetchAll();
-            } catch (error) {
+            } catch {
                 addToast({
                     type: "error",
                     title: "Error",
@@ -60,30 +95,8 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         };
     }, [fetchAll, addToast]);
 
-    // 🔹 Save changes when edited
-    const handleSave = async (
-        smithId: number,
-        key: keyof SmithDetails,
-        newValue: any
-    ) => {
-        try {
-            const existingSmith = smiths.find((s) => s.smithId === smithId);
-            if (!existingSmith) return;
-
-            const payload = {
-                ...existingSmith,
-                [key]: newValue,
-            };
-
-            await updateSmith(payload);
-        } catch {
-            addToast({
-                type: "error",
-                title: "Error",
-                message: "Update failed.",
-            });
-            throw new Error("Update failed");
-        }
+    const selectSmith = (smith: SmithDetails) => {
+        if (smith.smithId != null) onSelectSmith?.(smith.smithId, smith.pname, true, true);
     };
 
     // 🔹 Delete only if no nonzero transactions exist
@@ -127,7 +140,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         }
     };
 
-    // 🔹 Columns definition - SIMPLIFIED using EditableCell directly
+    // 🔹 Smith list columns
     const columns = [
         {
             key: "sno",
@@ -135,7 +148,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             align: "center" as const,
             headalign: "center" as const,
             width: "60px",
-            render: (_v: any, _row: any, index: number) => (
+            render: (_v: unknown, _row: SmithDetails, index: number) => (
                 <span className="font-semibold">{index + 1}</span>
             ),
         },
@@ -145,15 +158,18 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             width: "150px",
             align: "left" as const,
             headalign: "center" as const,
-            render: (value: any, row: SmithDetails) => (
-                <EditableCell
-                    value={value}
-                    type="text"
-                    onSave={async (newValue) => {
-                        await handleSave(row.smithId!, "pname", newValue);
+            render: (value: string, row: SmithDetails) => (
+                <button
+                    type="button"
+                    className="w-full rounded text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`Open cash and weight transactions for ${row.pname}`}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        selectSmith(row);
                     }}
-                    className="w-full"
-                />
+                >
+                    {value}
+                </button>
             ),
         },
         {
@@ -162,14 +178,15 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             align: "center" as const,
             headalign: "center" as const,
             width: "90px",
-            render: (_v: any, row: SmithDetails) => (
-                <div className="flex justify-center">
+            render: (_v: unknown, row: SmithDetails) => (
+                <div className="flex justify-center" onClick={(event) => event.stopPropagation()}>
                     <IconButton size="small" color="primary" aria-label={`Edit ${row.pname}`} onClick={() => setFormSmith(row)}>
                         <Edit fontSize="small" />
                     </IconButton>
                     <IconButton
                         size="small"
                         color="error"
+                        aria-label={`Delete ${row.pname}`}
                         onClick={() => handleDelete(row)}
                     >
                         <Delete fontSize="small" />
@@ -178,9 +195,6 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
             ),
         },
     ];
-
-    // 🔹 Animated Table Display
-    const visibleSmiths = showAll ? smiths : smiths.slice(0, 0);
 
     return (
         <Box className="p-2">
@@ -200,22 +214,36 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     <Button variant="contained" size="small" startIcon={<Plus size={16} />} onClick={() => setFormSmith(null)}>
                         Add smith
                     </Button>
-                {smiths.length > 0 && (
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => setShowAll((prev) => !prev)}
-                        >
-                            {showAll ? "Show Less" : "Show All"}
-                        </Button>
-                )}
                 </div>
             </div>
 
-            {loading ? (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                <input
+                    type="search"
+                    aria-label="Search smiths by name"
+                    placeholder="Search smith name..."
+                    value={search}
+                    maxLength={150}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+                {search && (
+                    <button type="button" aria-label="Clear smith search" onClick={() => setSearch("")}
+                        className="rounded p-1 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+                        <X size={16} />
+                    </button>
+                )}
+            </div>
+
+            {loading || searchLoading ? (
                 <div className="flex justify-center items-center h-40">
                     <CircularProgress />
                 </div>
+            ) : searchError ? (
+                <p role="alert" className="py-4 text-center text-sm text-red-600">
+                    Could not search smiths. Please try again.
+                </p>
             ) : (
                 <>
                     <motion.div
@@ -226,10 +254,16 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
                     >
                         {visibleSmiths.length === 0 ? (
                             <div className="text-center py-4 text-muted-foreground">
-                                Click &quot;Show All&quot; to view and manage smiths
+                                {searchTerm ? "No matching smiths found." : "No smiths yet. Add a smith to get started."}
                             </div>
                         ) : (
-                                    <Table columns={columns} data={visibleSmiths} showRows={10} fixedHeight={"300px"} />
+                            <Table
+                                columns={columns}
+                                data={visibleSmiths}
+                                onRowClick={selectSmith}
+                                showRows={10}
+                                fixedHeight="300px"
+                            />
                         )}
                     </motion.div>
                 </>

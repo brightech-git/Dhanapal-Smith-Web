@@ -3,6 +3,7 @@
 import { Dialog, DialogTitle } from "@mui/material";
 import ComboBox from "@/src/components/ui/combo-box";
 import MetalForm, { metalQueryKey, metalSaveKey, type Metal } from "@/src/module/metal/metal-form";
+import { fetchItems, itemQueryKey, type Item } from "@/src/module/item/item-form";
 import { useState, type FormEvent } from "react";
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getApiErrorMessage } from "@/lib/api/envelope";
@@ -12,9 +13,6 @@ import { canMenuAction } from "@/src/features/auth/lib/access";
 
 import { useToast } from "@/src/providers/toast-provider";
 
-type Items = { itemId: number; metalId: string; itemName: string;  active: string };
-type ItemList = { nextId: number, items:Items[] }
-const key = ["items"];
 const empty = { metalId: "", itemName: "", active: "Y" };
 const row = "grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2 text-sm font-medium";
 const field = "w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -30,21 +28,20 @@ function ItemMaster() {
     const [editing, setEditing] = useState<number | null>(null);
     const [form, setForm] = useState(empty);
     const client = useQueryClient();
-    const list = useQuery({ queryKey: key, queryFn: () => api.get<ItemList[]>("item") });
+    const list = useQuery({ queryKey: itemQueryKey, queryFn: fetchItems });
 
-    console.log(list.data,'list')
     const metals = useQuery({ queryKey: metalQueryKey, queryFn: () => api.get<Metal[]>("metal") });
     const save = useMutation({
-        mutationFn: (values: Omit<Items, "itemId">) => editing !== null
-            ? api.put<Items>(`item/${editing}`, values)
-            : api.post<Items>("item", values),
+        mutationFn: (values: Omit<Item, "itemId">) => editing !== null
+            ? api.put<Item>(`item/${editing}`, values)
+            : api.post<Item>("item", values),
         onError: (error) => {
             addToast({ type: "error", title: "Could not save item", message: getApiErrorMessage(error) });
         },
         onSuccess: () => {
             setEditing(null);
             setForm(empty);
-            return client.invalidateQueries({ queryKey: key });
+            return client.invalidateQueries({ queryKey: itemQueryKey });
         },
     });
 
@@ -57,7 +54,6 @@ function ItemMaster() {
         }
         save.mutate({ ...form, itemName: form.itemName.trim() });
     }
-    console.log(list.data?.items,'list.data?.items')
 
     return (
         <div className="mx-auto grid w-full  items-start gap-4 p-3 sm:p-5 xl:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)]">
@@ -69,7 +65,7 @@ function ItemMaster() {
 
                         <label className={row}>
                             <span>Item ID</span>
-                            <input className={`${field} max-w-[100px] disabled:opacity-60`} value={editing ?? list?.data?.nextId} placeholder="Auto" disabled />
+                            <input className={`${field} max-w-[100px] disabled:opacity-60`} value={editing ?? list.data?.nextId ?? ""} placeholder="Auto" disabled />
                         </label>
                         <div className={row}>
                             <span id="item-metal-label">Metal ID</span>
@@ -129,7 +125,6 @@ function ItemMaster() {
                                     <th scope="col" className="px-4 py-3">Metal ID</th>
                                     <th scope="col" className="px-4 py-3">Item ID</th>
                                     <th scope="col" className="px-4 py-3">Item name</th>
-                                    <th scope="col" className="px-4 py-3">Display order</th>
                                     <th scope="col" className="px-4 py-3">Active</th>
                                     {canEdit && <th scope="col" className="px-4 py-3">Actions</th>}
                                 </tr>
@@ -140,10 +135,9 @@ function ItemMaster() {
                                         <td className="px-4 py-3 font-medium">{item.metalId}</td>
                                         <td className="px-4 py-3 tabular-nums">{item.itemId}</td>
                                         <td className="px-4 py-3">{item.itemName}</td>
-                                        <td className="px-4 py-3 tabular-nums">{item.displayOrder}</td>
                                         <td className="px-4 py-3">
-                                            <span className={`rounded-md px-2 py-1 text-xs font-medium ${item.active ? "bg-accent-soft text-primary-text" : "bg-muted text-muted-foreground"}`}>
-                                                {item.active ? "Yes" : "No"}
+                                            <span className={`rounded-md px-2 py-1 text-xs font-medium ${item.active === "Y" ? "bg-accent-soft text-primary-text" : "bg-muted text-muted-foreground"}`}>
+                                                {item.active === "Y" ? "Yes" : "No"}
                                             </span>
                                         </td>
                                         {canEdit && <td className="px-4 py-3"><button type="button" disabled={save.isPending}

@@ -205,7 +205,7 @@ export const fetchSmithTransactionsBySmith = async (smithId: number | string, tr
         .filter(byMode(trantype)).map(remember);
 
 // ---- Balances
-/** GET /transactions/summary row: one per smith and metal (issue minus receipt). */
+/** One row per smith and metal; amount repeats the smith's full cash balance. */
 export interface TransactionSummaryRow {
     smithId: number;
     smithName: string;
@@ -221,13 +221,13 @@ export const fetchTransactionSummary = async ({ metalId }: { metalId?: string } 
 
 /**
  * One row per smith. Weight counts only the chosen metal (all metals when
- * metalId is empty); amount is cash, so it always counts every row.
+ * metalId is empty); the full cash balance is repeated on each metal row,
+ * so amount is counted once per smith.
  */
 export const summarizeSmiths = (rows: TransactionSummaryRow[], metalId = ""): SmithTransaction[] => {
     const bySmith = new Map<number, { name: string; weight: Decimal; amount: Decimal }>();
     for (const r of rows) {
-        const entry = bySmith.get(r.smithId) ?? { name: r.smithName, weight: new Decimal(0), amount: new Decimal(0) };
-        entry.amount = entry.amount.plus(String(num(r.amount)));
+        const entry = bySmith.get(r.smithId) ?? { name: r.smithName, weight: new Decimal(0), amount: new Decimal(String(num(r.amount))) };
         if (!metalId || r.metalId === metalId) entry.weight = entry.weight.plus(String(num(r.weight)));
         bySmith.set(r.smithId, entry);
     }

@@ -77,6 +77,8 @@ export default function SmithTransactionsPage() {
     // The weight row waiting for an item from the "Add new" item dialog.
     const [addItemFor, setAddItemFor] = useState<any>(null);
     const cashPrintRef = useRef<HTMLDivElement>(null);
+    const weightSectionRef = useRef<HTMLElement>(null);
+    const cashSectionRef = useRef<HTMLElement>(null);
 
 
     const {
@@ -170,7 +172,8 @@ export default function SmithTransactionsPage() {
         try {
             const data = await getWeightFlows(smithId);
             if (shownSmith.current && shownSmith.current !== smithId) return;
-            setWeightBalanceData(data || []);
+            // Keep calculated running balances intact; reverse only the display order.
+            setWeightBalanceData([...(data || [])].reverse());
         } catch (error) {
             addToast({
                 type: 'error',
@@ -184,7 +187,7 @@ export default function SmithTransactionsPage() {
         try {
             const data = await getCashFlows(smithId);
             if (shownSmith.current && shownSmith.current !== smithId) return;
-            setCashBalanceData(data || []);
+            setCashBalanceData([...(data || [])].reverse());
         } catch (error) {
             addToast({
                 type: 'error',
@@ -277,7 +280,11 @@ export default function SmithTransactionsPage() {
     };
 
 
+    const hasNewWeightRow = weightBalanceData.some((row) => row.isNew);
+    const hasNewCashRow = cashBalanceData.some((row) => row.isNew);
+
     const handleAddWeightRow = () => {
+        if (hasNewWeightRow) return;
         if (!selectedSmithId) {
             addToast({
                 type: 'warning',
@@ -305,7 +312,8 @@ export default function SmithTransactionsPage() {
             isNew: true,
         };
 
-        setWeightBalanceData(prev => [...prev, newRow]);
+        setWeightBalanceData(prev => prev.some((row) => row.isNew) ? prev : [newRow, ...prev]);
+        requestAnimationFrame(() => weightSectionRef.current?.querySelector(".overflow-auto")?.scrollTo({ top: 0 }));
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -314,6 +322,7 @@ export default function SmithTransactionsPage() {
     };
 
     const handleAddCashRow = () => {
+        if (hasNewCashRow) return;
         if (!selectedSmithId) {
             addToast({
                 type: 'warning',
@@ -336,7 +345,8 @@ export default function SmithTransactionsPage() {
             isNew: true,
         };
 
-        setCashBalanceData(prev => [...prev, newRow]);
+        setCashBalanceData(prev => prev.some((row) => row.isNew) ? prev : [newRow, ...prev]);
+        requestAnimationFrame(() => cashSectionRef.current?.querySelector(".overflow-auto")?.scrollTo({ top: 0 }));
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -698,7 +708,7 @@ export default function SmithTransactionsPage() {
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{index + 1}</span>
+                    <span>{weightBalanceData.length - index}</span>
                     {showDelete  && <button
                         className="text-red-500 hover:text-red-700 ml-1"
                         onClick={() => handleDeleteWeightRow(row.id)}
@@ -848,7 +858,7 @@ export default function SmithTransactionsPage() {
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{index + 1}</span>
+                    <span>{weightBalanceData.length - index}</span>
                     
 
                 </div>
@@ -912,7 +922,7 @@ export default function SmithTransactionsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => onEdit("weight", row, "remarks", newVal)} />
             ),
         },
-    ], [selectedSmithId, responsive.isMobile, showDelete, itemOptions]);
+    ], [selectedSmithId, responsive.isMobile, showDelete, itemOptions, weightBalanceData.length]);
 
     // Cash Table Columns
     const cashBalanceColumns = useMemo(() => [
@@ -924,7 +934,7 @@ export default function SmithTransactionsPage() {
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{index + 1}</span>
+                    <span>{cashBalanceData.length - index}</span>
                     {showDelete   && <button
                         className="text-red-500 hover:text-red-700 ml-2"
                         onClick={() => handleDeleteCashRow(row.id)}
@@ -1004,7 +1014,7 @@ export default function SmithTransactionsPage() {
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{index + 1}</span>
+                    <span>{cashBalanceData.length - index}</span>
                 
 
                 </div>
@@ -1060,7 +1070,7 @@ export default function SmithTransactionsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => onEdit("cash", row, "remarks", newVal)} />
             ),
         },
-    ], [selectedSmithId, responsive.isMobile, showDelete]);
+    ], [selectedSmithId, responsive.isMobile, showDelete, cashBalanceData.length]);
 
 
 
@@ -1156,7 +1166,7 @@ export default function SmithTransactionsPage() {
 
                     <div className="flex min-w-0 flex-col gap-4 xl:col-span-9">
                         {/* Weight */}
-                        <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                        <section ref={weightSectionRef} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                             <div className={cardHeader}>
                                 <h2 className="flex items-center gap-2 text-sm font-semibold">
                                     <Scale size={18} className="text-emerald-600 dark:text-emerald-400" />
@@ -1178,7 +1188,9 @@ export default function SmithTransactionsPage() {
                                                 Save all ({weightDirtyCount})
                                             </button>
                                         )}
-                                        <button onClick={handleAddWeightRow} className={`${actionButton} bg-emerald-600`}>
+                                        <button onClick={handleAddWeightRow} disabled={hasNewWeightRow}
+                                            title={hasNewWeightRow ? "Save the current weight row before adding another" : "Add a weight transaction"}
+                                            className={`${actionButton} bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
                                             Add new
                                         </button>
@@ -1213,7 +1225,7 @@ export default function SmithTransactionsPage() {
                         </section>
 
                         {/* Cash */}
-                        <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                        <section ref={cashSectionRef} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                             <div className={cardHeader}>
                                 <h2 className="flex items-center gap-2 text-sm font-semibold">
                                     <IndianRupee size={18} className="text-primary-text" />
@@ -1235,7 +1247,9 @@ export default function SmithTransactionsPage() {
                                                 Save all ({cashDirtyCount})
                                             </button>
                                         )}
-                                        <button onClick={handleAddCashRow} className={`${actionButton} bg-primary`}>
+                                        <button onClick={handleAddCashRow} disabled={hasNewCashRow}
+                                            title={hasNewCashRow ? "Save the current cash row before adding another" : "Add a cash transaction"}
+                                            className={`${actionButton} bg-primary disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
                                             Add new
                                         </button>
