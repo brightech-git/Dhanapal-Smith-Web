@@ -12,9 +12,9 @@ import { canViewMenu } from "@/src/features/auth/lib/access";
 import { notifyHashChange } from "@/src/hooks/use-location-hash";
 
 const TABS = [
-    { id: "roles", label: "Roles", icon: ShieldCheck, hint: "Create, edit and delete roles" },
-    { id: "permissions", label: "Permissions", icon: KeyRound, hint: "Per-menu access for a role" },
-    { id: "user-roles", label: "User roles", icon: UserCog, hint: "Give each user a role" },
+    { id: "roles", label: "ROLES", icon: ShieldCheck, hint: "Create, edit and delete roles" },
+    { id: "permissions", label: "PERMISSIONS", icon: KeyRound, hint: "Per-menu access for a role" },
+    { id: "user-roles", label: "USER ROLES", icon: UserCog, hint: "Give each user a role" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -59,7 +59,7 @@ export default function RolesPage() {
     return (
         <div className="w-full space-y-5 px-3 py-4 sm:px-5 lg:px-6">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Roles &amp; access</h1>
+                <h1 className="text-sm font-bold tracking-wide">Roles &amp; access</h1>
                 <p className="mt-0.5 text-sm text-muted-foreground">Set up roles, what each role can do, and which users have them.</p>
             </div>
 

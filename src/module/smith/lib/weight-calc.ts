@@ -5,12 +5,12 @@ export const WEIGHT_DECIMALS = 3;
 export const TOUCH_DECIMALS = 2;
 
 /** Weight transaction types: R = Receipt, P = Purchase, PR = Purchase Return. */
-export type WeightTranType = "R" | "P" | "PR";
-export const isWeightTranType = (type: unknown): type is WeightTranType => type === "R" || type === "P" || type === "PR";
+export type WeightTranType = "R" | "I" | "PR";
+export const isWeightTranType = (type: unknown): type is WeightTranType => type === "R" || type === "I" || type === "PR";
 export const WEIGHT_TRAN_TYPES: { value: WeightTranType; label: string }[] = [
-    { value: "R", label: "Receipt" },
-    { value: "P", label: "Issue" },
-    { value: "PR", label: "Purchase Return" },
+    { value: "R", label: "RECEIPT" },
+    { value: "I", label: "ISSUE" },
+    { value: "PR", label: "PURCHASE RETURN" },
 ];
 export const weightTranTypeLabel = (type: string | null | undefined) =>
     WEIGHT_TRAN_TYPES.find((t) => t.value === type)?.label ?? "";

@@ -8,13 +8,15 @@ import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { canMenuAction } from "@/src/features/auth/lib/access";
 
 import { useToast } from "@/src/providers/toast-provider";
+import { useFormFocus } from "@/src/hooks/use-form-focus";
+import TextInput from "@/src/components/ui/text-input";
 
 export type ListMetal = {sno:number, metalId: string; metalName: string; displayOrder: number; active: string };
 export type Metal = {metalId: string; metalName: string; displayOrder: number; active: string };
 export const metalQueryKey = ["metals"];
 export const metalSaveKey = ["save-metal"];
 const empty = { metalId: "", metalName: "", displayOrder: "", active: "Y" };
-const row = "grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2 text-sm font-medium";
+const row = "grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2 text-xs font-medium";
 const field = "w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function MetalForm({ metal, onSaved, onCancel, showHeading = true }: {
@@ -45,6 +47,7 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
         },
         onSuccess: (saved) => {
             setForm(empty);
+            focusFirstField();
             client.setQueryData<Metal[]>(metalQueryKey, (previous = []) =>
                 [...previous.filter((entry) => entry.metalId !== editing && entry.metalId !== saved.metalId), saved]
                     .sort((a, b) => a.displayOrder - b.displayOrder || a.metalId.localeCompare(b.metalId)));
@@ -52,6 +55,8 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
             return client.invalidateQueries({ queryKey: metalQueryKey });
         },
     });
+
+    const { formRef, focusFirstField } = useFormFocus(save.isPending);
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -67,26 +72,36 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
     if (!(editing ? canEdit : canAdd)) return null;
 
     return (
-        <form onSubmit={submit} className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+        <form ref={formRef} onSubmit={submit} onReset={(event) => {
+                event.preventDefault();
+                if (save.isPending) return;
+                if (editing && onCancel) {
+                    onCancel();
+                    return;
+                }
+                setForm(empty);
+                save.reset();
+                focusFirstField();
+            }} className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
             {showHeading && <h2 className="font-semibold">{editing ? "Edit metal" : "Add metal"}</h2>}
             <fieldset disabled={save.isPending} className="grid min-w-0 gap-3">
                 <label className={row}>
-                    <span>Metal ID</span>
-                    <input className={`${field} max-w-[100px]`} value={form.metalId} maxLength={1} pattern="[A-Za-z]" title="Enter one letter (A-Z)" required
-                        onChange={(event) => setForm({ ...form, metalId: event.target.value.replace(/[^A-Za-z]/g, "").toUpperCase() })} />
+                    <span>METAL ID</span>
+                    <TextInput className="max-w-[100px]" value={form.metalId} maxLength={1} pattern="[A-Za-z]" title="Enter one letter (A-Z)" required
+                        onChange={(value) => setForm({ ...form, metalId: value.replace(/[^A-Z]/g, "") })} />
                 </label>
                 <label className={row}>
-                    <span>Metal name</span>
-                    <input className={`${field} max-w-[200px]`} value={form.metalName} maxLength={100} required
-                        onChange={(event) => setForm({ ...form, metalName: event.target.value })} />
+                    <span>METAL NAME</span>
+                    <TextInput className="max-w-[200px]" value={form.metalName} maxLength={100} required
+                        onChange={(metalName) => setForm({ ...form, metalName })} />
                 </label>
                 <label className={row}>
-                    <span>Display order</span>
-                    <input className={`${field} max-w-[100px]`} type="number" step="1" min={-2147483648} max={2147483647} required value={form.displayOrder}
-                        onChange={(event) => setForm({ ...form, displayOrder: event.target.value })} />
+                    <span>DISPLAY ORDER</span>
+                    <TextInput className="max-w-[100px]" type="number" decimals={0} allowNegative min={-2147483648} max={2147483647} required value={form.displayOrder}
+                        onChange={(displayOrder) => setForm({ ...form, displayOrder })} />
                 </label>
                 <label className={row}>
-                    <span>Active</span>
+                    <span>ACTIVE</span>
                     <select className={`${field} max-w-[100px]`} value={form.active}
                         onChange={(event) => setForm({ ...form, active: event.target.value })}>
                         <option value="Y">Yes</option>
@@ -98,6 +113,7 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
                 <button type="submit" disabled={save.isPending} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
                     {save.isPending ? "Saving…" : editing ? "Save changes" : "Add metal"}
                 </button>
+                <button type="reset" disabled={save.isPending} className="rounded-lg border border-border px-4 py-2 text-sm">Reset</button>
                 {onCancel && <button type="button" disabled={save.isPending} className="rounded-lg border border-border px-4 py-2 text-sm"
                     onClick={onCancel}>Cancel</button>}
             </div>

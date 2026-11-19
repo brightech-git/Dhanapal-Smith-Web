@@ -8,9 +8,9 @@ import { useTheme } from "./theme-context";
 import { THEME_PRESETS, useThemeStudio } from "./theme-studio-context";
 
 const CUSTOM_COLOR_FIELDS = [
-    { key: "primary", label: "Primary action", hint: "Buttons, active menu, table headers" },
-    { key: "secondary", label: "Secondary glow", hint: "Gradients and highlights" },
-    { key: "accent", label: "Accent surface", hint: "Badges and soft highlight panels" },
+    { key: "primary", label: "PRIMARY ACTION", hint: "Buttons, active menu, table headers" },
+    { key: "secondary", label: "SECONDARY GLOW", hint: "Gradients and highlights" },
+    { key: "accent", label: "ACCENT SURFACE", hint: "Badges and soft highlight panels" },
 ] as const;
 
 /**
@@ -59,7 +59,7 @@ export function ThemeStudioDock({ triggerClassName = "" }: { triggerClassName?: 
                     >
                         <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
                             <div>
-                                <h2 className="text-lg font-semibold">Theme studio</h2>
+                                <h2 className="text-lg font-semibold">THEME STUDIO</h2>
                                 <p className="mt-0.5 text-sm text-muted-foreground">
                                     Pick a ready palette, tune individual colors, or switch between light and dark.
                                 </p>

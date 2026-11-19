@@ -19,6 +19,7 @@ export default function SmithDashboardPage() {
     const summaryQuery = useDashboardSummary(flags.showDashboard);
     const recentCashQuery = useRecentCashTransactions(5, flags.showDashboard && canViewTransactions);
     const recentWeightQuery = useRecentWeightTransactions(5, flags.showDashboard && canViewTransactions);
+  
     const [detail, setDetail] = useState<{ kind: FlowKind; index: number } | null>(null);
     const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: Pick<RecentTransaction, "media" | "date"> & { id: number; remarks: string } } | null>(null);
 
@@ -26,11 +27,11 @@ export default function SmithDashboardPage() {
     const dashboardSection = (
         <div className="space-y-2">
             {summaryQuery.isError && <p role="alert" className="text-sm text-red-600">Unable to load dashboard totals. Please try again.</p>}
-            <h2 className="text-lg font-semibold">Transaction overview</h2>
+            <h2 className="text-sm font-semibold">TRANSACTION OVERVIEW</h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <KpiCard
                     index={0}
-                    label="Total weight balance"
+                    label="TOTAL WEIGHT BALANCE"
                     value={summary?.totalWeight ?? null}
                     format={formatWeight}
                     footnote={summary ? `${summary.weightTransactions} weight entries` : undefined}
@@ -40,7 +41,7 @@ export default function SmithDashboardPage() {
                 />
                 <KpiCard
                     index={1}
-                    label="Total amount"
+                    label="TOTAL AMOUNT"
                     value={summary?.totalAmount ?? null}
                     format={formatAmount}
                     footnote={summary ? `${summary.amountTransactions} cash entries` : undefined}
@@ -50,7 +51,7 @@ export default function SmithDashboardPage() {
                 />
                 <KpiCard
                     index={2}
-                    label="Smiths"
+                    label="SMITHS"
                     value={summary?.smithCount ?? null}
                     format={(v) => Math.round(v).toString()}
                     footnote="Registered smiths"
@@ -60,7 +61,7 @@ export default function SmithDashboardPage() {
                 />
                 <KpiCard
                     index={3}
-                    label="Weight transactions"
+                    label="WEIGHT TRANSACTIONS"
                     value={summary?.weightTransactions ?? null}
                     format={(v) => Math.round(v).toLocaleString("en-IN")}
                     icon={Scale}
@@ -69,7 +70,7 @@ export default function SmithDashboardPage() {
                 />
                 <KpiCard
                     index={4}
-                    label="Amount transactions"
+                    label="AMOUNT TRANSACTIONS"
                     value={summary?.amountTransactions ?? null}
                     format={(v) => Math.round(v).toLocaleString("en-IN")}
                     icon={IndianRupee}
@@ -78,7 +79,7 @@ export default function SmithDashboardPage() {
                 />
                 <KpiCard
                     index={5}
-                    label="Total transactions"
+                    label="TOTAL TRANSACTIONS"
                     value={summary?.totalTransactions ?? null}
                     format={(v) => Math.round(v).toLocaleString("en-IN")}
                     icon={ClipboardList}
@@ -87,7 +88,7 @@ export default function SmithDashboardPage() {
                 />
             </div>
 
-            {canViewTransactions && <h2 className="text-md font-semibold">Latest transactions</h2>}
+            {canViewTransactions && <h2 className="text-md font-semibold">LATEST TRANSACTIONS</h2>}
             {canViewTransactions && (recentCashQuery.isError || recentWeightQuery.isError) && (
                 <p role="alert" className="text-sm text-muted-foreground">Some recent transactions could not be loaded.</p>
             )}

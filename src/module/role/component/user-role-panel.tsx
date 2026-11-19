@@ -7,6 +7,7 @@ import ConfirmDialog from "@/src/components/ui/confirm-dialog";
 import { getApiErrorMessage } from "../api/role.api";
 import { useAssignUserRole, useRoles, useUserRoles, useUsers } from "../hook/use-roles";
 import { CardHeader, StatusBadge, card, inputClass } from "./ui";
+import TextInput from "@/src/components/ui/text-input";
 
 const yes = (v?: string | null) => (v ?? "").toUpperCase() === "Y";
 
@@ -78,17 +79,19 @@ export default function UserRolePanel() {
         <section className={`${card} overflow-hidden`}>
             <CardHeader
                 icon={UserCog}
-                title="User roles"
+                title="USER ROLES"
                 subtitle={`${assignedCount} of ${usersQuery.data?.length ?? 0} users have a role`}
                 actions={
                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto" data-enter-nav="off">
                         <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                className={`${inputClass} h-9 pl-9`}
+                            <TextInput
+                                unstyled
+                                uppercase={false}
+                                inputClassName={`${inputClass} h-9 pl-9`}
                                 placeholder="Search users..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={setSearch}
                                 aria-label="Search users"
                             />
                         </div>
@@ -113,11 +116,11 @@ export default function UserRolePanel() {
                 <table className="w-full min-w-[640px] text-sm">
                     <thead>
                         <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                            <th className="px-5 py-2.5 font-medium">User</th>
-                            <th className="px-3 py-2.5 font-medium">Status</th>
-                            <th className="px-3 py-2.5 font-medium">Current role</th>
-                            <th className="px-3 py-2.5 font-medium">Assign role</th>
-                            <th className="px-5 py-2.5 text-right font-medium">Save</th>
+                            <th className="px-5 py-2.5 font-medium">USER</th>
+                            <th className="px-3 py-2.5 font-medium">STATUS</th>
+                            <th className="px-3 py-2.5 font-medium">CURRENT ROLE</th>
+                            <th className="px-3 py-2.5 font-medium">ASSIGN ROLE</th>
+                            <th className="px-5 py-2.5 text-right font-medium">SAVE</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">

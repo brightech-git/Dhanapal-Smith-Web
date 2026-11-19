@@ -9,6 +9,7 @@ import { fetchGifts, getApiErrorMessage } from "../api/gift.api";
 import { useIntroducers } from "../hook/use-gift";
 import { formatAmount, formatDateTime } from "../lib/format";
 import type { GiftTran } from "../type/gift-voucher.types";
+import TextInput from "@/src/components/ui/text-input";
 
 type View = "summary" | "pending" | "I" | "R";
 type Filters = { view: View; introducerId: string; tagno: string; search: string; from: string; to: string };
@@ -94,7 +95,7 @@ export default function VoucherReport() {
     return (
         <div className="space-y-4">
             <section className={card}>
-                <CardHeader icon={BarChart3} title="Gift report" subtitle="Press Enter to move to the next filter; Enter on the last one searches" />
+                <CardHeader icon={BarChart3} title="GIFT REPORT" subtitle="Press Enter to move to the next filter; Enter on the last one searches" />
                 <form
                     className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-6"
                     onSubmit={(e) => {
@@ -102,7 +103,7 @@ export default function VoucherReport() {
                         setApplied(draft);
                     }}
                 >
-                    <Field label="View" htmlFor="rep-view">
+                    <Field label="VIEW" htmlFor="rep-view">
                         <select id="rep-view" className={inputClass} value={draft.view} onChange={(e) => set("view", e.target.value)}>
                             <option value="summary">By tag (all)</option>
                             <option value="pending">By tag (pending only)</option>
@@ -110,7 +111,7 @@ export default function VoucherReport() {
                             <option value="R">Receipt entries</option>
                         </select>
                     </Field>
-                    <Field label="Introducer" htmlFor="rep-introducer">
+                    <Field label="INTRODUCER" htmlFor="rep-introducer">
                         <select id="rep-introducer" className={inputClass} value={draft.introducerId} onChange={(e) => set("introducerId", e.target.value)}>
                             <option value="">All introducers</option>
                             {(introducers.data ?? []).map((i) => (
@@ -120,16 +121,16 @@ export default function VoucherReport() {
                             ))}
                         </select>
                     </Field>
-                    <Field label="Tag no" htmlFor="rep-tag">
-                        <input id="rep-tag" className={inputClass} autoComplete="off" value={draft.tagno} onChange={(e) => set("tagno", e.target.value.toUpperCase())} />
+                    <Field label="TAG NO" htmlFor="rep-tag">
+                        <TextInput unstyled id="rep-tag" inputClassName={inputClass} value={draft.tagno} onChange={(v) => set("tagno", v)} />
                     </Field>
-                    <Field label="Name / mobile" htmlFor="rep-search">
-                        <input id="rep-search" className={inputClass} autoComplete="off" value={draft.search} onChange={(e) => set("search", e.target.value)} />
+                    <Field label="NAME / MOBILE" htmlFor="rep-search">
+                        <TextInput unstyled uppercase={false} id="rep-search" inputClassName={inputClass} value={draft.search} onChange={(v) => set("search", v)} />
                     </Field>
-                    <Field label="From date" htmlFor="rep-from">
+                    <Field label="FROM DATE" htmlFor="rep-from">
                         <DateInput id="rep-from" className={inputClass} value={draft.from} onChange={(v) => set("from", v)} />
                     </Field>
-                    <Field label="To date" htmlFor="rep-to">
+                    <Field label="TO DATE" htmlFor="rep-to">
                         <DateInput id="rep-to" className={inputClass} value={draft.to} onChange={(v) => set("to", v)} />
                     </Field>
                     <div className="flex gap-2 sm:col-span-2 lg:col-span-6 lg:justify-end">
@@ -150,15 +151,15 @@ export default function VoucherReport() {
                         <table className="w-full min-w-[820px] text-sm">
                             <thead className="sticky top-0 bg-card">
                                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                    <th className={`${th} pl-5`}>S.No</th>
-                                    <th className={th}>Tag no</th>
-                                    <th className={th}>Introducer</th>
-                                    <th className={`${th} text-right`}>Issued ₹</th>
-                                    <th className={`${th} text-right`}>Issued pcs</th>
-                                    <th className={`${th} text-right`}>Received ₹</th>
-                                    <th className={`${th} text-right`}>Received pcs</th>
-                                    <th className={`${th} text-right`}>Pending ₹</th>
-                                    <th className={`${th} pr-5 text-right`}>Pending pcs</th>
+                                    <th className={`${th} pl-5`}>S.NO</th>
+                                    <th className={th}>TAG NO</th>
+                                    <th className={th}>INTRODUCER</th>
+                                    <th className={`${th} text-right`}>ISSUED ₹</th>
+                                    <th className={`${th} text-right`}>ISSUED PCS</th>
+                                    <th className={`${th} text-right`}>RECEIVED ₹</th>
+                                    <th className={`${th} text-right`}>RECEIVED PCS</th>
+                                    <th className={`${th} text-right`}>PENDING ₹</th>
+                                    <th className={`${th} pr-5 text-right`}>PENDING PCS</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -197,12 +198,12 @@ export default function VoucherReport() {
                         <table className="w-full min-w-[640px] text-sm">
                             <thead className="sticky top-0 bg-card">
                                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                    <th className={`${th} pl-5`}>S.No</th>
-                                    <th className={th}>Date</th>
-                                    <th className={th}>Tag no</th>
-                                    <th className={th}>Introducer</th>
-                                    <th className={`${th} text-right`}>Amount</th>
-                                    <th className={`${th} pr-5 text-right`}>Pcs</th>
+                                    <th className={`${th} pl-5`}>S.NO</th>
+                                    <th className={th}>DATE</th>
+                                    <th className={th}>TAG NO</th>
+                                    <th className={th}>INTRODUCER</th>
+                                    <th className={`${th} text-right`}>AMOUNT</th>
+                                    <th className={`${th} pr-5 text-right`}>PCS</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">

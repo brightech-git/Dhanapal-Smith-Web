@@ -63,7 +63,7 @@ export default function AppHeader({ trail, fallbackTitle, drawerOpen, onOpen, co
                         </ol>
                     </nav>
                 )}
-                <p className="truncate text-base font-semibold leading-tight tracking-tight">{title}</p>
+                <p className="truncate text-sm font-semibold leading-tight tracking-tight">{title}</p>
             </div>
 
             {now && (

@@ -11,6 +11,7 @@ import SmithManager from "@/src/module/smith/component/smith-manager";
 import EditableCell from "@/src/components/ui/editable-cell";
 import SmithFormModal from "./smith-form-modal";
 import { useToast } from "@/src/providers/toast-provider";
+import { fetchSmithTransactions } from "../api/smith-transactions.api";
 import PrintTable from "@/src/components/print/print-table";
 import { validateTransactionValues } from "../lib/transaction-validation";
 import { toApiDate } from "@/lib/api/envelope";
@@ -19,10 +20,10 @@ import { Delete } from "@mui/icons-material";
 import { Dialog, DialogTitle, IconButton } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import ComboBox from "@/src/components/ui/combo-box";
-import { moveToNextCell } from "@/src/components/ui/cell-navigation";
+import { activateCell } from "@/src/components/ui/cell-navigation";
 import { metalQueryKey, type Metal } from "@/src/module/metal/metal-form";
 import { api } from "@/lib/api/envelope";
-import ItemForm, { activeItems, fetchItems, itemQueryKey } from "@/src/module/item/item-form";
+import ItemForm, {fetchItems, Item, itemQueryKey } from "@/src/module/item/item-form";
 import { WEIGHT_TRAN_TYPES, formatFixed, ledgerFromPureWeight, pureWeight, sumWeights, weightTranTypeLabel } from "../lib/weight-calc";
 import Register from "@/src/module/user/component/register-form";
 import FlowAttachmentsDialog from "@/src/module/smith/component/flow-attachments-dialog";
@@ -54,6 +55,7 @@ function AttachButton({ row, onClick }: { row: any; onClick: () => void }) {
 
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { canMenuAction, canViewMenu } from "@/src/features/auth/lib/access";
+import TextInput from "@/src/components/ui/text-input";
 
 export default function SmithTransactionsPage() {
     const { allDetails } = useAuth();
@@ -63,17 +65,11 @@ export default function SmithTransactionsPage() {
     const flags = useSoftControlFlags();
     const showTotal = flags.grandTotal;
     const showDelete = canViewMenu(allDetails, "transactions") && canMenuAction(allDetails, "transactions", "del");
+
     const saveMode = flags.saveButton;
     const [attachTarget, setAttachTarget] = useState<{ kind: FlowKind; row: any } | null>(null);
     const weightPrintRef = useRef<HTMLDivElement>(null);
     const canAddItem = canMenuAction(allDetails, "items", "add");
-    const itemsQuery = useQuery({ queryKey: itemQueryKey, queryFn: fetchItems });
-    const itemOptions = useMemo(
-        () => activeItems(itemsQuery.data).map((item) => ({ value: String(item.itemId), label: item.itemName })),
-        [itemsQuery.data]
-    );
-    const itemNameOf = (row: any) =>
-        row?.itemName || itemOptions.find((option) => option.value === String(row?.itemId ?? ""))?.label || "";
     // The weight row waiting for an item from the "Add new" item dialog.
     const [addItemFor, setAddItemFor] = useState<any>(null);
     const cashPrintRef = useRef<HTMLDivElement>(null);
@@ -97,10 +93,31 @@ export default function SmithTransactionsPage() {
         setMetalId,
     } = useSmithTransactionsContext();
 
+    // Active items of the metal chosen in the summary header (all metals when none).
+    // The key starts with itemQueryKey, so saving an item refreshes this list too.
+    const itemsQuery = useQuery({
+        queryKey: [...itemQueryKey, { active: "Y", metalId }],
+        queryFn: () => fetchItems({ active: "Y", metalId: metalId || undefined }),
+        enabled: flags.weightItems, // items are only used when WEIGHTITEM = Y
+    });
+
+    const itemOptions = useMemo(
+        () => (itemsQuery.data?.items ?? []).map((item: Item) => ({ value: String(item.itemId), label: item.itemName })),
+        [itemsQuery.data]
+    );
+    // Soft control WEIGHTITEM = Y shows Type, Item, Grs Wt and Touch on weight rows.
+    // Otherwise the weight table works like the cash one (receipts and payments typed in).
+    const noItems = !flags.weightItems;
+    const ITEM_COLUMNS = ["tranType", "itemId", "grswt", "touch"];
+    const withoutItemColumns = <T extends { key: string }>(columns: T[]) =>
+        noItems ? columns.filter((column) => !ITEM_COLUMNS.includes(column.key)) : columns;
+    const itemNameOf = (row: any) =>
+        row?.itemName || itemOptions?.find((option:{value: string; label: string }) => option.value === String(row?.itemId ?? ""))?.label || "";
+
     // Summary header: metal for the weight balance, and a smith name search.
     const metalsQuery = useQuery({ queryKey: metalQueryKey, queryFn: () => api.get<Metal[]>("metal") });
     const metalOptions = useMemo(
-      //  () => [{ value: "", label: "All metals" }, ...(metalsQuery.data ?? []).map((m) => ({ value: m.metalId, label: `${m.metalId} · ${m.metalName}` }))],
+      //  () => [{ value: "", label: "ALL METALS" }, ...(metalsQuery.data ?? []).map((m) => ({ value: m.metalId, label: `${m.metalId} · ${m.metalName}` }))],
       () => [...(metalsQuery.data ?? []).map((m) => ({ value: m.metalId, label: `${m.metalId} · ${m.metalName}` }))],
         [metalsQuery.data]
     );
@@ -111,8 +128,10 @@ export default function SmithTransactionsPage() {
     }, [transactions, smithSearch]);
 
     const [weightBalanceData, setWeightBalanceData] = useState<any[]>([]);
+
+    console.log(weightBalanceData,'weightBalanceData')
     const [cashBalanceData, setCashBalanceData] = useState<any[]>([]);
-  
+
     const [selectedSmithId, setSelectedSmithId] = useState<string>("");
     const [selectedSmithName, setSelectedSmithName] = useState<string>("");
     // const [activeTable, setActiveTable] = useState<"weight" | "cash" | null>(null);
@@ -120,7 +139,7 @@ export default function SmithTransactionsPage() {
     const [smithModalOpen, setSmithModalOpen] = useState(false);
     const [newSmithName, setNewSmithName] = useState("");
 
-    
+
 
     // Calculate totals for main table
     const transactionTotals = useMemo(() => {
@@ -168,12 +187,15 @@ export default function SmithTransactionsPage() {
         await Promise.all([refetchWeightFlows(id), refetchCashFlows(id)]);
     };
 
-    const refetchWeightFlows = async (smithId: string) => {
+    const refetchWeightFlows = async (smithId: string, continueEntry = false) => {
         try {
             const data = await getWeightFlows(smithId);
+            console.log(data ,"weightflow")
             if (shownSmith.current && shownSmith.current !== smithId) return;
-            // Keep calculated running balances intact; reverse only the display order.
-            setWeightBalanceData([...(data || [])].reverse());
+            // Oldest first, like a bank statement (the API already sorts by date).
+            const rows = [...(data || [])];
+            setWeightBalanceData(continueEntry ? [...rows, newEntry("weight", smithId)] : rows);
+            if (continueEntry) focusNewRow(weightSectionRef, rows.length);
         } catch (error) {
             addToast({
                 type: 'error',
@@ -183,11 +205,13 @@ export default function SmithTransactionsPage() {
         }
     };
 
-    const refetchCashFlows = async (smithId: string) => {
+    const refetchCashFlows = async (smithId: string, continueEntry = false) => {
         try {
             const data = await getCashFlows(smithId);
             if (shownSmith.current && shownSmith.current !== smithId) return;
-            setCashBalanceData([...(data || [])].reverse());
+            const rows = [...(data || [])];
+            setCashBalanceData(continueEntry ? [...rows, newEntry("cash", smithId)] : rows);
+            if (continueEntry) focusNewRow(cashSectionRef, rows.length);
         } catch (error) {
             addToast({
                 type: 'error',
@@ -283,8 +307,58 @@ export default function SmithTransactionsPage() {
     const hasNewWeightRow = weightBalanceData.some((row) => row.isNew);
     const hasNewCashRow = cashBalanceData.some((row) => row.isNew);
 
+    const newEntry = (kind: FlowKind, smithId: string) => ({
+        id: null,
+        smithId,
+        date: toApiDate(new Date()),
+        receipts: 0,
+        payments: 0,
+        balance: 0,
+        isNew: true,
+        ...(kind === "weight" ? {
+            weightDifference: 0,
+            tranType: "R",
+            itemId: null,
+            grswt: null,
+            touch: null,
+            purewt: null,
+        } : {}),
+    });
+
+    /** Scrolls to the new row (always the last one) and opens its Date cell. */
+    // Opens the Date cell of the new row. The section also holds a
+    // hidden print table, so look for the tbody that has editable cells, and
+    // retry a few times until the new row has rendered.
+    const focusNewRow = (section: React.RefObject<HTMLElement | null>, row: number, cell = 0, tries = 10) =>
+        setTimeout(() => {
+            // The print table (hidden) uses the same cells, so only take visible ones.
+            const shown = (el: Element) => (el as HTMLElement).offsetWidth > 0 || (el as HTMLElement).offsetHeight > 0;
+            const body = Array.from(section.current?.querySelectorAll("tbody") ?? [])
+                .find((tbody) => Array.from(tbody.querySelectorAll("[data-cell-nav]")).some(shown));
+            const target = body?.children[row];
+            if (!body || !target || Array.from(target.querySelectorAll("[data-cell-nav]")).filter(shown).length <= cell) {
+                if (tries > 0) focusNewRow(section, row, cell, tries - 1);
+                return;
+            }
+            const table = body.closest("table");
+            const scroller = table?.parentElement;
+            if (scroller) {
+                const footerHeight = table?.querySelector("tfoot")?.getBoundingClientRect().height ?? 0;
+                scroller.style.scrollPaddingBottom = `${footerHeight + 12}px`;
+            }
+            const revealRow = () => {
+                if (target.isConnected) target.scrollIntoView({ block: "end", inline: "nearest" });
+            };
+            revealRow();
+            activateCell({ body, row, cell });
+            requestAnimationFrame(revealRow);
+        }, 50);
+
     const handleAddWeightRow = () => {
-        if (hasNewWeightRow) return;
+        if (hasNewWeightRow) {
+            focusNewRow(weightSectionRef, weightBalanceData.findIndex((row) => row.isNew));
+            return;
+        }
         if (!selectedSmithId) {
             addToast({
                 type: 'warning',
@@ -294,26 +368,10 @@ export default function SmithTransactionsPage() {
             return;
         }
 
-        const today = new Date();
-        const displayDate = toApiDate(today);
+        const newRow = newEntry("weight", selectedSmithId);
 
-        const newRow = {
-            id: null,
-            smithId: selectedSmithId,
-            date: displayDate,
-            receipts: 0,
-            payments: 0,
-            weightDifference: 0,
-            tranType: "R",
-            itemId: null,
-            grswt: null,
-            touch: null,
-            purewt: null,
-            isNew: true,
-        };
-
-        setWeightBalanceData(prev => prev.some((row) => row.isNew) ? prev : [newRow, ...prev]);
-        requestAnimationFrame(() => weightSectionRef.current?.querySelector(".overflow-auto")?.scrollTo({ top: 0 }));
+        setWeightBalanceData(prev => prev.some((row) => row.isNew) ? prev : [...prev, newRow]);
+        focusNewRow(weightSectionRef, weightBalanceData.length);
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -322,7 +380,10 @@ export default function SmithTransactionsPage() {
     };
 
     const handleAddCashRow = () => {
-        if (hasNewCashRow) return;
+        if (hasNewCashRow) {
+            focusNewRow(cashSectionRef, cashBalanceData.findIndex((row) => row.isNew));
+            return;
+        }
         if (!selectedSmithId) {
             addToast({
                 type: 'warning',
@@ -332,21 +393,10 @@ export default function SmithTransactionsPage() {
             return;
         }
 
-        const today = new Date();
-        const formattedDate = toApiDate(today);
+        const newRow = newEntry("cash", selectedSmithId);
 
-        const newRow = {
-            id: null,
-            smithId: selectedSmithId,
-            date: formattedDate,
-            receipts: 0,
-            payments: 0,
-            balance: 0,
-            isNew: true,
-        };
-
-        setCashBalanceData(prev => prev.some((row) => row.isNew) ? prev : [newRow, ...prev]);
-        requestAnimationFrame(() => cashSectionRef.current?.querySelector(".overflow-auto")?.scrollTo({ top: 0 }));
+        setCashBalanceData(prev => prev.some((row) => row.isNew) ? prev : [...prev, newRow]);
+        focusNewRow(cashSectionRef, cashBalanceData.length);
         addToast({
             type: 'info',
             title: 'New Row Added',
@@ -387,7 +437,7 @@ export default function SmithTransactionsPage() {
                 }
                 await addWeight(selectedSmithId, dataToSend);
             }
-            await refetchWeightFlows(selectedSmithId);
+            await refetchWeightFlows(selectedSmithId, !row.id);
         } catch (error) {
             console.error("Error saving weight data:", error);
             addToast({ type: 'error', title: 'Save failed', message: (error as any)?.message || 'Could not save the weight row.' });
@@ -415,7 +465,7 @@ export default function SmithTransactionsPage() {
                 }
                 await addCash(selectedSmithId, dataToSend);
             }
-            await refetchCashFlows(selectedSmithId);
+            await refetchCashFlows(selectedSmithId, !row.id);
         } catch (error) {
             console.error("Error saving cash data:", error);
             addToast({ type: 'error', title: 'Save failed', message: (error as any)?.message || 'Could not save the cash row.' });
@@ -495,8 +545,8 @@ export default function SmithTransactionsPage() {
             }
             if (!quiet) {
                 addToast({ type: "success", title: "Saved", message: `${kind === "weight" ? "Weight" : "Cash"} row saved.` });
-                if (kind === "weight") await refetchWeightFlows(selectedSmithId);
-                else await refetchCashFlows(selectedSmithId);
+                if (kind === "weight") await refetchWeightFlows(selectedSmithId, !row.id);
+                else await refetchCashFlows(selectedSmithId, !row.id);
             }
             return true;
         } catch (error: any) {
@@ -526,7 +576,7 @@ export default function SmithTransactionsPage() {
 
     const saveColumn = (kind: FlowKind) => ({
         key: "save",
-        label: "Save",
+        label: "SAVE",
         headalign: "center" as const,
         align: "center" as const,
         width: "60px",
@@ -536,6 +586,7 @@ export default function SmithTransactionsPage() {
             return (
                 <button
                     type="button"
+                    data-cell-nav
                     onClick={() => commitRow(kind, row)}
                     disabled={!dirty || busy}
                     title={dirty ? "Save this row" : "Saved"}
@@ -559,38 +610,15 @@ export default function SmithTransactionsPage() {
         openSmith(smithId, smithName);
     };
 
-    // const handleAddTransaction = async () => {
-    //     if (!selectedSmithId || !selectedSmithName) return;
-    //     try {
-    //         const existing = transactions.find((t: any) => t.smithId === selectedSmithId);
-    //         if (existing) {
-    //             addToast({ type: 'warning', title: 'Transaction Exists', message: 'Transaction already exists!' });
-    //             return;
-    //         }
-    //         await addTransaction({
-    //             smithId: selectedSmithId,
-    //             name: selectedSmithName,
-    //             date: new Date().toISOString().split('T')[0],
-    //             cashBalance: 0,
-    //             weightBalance: 0,
-    //         });
-    //         addToast({ type: 'success', title: 'Transaction Added', message: 'Transaction added successfully!' });
-    //     } catch (err: any) {
-    //         addToast({ type: 'error', title: 'Failed to Add Transaction', message: err.message || "Unknown error" });
-    //     }
-    // };
 
-    // Prepare weight balance rows
-    // const displayWeightData = showDelete
-    //     ? weightBalanceData.slice(-2)  // last 2 entries
-    //     : weightBalanceData;
 
-    // Prepare cash balance rows
-    // const displayCashData = showDelete
-    //     ? cashBalanceData.slice(-2)  // last 2 entries
-    //     : cashBalanceData;
-
-    const handleDeleteCashRow = async (rowId: number) => {
+    const handleDeleteCashRow = async (target: any) => {
+        // A row that was never saved only lives here: drop it without calling the API.
+        if (target?.isNew || target?.id == null) {
+            setCashBalanceData(prev => prev.filter(row => row !== target && !(row.isNew && target?.isNew)));
+            return;
+        }
+        const rowId: number = target.id;
         if (!showDelete || !selectedSmithId) return;
 
         // Ask for user confirmation
@@ -622,7 +650,13 @@ export default function SmithTransactionsPage() {
     };
 
 
-    const handleDeleteWeightRow = async (rowId: number) => {
+    const handleDeleteWeightRow = async (target: any) => {
+        // A row that was never saved only lives here: drop it without calling the API.
+        if (target?.isNew || target?.id == null) {
+            setWeightBalanceData(prev => prev.filter(row => row !== target && !(row.isNew && target?.isNew)));
+            return;
+        }
+        const rowId: number = target.id;
         if (!showDelete || !selectedSmithId) return;
 
         // Ask for user confirmation
@@ -658,7 +692,7 @@ export default function SmithTransactionsPage() {
     const mainTableColumns = useMemo(() => [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             headalign: "left" as const,
             align: "left" as const,
             width: "10px",
@@ -666,7 +700,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "smithInfo",
-            label: "Smith",
+            label: "SMITH",
             headalign: "left" as const,
             align: "left" as const,
             width: "90px",
@@ -674,7 +708,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "weightBalance",
-            label: "Wt Bal",
+            label: "WT BAL",
             headalign: "right" as const,
             align: "right" as const,
             width: "80px",
@@ -686,7 +720,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "cashBalance",
-            label: "M.C Bal",
+            label: "M.C BAL",
             headalign: "right" as const,
             align: "right" as const,
             width: "80px",
@@ -702,27 +736,27 @@ export default function SmithTransactionsPage() {
     const weightBalanceColumns = useMemo(() => [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             headalign: "left" as const,
             align: "left" as const,
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{weightBalanceData.length - index}</span>
-                    {showDelete  && <button
+                    <span>{row?.isNew ? "" : index + 1}</span>
+                    {(showDelete || row?.isNew)  && <button
                         className="text-red-500 hover:text-red-700 ml-1"
-                        onClick={() => handleDeleteWeightRow(row.id)}
-                        title="Delete row"
+                        onClick={() => handleDeleteWeightRow(row)}
+                        title={row?.isNew ? "Remove unsaved row" : "Delete row"}
                     >
                         <Delete fontSize="small" />
-                    </button>} 
-                   
+                    </button>}
+
                 </div>
             ),
         },
         {
             key: "date",
-            label: "Date",
+            label: "DATE",
             headalign: "center" as const,
             align: "center" as const,
             width: "100px",
@@ -732,35 +766,29 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "tranType",
-            label: "Type",
+            label: "TYPE",
             headalign: "center" as const,
             align: "center" as const,
             width: "90px",
             render: (value: any, row: any) => (
-                <select value={value || ""} aria-label="Transaction type" data-cell-nav
-                    onChange={(event) => editWeightEntry(row, "tranType", event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key !== "Enter") return;
-                        event.preventDefault();
-                        moveToNextCell(event.currentTarget);
-                    }}
-                    className="w-full rounded-md border border-border bg-background px-1 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    {!value && <option value="">-</option>}
-                    {WEIGHT_TRAN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                <div className="min-w-[110px]" data-cell-nav>
+                    <ComboBox id={`weight-type-${row.id ?? "new"}`} labelId="weight-type-header" value={value || ""}
+                        options={WEIGHT_TRAN_TYPES} placeholder="Type" openOnFocus
+                        onChange={(type) => editWeightEntry(row, "tranType", type)} />
+                </div>
             ),
         },
         {
             key: "itemId",
-            label: "Item",
+            label: "ITEM",
             headalign: "left" as const,
             align: "left" as const,
             width: "150px",
             render: (value: any, row: any, index: number) => (
                 <div className="min-w-[130px]" data-cell-nav>
                     <ComboBox id={`weight-item-${index}`} labelId="weight-item-header" value={value != null ? String(value) : ""}
-                        options={itemOptions.length || value == null ? itemOptions : [{ value: String(value), label: itemNameOf(row) || `#${value}` }]}
-                        placeholder={itemsQuery.isPending ? "Loading…" : "Select item"}
+                        options={itemOptions?.length  || value == null ? itemOptions : [{ value: String(value), label: itemNameOf(row) || `#${value}` }]}
+                        placeholder={itemsQuery.isPending ? "Loading…" : "Select item"} openOnFocus
                         onChange={(itemId) => editWeightEntry(row, "itemId", Number(itemId))}
                         addNew={canAddItem} onAddNew={() => setAddItemFor(row)} />
                 </div>
@@ -768,7 +796,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "grswt",
-            label: "Grs Wt",
+            label: "GRS WT",
             headalign: "right" as const,
             align: "right" as const,
             width: "90px",
@@ -778,7 +806,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "touch",
-            label: "Touch",
+            label: "TOUCH",
             headalign: "right" as const,
             align: "right" as const,
             width: "80px",
@@ -788,7 +816,7 @@ export default function SmithTransactionsPage() {
         },
         // {
         //     key: "purewt",
-        //     label: "Pure Wt",
+        //     label: "PURE WT",
         //     headalign: "right" as const,
         //     align: "right" as const,
         //     width: "90px",
@@ -798,31 +826,31 @@ export default function SmithTransactionsPage() {
         // },
         {
             key: "receipts",
-            label: "Receipts",
+            label: "RECEIPTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                row.grswt != null
+                !noItems
                     ? <span className="tabular-nums" title="From Pure Wt">{formatFixed(value, 3)}</span>
                     : <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "receipts", newVal)} />
             ),
         },
         {
             key: "payments",
-            label: "Payments",
+            label: "PAYMENTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
             render: (value: any, row: any, rowIndex: number) => (
-                row.grswt != null
+                !noItems
                     ? <span className="tabular-nums" title="From Pure Wt">{formatFixed(value, 3)}</span>
                     : <EditableCell value={value} type="number" allowNegative onSave={(newVal) => onEdit("weight", row, "payments", newVal)} />
             ),
         },
         {
             key: "balance",
-            label: "Balance",
+            label: "BALANCE",
             headalign: "right" as const,
             align: "right" as const,
             width: "70px",
@@ -830,7 +858,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "remarks",
-            label: "Remarks",
+            label: "REMARKS",
             headalign: "center" as const,
             align: "left" as const,
             width: "110px",
@@ -839,34 +867,42 @@ export default function SmithTransactionsPage() {
             ),
         },
         {
+            key:"age",
+            label :"Age",
+            headalign: "center" as const,
+            align: "center" as const,
+            width: "50px",
+            render: (_v: any, row: any) => <span className="font-medium">{row.age}</span>,
+        },
+        {
             key: "files",
-            label: "Files",
+            label: "FILES",
             headalign: "center" as const,
             align: "center" as const,
             width: "50px",
             render: (_v: any, row: any) => <AttachButton row={row} onClick={() => setAttachTarget({ kind: "weight", row })} />,
         },
         ...(saveMode ? [saveColumn("weight")] : []),
-    ], [selectedSmithId, responsive.isMobile, showDelete, saveMode, savingRow, weightBalanceData, itemOptions, itemsQuery.isPending, canAddItem]);
+    ].filter((column) => withoutItemColumns([column]).length > 0), [selectedSmithId, responsive.isMobile, showDelete, saveMode, savingRow, weightBalanceData, itemOptions, itemsQuery.isPending, canAddItem, noItems]);
 
     const weightBalancePrintColumns = useMemo(() => [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             headalign: "left" as const,
             align: "left" as const,
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{weightBalanceData.length - index}</span>
-                    
+                    <span>{index + 1}</span>
+
 
                 </div>
             ),
         },
         {
             key: "date",
-            label: "Date",
+            label: "DATE",
             headalign: "center" as const,
             align: "center" as const,
             width: "100px",
@@ -874,19 +910,19 @@ export default function SmithTransactionsPage() {
                 <EditableCell value={value} type="date" onSave={(newVal) => onEdit("weight", row, "date", newVal)} />
             ),
         },
-        { key: "tranType", label: "Type", headalign: "center" as const, align: "center" as const, width: "70px",
+        { key: "tranType", label: "TYPE", headalign: "center" as const, align: "center" as const, width: "70px",
             render: (value: any) => <span>{weightTranTypeLabel(value) || "-"}</span> },
-        { key: "itemId", label: "Item", headalign: "left" as const, align: "left" as const, width: "110px",
+        { key: "itemId", label: "ITEM", headalign: "left" as const, align: "left" as const, width: "110px",
             render: (_v: any, row: any) => <span>{itemNameOf(row) || "-"}</span> },
-        { key: "grswt", label: "Grs Wt", headalign: "right" as const, align: "right" as const, width: "80px",
+        { key: "grswt", label: "GRS WT", headalign: "right" as const, align: "right" as const, width: "80px",
             render: (value: any) => <span>{value != null ? formatFixed(value, 3) : "-"}</span> },
-        { key: "touch", label: "Touch", headalign: "right" as const, align: "right" as const, width: "70px",
+        { key: "touch", label: "TOUCH", headalign: "right" as const, align: "right" as const, width: "70px",
             render: (value: any) => <span>{value != null ? formatFixed(value, 2) : "-"}</span> },
-        // { key: "purewt", label: "Pure Wt", headalign: "right" as const, align: "right" as const, width: "80px",
+        // { key: "purewt", label: "PURE WT", headalign: "right" as const, align: "right" as const, width: "80px",
         //     render: (value: any) => <span>{value != null ? formatFixed(value, 3) : "-"}</span> },
         {
             key: "receipts",
-            label: "Receipts",
+            label: "RECEIPTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -896,7 +932,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "payments",
-            label: "Payments",
+            label: "PAYMENTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -906,15 +942,23 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "balance",
-            label: "Balance",
+            label: "BALANCE",
             headalign: "right" as const,
             align: "right" as const,
             width: "70px",
             render: (_v: any, row: any) => <span className="font-medium">{row.weightDifference?.toFixed(3)}</span>,
         },
         {
+            key: "age",
+            label: "AGE",
+            headalign: "right" as const,
+            align: "right" as const,
+            width: "60px",
+            render: (value: any) => <span>{value ?? ""}</span>,
+        },
+        {
             key: "remarks",
-            label: "Remarks",
+            label: "REMARKS",
             headalign: "center" as const,
             align: "left" as const,
             width: "110px",
@@ -922,34 +966,34 @@ export default function SmithTransactionsPage() {
                 <EditableCell value={value} type="text" onSave={(newVal) => onEdit("weight", row, "remarks", newVal)} />
             ),
         },
-    ], [selectedSmithId, responsive.isMobile, showDelete, itemOptions, weightBalanceData.length]);
+    ].filter((column) => withoutItemColumns([column]).length > 0), [selectedSmithId, responsive.isMobile, showDelete, itemOptions, weightBalanceData.length, noItems]);
 
     // Cash Table Columns
     const cashBalanceColumns = useMemo(() => [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             headalign: "left" as const,
             align: "left" as const,
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{cashBalanceData.length - index}</span>
-                    {showDelete   && <button
+                    <span>{row?.isNew ? "" : index + 1}</span>
+                    {(showDelete || row?.isNew)   && <button
                         className="text-red-500 hover:text-red-700 ml-2"
-                        onClick={() => handleDeleteCashRow(row.id)}
-                        title="Delete row"
+                        onClick={() => handleDeleteCashRow(row)}
+                        title={row?.isNew ? "Remove unsaved row" : "Delete row"}
                     >
                         <Delete fontSize="small" />
                     </button>}
-                   
+
                 </div>
             ),
         },
 
         {
             key: "date",
-            label: "Date",
+            label: "DATE",
             headalign: "center" as const,
             align: "center" as const,
             width: "100px",
@@ -959,7 +1003,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "receipts",
-            label: "Receipts",
+            label: "RECEIPTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -969,7 +1013,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "payments",
-            label: "Payments",
+            label: "PAYMENTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -979,7 +1023,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "balance",
-            label: "Balance",
+            label: "BALANCE",
             headalign: "right" as const,
             align: "right" as const,
             width: "70px",
@@ -987,7 +1031,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "remarks",
-            label: "Remarks",
+            label: "REMARKS",
             headalign: "center" as const,
             align: "left" as const,
             width: "110px",
@@ -997,7 +1041,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "files",
-            label: "Files",
+            label: "FILES",
             headalign: "center" as const,
             align: "center" as const,
             width: "50px",
@@ -1008,14 +1052,14 @@ export default function SmithTransactionsPage() {
     const cashBalancePrintColumns = useMemo(() => [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             headalign: "left" as const,
             align: "left" as const,
             width: "50px",
             render: (_v: any, row: any, index: number) => (
                 <div className="flex items-center justify-between">
-                    <span>{cashBalanceData.length - index}</span>
-                
+                    <span>{index + 1}</span>
+
 
                 </div>
             ),
@@ -1023,7 +1067,7 @@ export default function SmithTransactionsPage() {
 
         {
             key: "date",
-            label: "Date",
+            label: "DATE",
             headalign: "center" as const,
             align: "center" as const,
             width: "100px",
@@ -1033,7 +1077,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "receipts",
-            label: "Receipts",
+            label: "RECEIPTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -1043,7 +1087,7 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "payments",
-            label: "Payments",
+            label: "PAYMENTS",
             headalign: "right" as const,
             align: "right" as const,
             width: "100px",
@@ -1053,16 +1097,16 @@ export default function SmithTransactionsPage() {
         },
         {
             key: "balance",
-            label: "Balance",
+            label: "BALANCE",
             headalign: "right" as const,
             align: "right" as const,
             width: "70px",
-            
+
             render: (v: number) => <span className="font-medium">{formatCurrency(v || 0)}</span>,
         },
         {
             key: "remarks",
-            label: "Remarks",
+            label: "REMARKS",
             headalign: "center" as const,
             align: "left" as const,
             width: "110px",
@@ -1093,18 +1137,22 @@ export default function SmithTransactionsPage() {
                                 <PrintTable
                                     title="Smith Transactions"
                                     columns={mainTableColumns}
-                                    data={summaryRows}
+                                    getPrintData={async () => {
+                                        const saved = await fetchSmithTransactions(metalId);
+                                        const search = smithSearch.trim().toLowerCase();
+                                        return saved.filter((row) => !search || row.name.toLowerCase().includes(search));
+                                    }}
                                     main={true}
                                     showTotal={showTotal}
                                 />
                             </h2>
                             <div className="flex items-center gap-1.5">
-                                <input
-                                    type="text"
+                                <TextInput
                                     value={newSmithName}
-                                    onChange={(e) => setNewSmithName(e.target.value)}
+                                    onChange={setNewSmithName}
                                     placeholder="New smith name"
-                                    className="w-36 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring sm:w-44"
+                                    unstyled
+                                    inputClassName="w-36 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring sm:w-44"
                                     onKeyDown={(e) => e.key === 'Enter' && handleCreateSmith()}
                                 />
                                 <button
@@ -1128,16 +1176,19 @@ export default function SmithTransactionsPage() {
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2" data-enter-nav>
-                            <span id="summary-metal-label" className="sr-only">Metal</span>
-                            <div className="w-40">
-                                <ComboBox id="summary-metal" labelId="summary-metal-label" value={metalId}
-                                    options={metalOptions}
-                                    placeholder={metalsQuery.isPending ? "Loading metals…" : "All metals"}
-                                    onChange={setMetalId} />
-                            </div>
-                            <input type="search" value={smithSearch} onChange={(e) => setSmithSearch(e.target.value)}
-                                placeholder="Search smith" aria-label="Search smith"
-                                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                            {/* Metal filter only when weight rows carry items (soft control WEIGHTITEM = Y). */}
+                            {flags.weightItems && <>
+                                <span id="summary-metal-label" className="sr-only">METAL</span>
+                                <div className="w-40">
+                                    <ComboBox id="summary-metal" labelId="summary-metal-label" value={metalId}
+                                        options={metalOptions}
+                                        placeholder={metalsQuery.isPending ? "Loading metals…" : "All metals"}
+                                        onChange={setMetalId} />
+                                </div>
+                            </>}
+                            <TextInput type="search" uppercase={false} value={smithSearch} onChange={setSmithSearch}
+                                placeholder="Search smith" aria-label="Search smith" className="min-w-0 flex-1" unstyled
+                                inputClassName="w-full rounded-lg border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
                         </div>
                         <Table
                             columns={mainTableColumns}
@@ -1180,16 +1231,10 @@ export default function SmithTransactionsPage() {
                                 {selectedSmithId && (
                                     <div className="flex items-center gap-2">
                                         <div ref={weightPrintRef}>
-                                            <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} data={weightBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
+                                            <PrintTable title="Weight Balance Summary" columns={weightBalancePrintColumns} getPrintData={() => getWeightFlows(selectedSmithId)} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
-                                        {saveMode && weightDirtyCount > 0 && (
-                                            <button onClick={() => commitAll("weight")} disabled={!!savingRow} className={`${actionButton} bg-amber-500 disabled:opacity-60`}>
-                                                <Save size={14} />
-                                                Save all ({weightDirtyCount})
-                                            </button>
-                                        )}
-                                        <button onClick={handleAddWeightRow} disabled={hasNewWeightRow}
-                                            title={hasNewWeightRow ? "Save the current weight row before adding another" : "Add a weight transaction"}
+                                        <button onClick={handleAddWeightRow} disabled={!!savingRow}
+                                            title={hasNewWeightRow ? "Go to the current weight row" : "Add a weight transaction"}
                                             className={`${actionButton} bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
                                             Add new
@@ -1209,9 +1254,11 @@ export default function SmithTransactionsPage() {
                                 renderFooter={showTotal ? () => (
                                     <tfoot className="sticky bottom-0 bg-emerald-50 text-sm  font-semibold text-foreground dark:bg-emerald-500/10">
                                         <tr>
-                                            <td colSpan={4} className="border-r border-border pr-4 text-right">Total</td>
-                                            <td className="border-r border-border text-right px-2 py-1">{formatFixed(weightTotals.grswt, 3)}</td>
-                                            <td className="border-r border-border px-2"></td>
+                                            <td colSpan={noItems ? 2 : 4} className="border-r border-border pr-4 text-right">Total</td>
+                                            {!noItems && <>
+                                                <td className="border-r border-border text-right px-2 py-1">{formatFixed(weightTotals.grswt, 3)}</td>
+                                                <td className="border-r border-border px-2"></td>
+                                            </>}
                                             {/* <td className="border-r border-border text-right px-2">{formatFixed(weightTotals.purewt, 3)}</td> */}
                                             <td className="border-r border-border text-right px-2">{weightTotals.receipts.toFixed(3)}</td>
                                             <td className="border-r border-border text-right px-2">{weightTotals.payments.toFixed(3)}</td>
@@ -1239,16 +1286,10 @@ export default function SmithTransactionsPage() {
                                 {selectedSmithId && (
                                     <div className="flex items-center gap-2">
                                         <div ref={cashPrintRef}>
-                                            <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} data={cashBalanceData} showTotal={showTotal} smithName={selectedSmithName} />
+                                            <PrintTable title="Cash Balance Summary" columns={cashBalancePrintColumns} getPrintData={() => getCashFlows(selectedSmithId)} showTotal={showTotal} smithName={selectedSmithName} />
                                         </div>
-                                        {saveMode && cashDirtyCount > 0 && (
-                                            <button onClick={() => commitAll("cash")} disabled={!!savingRow} className={`${actionButton} bg-amber-500 disabled:opacity-60`}>
-                                                <Save size={14} />
-                                                Save all ({cashDirtyCount})
-                                            </button>
-                                        )}
-                                        <button onClick={handleAddCashRow} disabled={hasNewCashRow}
-                                            title={hasNewCashRow ? "Save the current cash row before adding another" : "Add a cash transaction"}
+                                        <button onClick={handleAddCashRow} disabled={!!savingRow}
+                                            title={hasNewCashRow ? "Go to the current cash row" : "Add a cash transaction"}
                                             className={`${actionButton} bg-primary disabled:cursor-not-allowed disabled:opacity-50`}>
                                             <Plus size={14} />
                                             Add new
@@ -1295,15 +1336,18 @@ export default function SmithTransactionsPage() {
             </div>
 
             {canAddItem && (
-                <Dialog open={!!addItemFor}  onClose={() => setAddItemFor(null)} aria-labelledby="add-item-title" 
+                <Dialog open={!!addItemFor}  onClose={() => setAddItemFor(null)} aria-labelledby="add-item-title"
                     fullWidth maxWidth="xs" slotProps={{ paper: { sx: { backgroundColor: "var(--card)", color: "var(--foreground)" ,zIndex : 0 } } }}>
                     <DialogTitle id="add-item-title">Add item</DialogTitle>
-                    {addItemFor && <ItemForm onCancel={() => setAddItemFor(null)}
+                    {addItemFor && <ItemForm defaultMetalId={metalId} onCancel={() => setAddItemFor(null)}
                         onSaved={(item) => {
                             const row = addItemFor;
                             setAddItemFor(null);
                             editWeightEntry(row, "itemId", item.itemId);
-                        }} />
+                        }}
+                        metalDisable
+                    
+                        />
                     }
                 </Dialog>
             )}

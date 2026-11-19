@@ -23,6 +23,8 @@ type ComboBoxProps = {
     addNew?: boolean;
     onAddNew?: () => void;
     className?: string;
+    /** Open the list as soon as the field gets focus (e.g. reached with Enter). */
+    openOnFocus?: boolean;
 };
 
 const ADD_NEW = -1;
@@ -33,7 +35,7 @@ const ADD_NEW = -1;
  * not cut off inside tables or dialogs. Optional "Add new" row at the bottom.
  */
 export default function ComboBox({
-    id, labelId, value, options, placeholder, required, disabled, onChange, addNew, onAddNew, className = "",
+    id, labelId, value, options, placeholder, required, disabled, onChange, addNew, onAddNew, className = "", openOnFocus = false,
 }: ComboBoxProps) {
     const listId = useId();
     const input = useRef<HTMLInputElement>(null);
@@ -174,7 +176,10 @@ export default function ComboBox({
                 disabled={disabled}
                 placeholder={selected ? selected.label : placeholder}
                 value={typing ? query : selected?.label ?? ""}
-                onFocus={(event) => event.currentTarget.select()}
+                onFocus={(event) => {
+                    event.currentTarget.select();
+                    if (openOnFocus && !open) openList();
+                }}
                 onClick={() => (open ? undefined : openList())}
                 onChange={(event) => {
                     setQuery(event.target.value);

@@ -9,6 +9,7 @@ import { fetchGifts, fetchRemaining, getApiErrorMessage } from "../api/gift.api"
 import { useDeleteGift, useGifts, useReceiveGifts } from "../hook/use-gift";
 import { formatAmount, formatDateTime } from "../lib/format";
 import type { GiftTran } from "../type/gift-voucher.types";
+import TextInput from "@/src/components/ui/text-input";
 
 type Scanned = { tagno: string; introducerName: string; amount: number };
 
@@ -108,20 +109,20 @@ export default function VoucherReturnForm() {
     return (
         <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
             <section className={`${card} min-w-0`}>
-                <CardHeader icon={Undo2} title="Receive gifts" subtitle="Scan each tag and press Enter to add it" />
+                <CardHeader icon={Undo2} title="RECEIVE GIFTS" subtitle="Scan each tag and press Enter to add it" />
                 <div className="space-y-4 p-5">
-                    <Field label="Tag no" htmlFor="receipt-tag">
+                    <Field label="TAG NO" htmlFor="receipt-tag">
                         <div className="relative" data-enter-nav="off">
                             <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
+                            <TextInput
+                                unstyled
                                 id="receipt-tag"
                                 ref={tagRef}
-                                autoComplete="off"
                                 placeholder="e.g. GV12"
-                                className={`${inputClass} pl-9 font-semibold tracking-wide ${error ? "border-red-500" : ""}`}
+                                inputClassName={`${inputClass} pl-9 font-semibold tracking-wide ${error ? "border-red-500" : ""}`}
                                 value={tagInput}
-                                onChange={(e) => {
-                                    setTagInput(e.target.value.toUpperCase());
+                                onChange={(v) => {
+                                    setTagInput(v);
                                     setError(null);
                                 }}
                                 onKeyDown={(e) => {
@@ -190,16 +191,18 @@ export default function VoucherReturnForm() {
             <section className={`${card} min-w-0 overflow-hidden`}>
                 <CardHeader
                     icon={History}
-                    title="Receipts"
+                    title="RECEIPTS"
                     subtitle={`${receipts.data?.length ?? 0} received tags`}
                     actions={
                         <div className="relative w-full sm:w-60" data-enter-nav="off">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                className={`${inputClass} h-9 pl-9`}
+                            <TextInput
+                                unstyled
+                                uppercase={false}
+                                inputClassName={`${inputClass} h-9 pl-9`}
                                 placeholder="Search tag or introducer..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={setSearch}
                                 aria-label="Search receipts"
                             />
                         </div>
@@ -209,10 +212,10 @@ export default function VoucherReturnForm() {
                     <table className="w-full min-w-[520px] text-sm">
                         <thead className="sticky top-0 bg-card">
                             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-5 py-2.5 font-medium">Tag no</th>
-                                <th className="px-3 py-2.5 font-medium">Introducer</th>
-                                <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                                <th className="px-5 py-2.5 text-right font-medium">Delete</th>
+                                <th className="px-5 py-2.5 font-medium">TAG NO</th>
+                                <th className="px-3 py-2.5 font-medium">INTRODUCER</th>
+                                <th className="px-3 py-2.5 text-right font-medium">AMOUNT</th>
+                                <th className="px-5 py-2.5 text-right font-medium">DELETE</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">

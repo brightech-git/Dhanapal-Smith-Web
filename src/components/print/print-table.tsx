@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useState } from "react";
+import { sumWeights } from "@/src/module/smith/lib/weight-calc";
+import { flushSync } from "react-dom";
+import { getApiErrorMessage } from "@/lib/api/envelope";
+import { useToast } from "@/src/providers/toast-provider";
 import { Printer } from "lucide-react";
 
 interface ColumnDef<T> {
@@ -19,7 +23,7 @@ interface PrintTableProps<T> {
     main?: boolean;
     showTotal?: boolean;
     columns: ColumnDef<T>[];
-    data: T[];
+    getPrintData: () => Promise<T[]>;
     smithName ?:string;
 }
 
@@ -38,10 +42,14 @@ const PrintTable = <T extends Record<string, any>>({
     showTotal,
     main,
     columns,
-    data,
+    getPrintData,
     smithName ,
 
 }: PrintTableProps<T>) => {
+    const [data, setData] = useState<T[]>([]);
+    const [printing, setPrinting] = useState(false);
+    const busy = useRef(false);
+    const { addToast } = useToast();
     const printRef = useRef<HTMLDivElement>(null);
 
     const columnsToUse = showTotal === false
@@ -80,12 +88,21 @@ const PrintTable = <T extends Record<string, any>>({
         fontSize: showTotal === false ? "0.85rem" : "1rem",
         margin: 0,
     };
-    const handlePrint = () => {
-        const printContents = printRef.current?.innerHTML;
-        if (!printContents) return;
-
+    const handlePrint = async () => {
+        if (busy.current) return;
         const printWindow = window.open("", "_blank");
-        if (!printWindow) return;
+        if (!printWindow) {
+            addToast({ type: "error", title: "Printing blocked", message: "Allow pop-ups to print this report." });
+            return;
+        }
+        busy.current = true;
+        setPrinting(true);
+        try {
+            const records = await getPrintData();
+            if (printWindow.closed) return;
+            flushSync(() => setData(records));
+            const printContents = printRef.current?.innerHTML;
+            if (!printContents) throw new Error("Unable to prepare the print report");
 
         // Build per-column dynamic CSS
         const columnFontStyles = columns
@@ -158,6 +175,13 @@ const PrintTable = <T extends Record<string, any>>({
         printWindow.focus();
         printWindow.print();
         printWindow.close();
+        } catch (error) {
+            printWindow.close();
+            addToast({ type: "error", title: "Could not print", message: getApiErrorMessage(error) });
+        } finally {
+            busy.current = false;
+            setPrinting(false);
+        }
     };
 
     const now = new Date();
@@ -173,7 +197,9 @@ const PrintTable = <T extends Record<string, any>>({
         const hasReceipts = data.some((d) => "receipts" in d);
         const hasPayments = data.some((d) => "payments" in d);
 
-        const result: Record<string, number> = {};
+        const result: Record<string, number> = {
+            grswt: sumWeights(data.map((row) => row.grswt)),
+        };
 
         if (hasWeightBalance || hasCashBalance) {
             result.weightBalance = data.reduce((sum, d) => sum + (d.weightBalance || 0), 0);
@@ -189,13 +215,21 @@ const PrintTable = <T extends Record<string, any>>({
         return result;
     }, [data]);
 
+    const totalColumns = ["grswt", "weightBalance", "cashBalance", "receipts", "payments", "balance"];
+    const firstTotalColumn = columnsToUse.findIndex((column) => totalColumns.includes(column.key));
+    const totalLabelSpan = firstTotalColumn < 0 ? columnsToUse.length : firstTotalColumn;
+
     return (
         <div>
             {/* 🖨️ Print button */}
             <button
+                type="button"
+                disabled={printing}
+                aria-label={printing ? "Loading saved print records" : "Print report"}
+                aria-busy={printing}
                 onClick={handlePrint}
                 className="flex items-center justify-center gap-2 text-gray-700 hover:text-blue-600 transition"
-                title="Print Report"
+                title={printing ? "Loading saved records…" : "Print Report"}
             >
                 <Printer className="w-6 h-6" />
             </button>
@@ -257,40 +291,16 @@ const PrintTable = <T extends Record<string, any>>({
                     {(showTotal || main) && (
                         <tfoot>
                             <tr className="footer">
-                                <td
-                                    colSpan={
-                                        columns.filter(
-                                            (col) =>
-                                                ![
-                                                    "weightBalance",
-                                                    "cashBalance",
-                                                    "receipts",
-                                                    "payments",
-                                                    "balance",
-                                                    "remarks",
-                                                ].includes(col.key)
-                                        ).length
-                                    }
-                                    style={{ textAlign: "right", fontWeight: "bold" }}
-                                >
-                                    Total
-                                </td>
-
-                                {columns.map((col) => {
-                                    const alignStyle = { textAlign: "right" as const, fontWeight: "bold" };
-                                    if (col.key === "weightBalance")
-                                        return <td key={col.key} style={alignStyle}>{totals.weightBalance?.toFixed(3)}</td>;
-                                    if (col.key === "cashBalance")
-                                        return <td key={col.key} style={alignStyle}>{totals.cashBalance?.toFixed(2)}</td>;
-                                    if (col.key === "receipts")
-                                        return <td key={col.key} style={alignStyle}>{totals.receipts?.toFixed(3)}</td>;
-                                    if (col.key === "payments")
-                                        return <td key={col.key} style={alignStyle}>{totals.payments?.toFixed(3)}</td>;
-                                    if (col.key === "balance")
-                                        return <td key={col.key} style={alignStyle}>{totals.balance?.toFixed(3)}</td>;
-                                    if (col.key === "remarks") return <td key={col.key}></td>;
-                                    return null;
-                                })}
+                                {totalLabelSpan > 0 && (
+                                    <td colSpan={totalLabelSpan} style={{ textAlign: "right", fontWeight: "bold" }}>Total</td>
+                                )}
+                                {columnsToUse.slice(totalLabelSpan).map((col) => (
+                                    <td key={col.key} style={{ textAlign: "right", fontWeight: "bold" }}>
+                                        {totalColumns.includes(col.key) && totals[col.key] !== undefined
+                                            ? totals[col.key].toFixed(col.key === "cashBalance" ? 2 : 3)
+                                            : ""}
+                                    </td>
+                                ))}
                             </tr>
                         </tfoot>
                     )}

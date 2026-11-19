@@ -41,6 +41,7 @@ export interface TransactionApi {
     purewt?: number | null;
     touch?: number | null;
     itemName?: string | null;
+    age ? : number
 }
 
 /** A or W, from tranMode (or tranType on older backends). */
@@ -94,6 +95,7 @@ export interface SmithFlow {
     grswt: number | null;
     touch: number | null;
     purewt: number | null;
+    age :number |null ;
 }
 export type CashFlow = SmithFlow;
 export type WeightFlow = SmithFlow;
@@ -144,6 +146,7 @@ export const toFlows = (rows: TransactionApi[]): SmithFlow[] => {
                 touch: optionalNum(t.touch),
                 // Older rows may come back without purewt: work it out from grswt and touch.
                 purewt: optionalNum(t.purewt) ?? (t.grswt != null && t.touch != null ? pureWeight(t.grswt, t.touch) : null),
+                age  : optionalNum(t.age)
             };
         });
 };

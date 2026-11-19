@@ -10,23 +10,24 @@ import { useSmithDetails } from "@/src/module/smith/context/smith-details-contex
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { useToast } from "@/src/providers/toast-provider";
 import type { SmithDetails } from "@/src/module/smith/type/smith-details.types";
+import TextInput from "@/src/components/ui/text-input";
 
 type Key = Exclude<keyof SmithDetails, "smithId" | "active" | "createdAt" | "updatedAt">;
 
 const FIELDS: { key: Key; label: string; type?: string; upper?: boolean; wide?: boolean; max?: number }[] = [
-    { key: "pname", label: "Smith name", upper: true, wide: true, max: 150 },
-    { key: "initial", label: "Initial", upper: true, max: 20 },
-    { key: "mobile", label: "Mobile", type: "tel", max: 16 },
-    { key: "email", label: "Email", type: "email", max: 254 },
-    { key: "dob", label: "Date of birth", type: "date" },
-    { key: "doorno", label: "Door no", max: 50 },
-    { key: "address1", label: "Street", max: 150 },
-    { key: "area", label: "Area", max: 100 },
-    { key: "city", label: "City", max: 100 },
-    { key: "state", label: "State" },
-    { key: "pincode", label: "Pincode", max: 6 },
+    { key: "pname", label: "SMITH NAME", upper: true, wide: true, max: 150 },
+    { key: "initial", label: "INITIAL", upper: true, max: 20 },
+    { key: "mobile", label: "MOBILE", type: "tel", max: 16 },
+    { key: "email", label: "EMAIL", type: "email", max: 254 },
+    { key: "dob", label: "DATE OF BIRTH", type: "date" },
+    { key: "doorno", label: "DOOR NO", max: 50 },
+    { key: "address1", label: "STREET", max: 150 },
+    { key: "area", label: "AREA", max: 100 },
+    { key: "city", label: "CITY", max: 100 },
+    { key: "state", label: "STATE" },
+    { key: "pincode", label: "PINCODE", max: 6 },
     { key: "pan", label: "PAN", upper: true, max: 10 },
-    { key: "gstno", label: "GST no", upper: true, max: 15 },
+    { key: "gstno", label: "GST NO", upper: true, max: 15 },
 ];
 
 export interface SmithFormModalProps {
@@ -120,22 +121,22 @@ export default function SmithFormModal({ open, smith, initialName, onClose, onSa
                                     ))}
                                 </select>
                             ) : (
-                                <input
+                                <TextInput
+                                    unstyled
                                     id={`smith-${f.key}`}
                                     ref={f.key === "pname" ? nameRef : undefined}
-                                    type={f.type ?? "text"}
+                                    type={(f.type ?? "text") as "text" | "tel" | "email"}
                                     maxLength={f.max}
-                                    autoComplete="off"
-                                    className={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
+                                    inputClassName={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
                                     value={(values[f.key] as string) ?? ""}
-                                    onChange={(e) => set(f.key, f.upper ? e.target.value.toUpperCase() : e.target.value)}
+                                    onChange={(v) => set(f.key, v)}
                                 />
                             )}
                             {errors[f.key] && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors[f.key]}</p>}
                         </Field>
                     </div>
                 ))}
-                <Field label="Status" htmlFor="smith-active">
+                <Field label="STATUS" htmlFor="smith-active">
                     <select id="smith-active" className={inputClass} value={values.active} onChange={(e) => set("active", e.target.value)}>
                         <option value="Y">Active</option>
                         <option value="N">Inactive</option>

@@ -11,10 +11,10 @@ import { notifyHashChange } from "@/src/hooks/use-location-hash";
 type TabKey = "issue" | "receipt" | "introducers" | "report";
 
 const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
-    { key: "issue", label: "Issue", icon: TicketPlus },
-    { key: "receipt", label: "Receipt", icon: Undo2 },
-    { key: "introducers", label: "Introducers", icon: Users },
-    { key: "report", label: "Report", icon: BarChart3 },
+    { key: "issue", label: "ISSUE", icon: TicketPlus },
+    { key: "receipt", label: "RECEIPT", icon: Undo2 },
+    { key: "introducers", label: "INTRODUCERS", icon: Users },
+    { key: "report", label: "REPORT", icon: BarChart3 },
 ];
 
 /** Gift voucher: issue tags (amount and pcs), receive them back, introducers and a report. */
@@ -43,7 +43,7 @@ export default function GiftVoucherPage() {
     return (
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-6">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Gift Voucher</h1>
+                <h1 className="text-sm font-bold tracking-wide">Gift Voucher</h1>
                 <p className="text-sm text-muted-foreground">Issue gift tags by amount and pcs, receive them back by tag, and see the report.</p>
             </div>
 

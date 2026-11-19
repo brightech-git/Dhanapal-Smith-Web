@@ -202,7 +202,7 @@ export default function FlowAttachmentsDialog({ open, onClose, kind, row, onUplo
                     >
                         <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
                             <div>
-                                <h2 className="text-lg font-semibold">Attachments</h2>
+                                <h2 className="text-sm font-semibold">ATTACHMENTS</h2>
                                 <p className="text-sm text-muted-foreground">
                                     {kind === "cash" ? "Cash" : "Weight"} entry
                                     {row.date ? ` · ${String(row.date).replace(/^(\d{4})-(\d{2})-(\d{2}).*/, "$3-$2-$1")}` : ""}

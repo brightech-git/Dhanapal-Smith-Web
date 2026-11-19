@@ -9,6 +9,7 @@ import { getApiErrorMessage } from "../api/role.api";
 import { useDeleteRole, useRoles, useSaveRole } from "../hook/use-roles";
 import type { RoleMaster, RoleMasterInput } from "../type/role.types";
 import { CardHeader, Field, StatusBadge, Switch, card, ghostButton, iconButton, inputClass, primaryButton } from "./ui";
+import TextInput from "@/src/components/ui/text-input";
 
 const EMPTY: RoleMasterInput = { roleName: "", active: "Y", adminAccess: "N" };
 const isY = (v?: string | null) => (v ?? "").toUpperCase() === "Y";
@@ -99,23 +100,23 @@ export default function RoleMasterPanel({ onManagePermissions }: { onManagePermi
                     subtitle={editing ? `Role ID ${editing.roleId}` : "Press Enter to move to the next field"}
                 />
                 <form onSubmit={submit} className="space-y-4 p-5" noValidate>
-                    <Field label="Role name" htmlFor="role-name">
-                        <input
+                    <Field label="ROLE NAME" htmlFor="role-name">
+                        <TextInput
+                            unstyled
                             id="role-name"
                             ref={nameRef}
-                            className={`${inputClass} ${error ? "border-red-500 focus:border-red-500" : ""}`}
+                            inputClassName={`${inputClass} ${error ? "border-red-500 focus:border-red-500" : ""}`}
                             placeholder="e.g. Counter staff"
                             maxLength={100}
-                            autoComplete="off"
                             value={values.roleName}
-                            onChange={(e) => {
-                                setValues((v) => ({ ...v, roleName: e.target.value.toUpperCase() }));
+                            onChange={(roleName) => {
+                                setValues((v) => ({ ...v, roleName }));
                                 setError(null);
                             }}
                         />
                         {error && <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
                     </Field>
-                    <Field label="Status" htmlFor="role-active" hint="Only active roles can be assigned to users">
+                    <Field label="STATUS" htmlFor="role-active" hint="Only active roles can be assigned to users">
                         <select
                             id="role-active"
                             className={inputClass}
@@ -129,7 +130,7 @@ export default function RoleMasterPanel({ onManagePermissions }: { onManagePermi
                     <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <Switch
                             id="role-admin"
-                            label="Admin access"
+                            label="ADMIN ACCESS"
                             checked={values.adminAccess === "Y"}
                             onChange={(on) => setValues((v) => ({ ...v, adminAccess: on ? "Y" : "N" }))}
                         />
@@ -152,16 +153,18 @@ export default function RoleMasterPanel({ onManagePermissions }: { onManagePermi
             <section className={`${card} overflow-hidden`}>
                 <CardHeader
                     icon={ShieldCheck}
-                    title="Roles"
+                    title="ROLES"
                     subtitle={`${rolesQuery.data?.length ?? 0} roles`}
                     actions={
                         <div className="relative w-full sm:w-64" data-enter-nav="off">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                className={`${inputClass} h-9 pl-9`}
+                            <TextInput
+                                unstyled
+                                uppercase={false}
+                                inputClassName={`${inputClass} h-9 pl-9`}
                                 placeholder="Search roles..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={setSearch}
                                 aria-label="Search roles"
                             />
                         </div>
@@ -172,10 +175,10 @@ export default function RoleMasterPanel({ onManagePermissions }: { onManagePermi
                         <thead>
                             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                                 <th className="px-5 py-2.5 font-medium">ID</th>
-                                <th className="px-3 py-2.5 font-medium">Role name</th>
-                                <th className="px-3 py-2.5 font-medium">Access</th>
-                                <th className="px-3 py-2.5 font-medium">Status</th>
-                                <th className="px-5 py-2.5 text-right font-medium">Actions</th>
+                                <th className="px-3 py-2.5 font-medium">ROLE NAME</th>
+                                <th className="px-3 py-2.5 font-medium">ACCESS</th>
+                                <th className="px-3 py-2.5 font-medium">STATUS</th>
+                                <th className="px-5 py-2.5 text-right font-medium">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">

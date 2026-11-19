@@ -31,13 +31,13 @@ export interface RoleTran {
 }
 
 export const PERMISSION_FLAGS = [
-    { key: "view", label: "View" },
-    { key: "add", label: "Add" },
-    { key: "edit", label: "Edit" },
-    { key: "del", label: "Delete" },
-    { key: "print", label: "Print" },
-    { key: "excel", label: "Excel" },
-    { key: "authorize", label: "Authorize" },
+    { key: "view", label: "VIEW" },
+    { key: "add", label: "ADD" },
+    { key: "edit", label: "EDIT" },
+    { key: "del", label: "DELETE" },
+    { key: "print", label: "PRINT" },
+    { key: "excel", label: "EXCEL" },
+    { key: "authorize", label: "AUTHORIZE" },
 ] as const;
 
 export type PermissionFlag = (typeof PERMISSION_FLAGS)[number]["key"];

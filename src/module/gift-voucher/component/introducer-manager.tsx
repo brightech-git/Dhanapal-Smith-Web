@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "../api/gift.api";
 import { useDeleteIntroducer, useIntroducers, useSaveIntroducer } from "../hook/use-gift";
 import type { Introducer, IntroducerInput } from "../type/gift-voucher.types";
 import { partyFieldError } from "@/src/lib/party-validation";
+import TextInput from "@/src/components/ui/text-input";
 
 const EMPTY: IntroducerInput = {
     introducerName: "", initial: "", active: "Y", mobile: "", email: "", doorno: "", street: "", area: "",
@@ -38,23 +39,23 @@ type FieldDef = { key: keyof IntroducerInput; label: string; type?: string; uppe
 
 /** Always shown: name and mobile are enough to create an introducer. */
 const BASIC: FieldDef[] = [
-    { key: "introducerName", label: "Introducer name", upper: true, max: 150 },
-    { key: "mobile", label: "Mobile", type: "tel", max: 16 },
+    { key: "introducerName", label: "INTRODUCER NAME", upper: true, max: 150 },
+    { key: "mobile", label: "MOBILE", type: "tel", max: 16 },
 ];
 
 /** Shown under "More options". */
 const MORE: FieldDef[] = [
-    { key: "initial", label: "Initial", upper: true, max: 20 },
-    { key: "email", label: "Email", type: "email", max: 254 },
-    { key: "doorno", label: "Door no", max: 50 },
-    { key: "street", label: "Street", max: 150 },
-    { key: "area", label: "Area", max: 100 },
-    { key: "city", label: "City", max: 100 },
-    { key: "state", label: "State", max: 100 },
-    { key: "pincode", label: "Pincode", max: 6 },
-    { key: "dob", label: "Date of birth", type: "date" },
+    { key: "initial", label: "INITIAL", upper: true, max: 20 },
+    { key: "email", label: "EMAIL", type: "email", max: 254 },
+    { key: "doorno", label: "DOOR NO", max: 50 },
+    { key: "street", label: "STREET", max: 150 },
+    { key: "area", label: "AREA", max: 100 },
+    { key: "city", label: "CITY", max: 100 },
+    { key: "state", label: "STATE", max: 100 },
+    { key: "pincode", label: "PINCODE", max: 6 },
+    { key: "dob", label: "DATE OF BIRTH", type: "date" },
     { key: "pan", label: "PAN", upper: true, max: 10 },
-    { key: "gstno", label: "GST no", upper: true, max: 15 },
+    { key: "gstno", label: "GST NO", upper: true, max: 15 },
 ];
 
 /** Introducer master: entry form beside the list. */
@@ -139,16 +140,15 @@ export default function IntroducerManager() {
                         onChange={(v) => setValues((p) => ({ ...p, [f.key]: v }))}
                     />
                 ) : (
-                <input
+                <TextInput
+                    unstyled
                     id={`intro-${f.key}`}
                     ref={f.key === "introducerName" ? nameRef : undefined}
-                    type={f.type ?? "text"}
+                    type={(f.type ?? "text") as "text" | "tel" | "email"}
                     maxLength={f.max}
-                    autoComplete="off"
-                    className={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
+                    inputClassName={`${inputClass} ${errors[f.key] ? "border-red-500 focus:border-red-500" : ""}`}
                     value={(values[f.key] as string) ?? ""}
-                    onChange={(e) => {
-                        const v = f.upper ? e.target.value.toUpperCase() : e.target.value;
+                    onChange={(v) => {
                         setValues((p) => ({ ...p, [f.key]: v }));
                         if (errors[f.key]) setErrors((p) => ({ ...p, [f.key]: undefined }));
                     }}
@@ -182,7 +182,7 @@ export default function IntroducerManager() {
                     {more && (
                         <>
                             {MORE.map(renderField)}
-                            <Field label="Status" htmlFor="intro-active">
+                            <Field label="STATUS" htmlFor="intro-active">
                                 <select
                                     id="intro-active"
                                     className={inputClass}
@@ -211,16 +211,18 @@ export default function IntroducerManager() {
             <section className={`${card} overflow-hidden`}>
                 <CardHeader
                     icon={Users}
-                    title="Introducers"
+                    title="INTRODUCERS"
                     subtitle={`${query.data?.length ?? 0} introducers`}
                     actions={
                         <div className="relative w-full sm:w-64" data-enter-nav="off">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                className={`${inputClass} h-9 pl-9`}
+                            <TextInput
+                                unstyled
+                                uppercase={false}
+                                inputClassName={`${inputClass} h-9 pl-9`}
                                 placeholder="Search name, mobile, city..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={setSearch}
                                 aria-label="Search introducers"
                             />
                         </div>
@@ -231,11 +233,11 @@ export default function IntroducerManager() {
                         <thead>
                             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                                 <th className="px-5 py-2.5 font-medium">ID</th>
-                                <th className="px-3 py-2.5 font-medium">Name</th>
-                                <th className="px-3 py-2.5 font-medium">Mobile</th>
-                                <th className="px-3 py-2.5 font-medium">City</th>
-                                <th className="px-3 py-2.5 font-medium">Status</th>
-                                <th className="px-5 py-2.5 text-right font-medium">Actions</th>
+                                <th className="px-3 py-2.5 font-medium">NAME</th>
+                                <th className="px-3 py-2.5 font-medium">MOBILE</th>
+                                <th className="px-3 py-2.5 font-medium">CITY</th>
+                                <th className="px-3 py-2.5 font-medium">STATUS</th>
+                                <th className="px-5 py-2.5 text-right font-medium">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">

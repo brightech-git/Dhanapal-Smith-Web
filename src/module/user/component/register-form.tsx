@@ -126,12 +126,12 @@ const UsersTable = () => {
     const columns: TableColumn[] = [
         {
             key: "sno",
-            label: "User ID",
+            label: "USER ID",
             render: (_, row: User) => <span>{row.sno}</span>,
         },
         {
             key: "userName",
-            label: "Username",
+            label: "USERNAME",
             render: (_, row: User) => (
                 row.admin === isAdmin ? (
                     <span>{row.userName}</span> // admin not editable
@@ -146,7 +146,7 @@ const UsersTable = () => {
         },
         {
             key: "password",
-            label: "Password",
+            label: "PASSWORD",
             render: (_, row: User) => {
                 // Mask password visually
                 const maskedPassword = row.password || !row.isNew ? "*".repeat(5) : "";
@@ -166,7 +166,7 @@ const UsersTable = () => {
         },
         {
             key: "active",
-            label: "Active",
+            label: "ACTIVE",
             render: (_, row: User) => (
                 row.admin === isAdmin ? (
                     <span>{row.active === "Y" ? "Active" : "Inactive"}</span>
@@ -185,7 +185,7 @@ const UsersTable = () => {
         },
         {
             key: "actions",
-            label: "Actions",
+            label: "ACTIONS",
             render: (_: any, row: User) => (
                 <Box sx={{ display: "flex", gap: 1 }}>
                     {row.isNew ? (

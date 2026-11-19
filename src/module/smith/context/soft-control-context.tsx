@@ -83,6 +83,8 @@ export interface SoftControlFlags {
     dashboardPosition: DashboardPosition;
     /** LOADING = Y: show loading indicators while data is fetched. */
     showLoading: boolean;
+    /** WEIGHTITEM = Y: weight rows use Type, Item, Grs Wt and Touch; otherwise receipts/payments are typed like cash. */
+    weightItems: boolean;
     /** Whether the SoftControl request is pending. */
     loading: boolean;
 }

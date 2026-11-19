@@ -7,10 +7,10 @@ import { attachmentCount } from "../api/smith-attachments.api";
 import type { RecentTransaction } from "../type/smith-dashboard.types";
 
 export const formatWeight = (v: number | undefined | null) =>
-    `${(v ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} g`;
+    `${(v ?? 0).toFixed(3)}`;
 
 export const formatAmount = (v: number | undefined | null) =>
-    `₹${(v ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `${(v ?? 0).toFixed(2)}`;
 
 /** Number that counts up to its value. */
 function CountUp({ value, format }: { value: number; format: (v: number) => string }) {
@@ -140,12 +140,12 @@ export function RecentTransactionsCard({
                 <table className="w-full min-w-[620px] text-sm">
                     <thead>
                         <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                            <th className="px-5 py-2.5 font-medium">S.No</th>
-                            <th className="px-3 py-2.5 font-medium">Smith</th>
-                            <th className="px-3 py-2.5 text-right font-medium">Receipt</th>
-                            <th className="px-3 py-2.5 text-right font-medium">Issue</th>
-                            <th className="px-3 py-2.5 text-right font-medium">Balance</th>
-                            <th className="px-3 py-2.5 font-medium">Remark</th>
+                            <th className="px-2 py-2.5 font-medium">S.NO</th>
+                            <th className="px-3 py-2.5 font-medium">SMITH</th>
+                            <th className="px-3 py-2.5 text-right font-medium">RECEIPT</th>
+                            <th className="px-3 py-2.5 text-right font-medium">ISSUE</th>
+                            <th className="px-3 py-2.5 text-right font-medium">BALANCE</th>
+                            <th className="px-6 py-2.5 font-medium">REMARK</th>
                             <th className="w-16 px-5 py-2.5 text-right font-medium" aria-label="Files" title="Files">
                                 <Paperclip className="ml-auto h-3.5 w-3.5" aria-hidden />
                             </th>

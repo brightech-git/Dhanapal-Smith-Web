@@ -10,6 +10,7 @@ import { CardHeader, Field, card, ghostButton, iconButton, inputClass, primaryBu
 import { useDeleteOrder, useOrders, useSaveOrder } from "../hook/use-orders";
 import type { Order } from "../api/order.api";
 import { formatDateForShow } from "@/src/utils/format/formatDateForAPI";
+import TextInput from "@/src/components/ui/text-input";
 
 const today = () => toApiDate(new Date());
 const parse = (d: string) => new Date(`${d}T00:00:00`);
@@ -136,7 +137,7 @@ export default function SmithOrderPage() {
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
+                    <h1 className="text-sm font-bold tracking-wide">Orders</h1>
                     <p className="text-sm text-muted-foreground">Note each smith order with its date and details.</p>
                 </div>
                 <button type="button" className={`${ghostButton} print:hidden`} onClick={() => window.print()} disabled={!shown}>
@@ -158,7 +159,7 @@ export default function SmithOrderPage() {
                         subtitle={editing ? `Order #${editing.id}` : "Enter moves on; Enter in details saves (Shift+Enter for a new line)"}
                     />
                     <form onSubmit={submit} className="space-y-4 p-5" noValidate>
-                        <Field label="Order date" htmlFor="order-date">
+                        <Field label="ORDER DATE" htmlFor="order-date">
                             <div className="flex gap-2">
                                 <div className="min-w-0 max-w-[150px] flex-1">
                                     <DateInput
@@ -178,7 +179,7 @@ export default function SmithOrderPage() {
                             </div>
                             {errors.date && <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.date}</p>}
                         </Field>
-                        <Field label="Order details" htmlFor="order-items">
+                        <Field label="ORDER DETAILS" htmlFor="order-items">
                             <textarea
                                 id="order-items"
                                 ref={itemsRef}
@@ -218,7 +219,7 @@ export default function SmithOrderPage() {
                 <section className={`${card} overflow-hidden`}>
                     <CardHeader
                         icon={CalendarDays}
-                        title="Order book"
+                        title="ORDER BOOK"
                         subtitle={`${shown} of ${all.length} orders`}
                         actions={
                             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto print:hidden" data-enter-nav="off">
@@ -238,11 +239,13 @@ export default function SmithOrderPage() {
                                 </div>
                                 <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <input
-                                        className={`${inputClass} h-9 pl-9`}
+                                    <TextInput
+                                        unstyled
+                                        uppercase={false}
+                                        inputClassName={`${inputClass} h-9 pl-9`}
                                         placeholder="Search orders..."
                                         value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
+                                        onChange={setSearch}
                                         aria-label="Search orders"
                                     />
                                 </div>

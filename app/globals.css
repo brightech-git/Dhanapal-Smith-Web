@@ -119,3 +119,7 @@ body {
 .react-datepicker-popper {
   z-index: 9999 !important;
 }
+/* Labels and headers are upper case, so keep table headers small (utilities still win). */
+@layer base {
+  th { font-size: 0.75rem; line-height: 1rem; }
+}

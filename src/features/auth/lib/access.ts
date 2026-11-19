@@ -11,8 +11,12 @@ export interface AccessProfile {
 export type MenuAction = "view" | "add" | "edit" | "del" | "excel" | "print" | "authorize";
 
 export const canMenuAction = (profile: AccessProfile | null, menuId: string, action: MenuAction) =>
-    !!profile && (profile.admin === true || profile.isadmin === true ||
+{
+    console.log(profile, action, menuId ,"checking");
+      return !!profile && (profile.admin === true || profile.isadmin === true ||
         !!profile.roleTran?.some((row) => row.roleTranId.menuId === menuId && row[action] === "Y"));
+}
+   
 
 export const canViewMenu = (profile: AccessProfile | null, menuId: string) =>
     canMenuAction(profile, menuId, "view");

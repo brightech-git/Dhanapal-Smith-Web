@@ -11,6 +11,7 @@ import { useSoftControls } from "@/src/module/smith/context/soft-control-context
 import {
     createSoftControl, deleteSoftControl, updateSoftControl, type SoftControl,
 } from "@/src/module/smith/api/soft-control.api";
+import TextInput from "@/src/components/ui/text-input";
 
 /** Controls the app reads, with what their value does. */
 const KNOWN: Record<string, string> = {
@@ -19,13 +20,13 @@ const KNOWN: Record<string, string> = {
     DASHBOARD: "Y shows the dashboard",
     DASHBOARDPOSITION: "A shows the dashboard on top, B below",
     LOADING: "Y shows loading indicators",
+    WEIGHTITEM: "Y shows Type, Item, Grs Wt and Touch in weight transactions; N types receipts/payments like cash",
     GIFT_PREFIX: "Prefix for gift voucher tag numbers (e.g. GV)",
     GIFT_NO: "Next gift voucher tag number",
 };
 
 const empty = { CTLID: "", CTLNAME: "", CTLTEXT: "" };
-const row = "grid grid-cols-[110px_minmax(0,1fr)] items-center gap-2 text-sm font-medium";
-const field = "w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const row = "grid grid-cols-[110px_minmax(0,1fr)] items-center gap-2 text-xs font-medium";
 
 export default function SoftControlPage() {
     const { addToast } = useToast();
@@ -108,22 +109,22 @@ export default function SoftControlPage() {
                     </h2>
                     <fieldset disabled={saving} className="grid min-w-0 gap-3">
                         <label className={row}>
-                            <span>Control ID</span>
-                            <input className={`${field} max-w-[220px] uppercase`} value={form.CTLID} maxLength={255} required autoFocus
+                            <span>CONTROL ID</span>
+                            <TextInput className="max-w-[220px]" value={form.CTLID} maxLength={255} required autoFocus
                                 placeholder="e.g. GRANDTOTAL"
-                                onChange={(e) => setForm({ ...form, CTLID: e.target.value.toUpperCase() })} />
+                                onChange={(CTLID) => setForm({ ...form, CTLID })} />
                         </label>
                         <label className={row}>
-                            <span>Name</span>
-                            <input className={`${field} max-w-[260px]`} value={form.CTLNAME} maxLength={255} required
+                            <span>NAME</span>
+                            <TextInput className="max-w-[260px]" value={form.CTLNAME} maxLength={255} required
                                 placeholder="What it controls"
-                                onChange={(e) => setForm({ ...form, CTLNAME: e.target.value })} />
+                                onChange={(CTLNAME) => setForm({ ...form, CTLNAME })} />
                         </label>
                         <label className={row}>
-                            <span>Value</span>
-                            <input className={`${field} max-w-[260px]`} value={form.CTLTEXT} maxLength={255}
+                            <span>VALUE</span>
+                            <TextInput className="max-w-[260px]" value={form.CTLTEXT} maxLength={255}
                                 placeholder="e.g. Y or N"
-                                onChange={(e) => setForm({ ...form, CTLTEXT: e.target.value })} />
+                                onChange={(CTLTEXT) => setForm({ ...form, CTLTEXT })} />
                         </label>
                         {KNOWN[form.CTLID.trim()] && (
                             <p className="rounded-lg bg-accent-soft px-3 py-2 text-xs font-normal text-primary-text">
@@ -145,11 +146,11 @@ export default function SoftControlPage() {
 
             <div className={`min-w-0 overflow-hidden rounded-xl border border-border bg-card ${showForm ? "" : "xl:col-span-2"}`}>
                 <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
-                    <h2 className="flex-1 font-semibold">Soft controls</h2>
+                    <h2 className="flex-1 font-semibold">SOFT CONTROLS</h2>
                     <label className="relative w-full sm:w-64">
                         <Search size={14} aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search controls"
-                            aria-label="Search controls" className={`${field} ps-8`} data-enter-nav="off" />
+                        <TextInput type="search" uppercase={false} value={search} onChange={setSearch} placeholder="Search controls"
+                            aria-label="Search controls" inputClassName="ps-8" data-enter-nav="off" />
                     </label>
                 </div>
                 {loading && softControls.length === 0 && <p role="status" className="p-4 text-sm text-muted-foreground">Loading soft controls…</p>}
@@ -162,10 +163,10 @@ export default function SoftControlPage() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-muted text-muted-foreground">
                                 <tr>
-                                    <th scope="col" className="px-4 py-3">Control ID</th>
-                                    <th scope="col" className="px-4 py-3">Name</th>
-                                    <th scope="col" className="px-4 py-3">Value</th>
-                                    {(canEdit || canDelete) && <th scope="col" className="px-4 py-3 text-right">Actions</th>}
+                                    <th scope="col" className="px-4 py-3">CONTROL ID</th>
+                                    <th scope="col" className="px-4 py-3">NAME</th>
+                                    <th scope="col" className="px-4 py-3">VALUE</th>
+                                    {(canEdit || canDelete) && <th scope="col" className="px-4 py-3 text-right">ACTIONS</th>}
                                 </tr>
                             </thead>
                             <tbody>

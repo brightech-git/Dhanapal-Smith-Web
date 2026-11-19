@@ -133,7 +133,7 @@ export default function TransactionDetailView({
                                         </span>
                                         {row.id !== undefined && <span className="text-[11px] text-muted-foreground">ID {row.id}</span>}
                                     </div>
-                                    <h2 className="mt-1 truncate text-lg font-semibold">{row.smithName || "Transaction"}</h2>
+                                    <h2 className="mt-1 truncate text-sm font-semibold">{row.smithName || "Transaction"}</h2>
                                     {row.date && <p className="text-xs text-muted-foreground">{displayDate(row.date)}</p>}
                                 </div>
                             </div>
@@ -158,9 +158,9 @@ export default function TransactionDetailView({
                             >
                                 {/* Amounts */}
                                 <div className="grid grid-cols-3 gap-2.5">
-                                    <Stat label="Receipt" value={row.receipt ? format(row.receipt) : "—"} tone="in" />
-                                    <Stat label="Issue" value={row.issue ? format(row.issue) : "—"} tone="out" />
-                                    <Stat label="Balance" value={format(row.balance)} tone="balance" />
+                                    <Stat label="RECEIPT" value={row.receipt ? format(row.receipt) : "—"} tone="in" />
+                                    <Stat label="ISSUE" value={row.issue ? format(row.issue) : "—"} tone="out" />
+                                    <Stat label="BALANCE" value={format(row.balance)} tone="balance" />
                                 </div>
 
                                 {/* Remark */}

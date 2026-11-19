@@ -18,6 +18,7 @@ import { useToast } from "@/src/providers/toast-provider";
 import { SmithDetails } from "@/src/module/smith/type/smith-details.types";
 import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-transactions-context";
 import { motion } from "framer-motion";
+import TextInput from "@/src/components/ui/text-input";
 
 type SmithManagerProps = {
     onSelectSmith?: (
@@ -144,7 +145,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
     const columns = [
         {
             key: "sno",
-            label: "S.No",
+            label: "S.NO",
             align: "center" as const,
             headalign: "center" as const,
             width: "60px",
@@ -154,7 +155,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         },
         {
             key: "pname",
-            label: "Name",
+            label: "NAME",
             width: "150px",
             align: "left" as const,
             headalign: "center" as const,
@@ -174,7 +175,7 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
         },
         {
             key: "actions",
-            label: "Actions",
+            label: "ACTIONS",
             align: "center" as const,
             headalign: "center" as const,
             width: "90px",
@@ -219,14 +220,17 @@ const SmithManager: React.FC<SmithManagerProps> = ({ onSelectSmith }) => {
 
             <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
                 <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                <input
+                <TextInput
+                    unstyled
+                    uppercase={false}
                     type="search"
                     aria-label="Search smiths by name"
                     placeholder="Search smith name..."
                     value={search}
                     maxLength={150}
-                    onChange={(event) => setSearch(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                    onChange={setSearch}
+                    className="min-w-0 flex-1"
+                    inputClassName="w-full bg-transparent text-sm outline-none"
                 />
                 {search && (
                     <button type="button" aria-label="Clear smith search" onClick={() => setSearch("")}

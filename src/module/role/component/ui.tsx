@@ -56,7 +56,7 @@ export function StatusBadge({ active }: { active: boolean }) {
 export function Field({ label, hint, children, htmlFor }: { label: string; hint?: string; children: React.ReactNode; htmlFor?: string }) {
     return (
         <div className="space-y-1.5">
-            <label htmlFor={htmlFor} className="text-sm font-medium">
+            <label htmlFor={htmlFor} className="text-xs font-medium">
                 {label}
             </label>
             {children}

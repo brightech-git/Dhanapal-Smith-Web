@@ -298,7 +298,8 @@ const Table: React.FC<TableProps> = ({
                     <tbody className={`${tableStyles.bodyBg} ${bodyClassName}`}>
                         {displayData.map((row, rowIndex) => (
                             <tr
-                                key={rowIndex}
+                                // Saved rows keep their own cells (and edit state) when rows move.
+                                key={row?.id ?? `row-${rowIndex}`}
                                 className={`transition-colors duration-200 border-b ${tableStyles.border} ${striped && rowIndex % 2 === 0 ? tableStyles.stripedBg : ''} ${hoverable && !isEmptyRow(row, rowIndex) ? tableStyles.hoverBg : ''} ${onRowClick && !isEmptyRow(row, rowIndex) ? 'cursor-pointer' : ''} ${isEmptyRow(row, rowIndex) ? 'opacity-30' : ''}`}
                                 onClick={() => !isEmptyRow(row, rowIndex) && onRowClick?.(row)}
                                 role="row"

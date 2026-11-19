@@ -52,22 +52,22 @@ const VoucherPrinterSetup: React.FC = () => {
     const steps = [
         {
             num: "01",
-            label: "Install Registry",
+            label: "INSTALL REGISTRY",
             detail: `Double-click ${REG_FILENAME} in your Downloads folder → click Yes to register the ${PROTOCOL}:// protocol in Windows.`,
         },
         {
             num: "02",
-            label: "Keep BAT in Downloads",
+            label: "KEEP BAT IN DOWNLOADS",
             detail: `${BAT_FILENAME} must stay in C:\\Users\\${windowsUsername || "<username>"}\\Downloads — the registry entry points to that exact path.`,
         },
         {
             num: "03",
-            label: "Verify Printer",
+            label: "VERIFY PRINTER",
             detail: `Confirm \\\\${systemName || "YourPC"}\\${printerShare || "sharename"} is reachable and the label printer is online.`,
         },
         {
             num: "04",
-            label: "Print",
+            label: "PRINT",
             detail: `Click Print on an issued voucher — ${SRC_FILENAME} downloads automatically and the tag prints instantly.`,
         },
     ];
@@ -110,7 +110,7 @@ const VoucherPrinterSetup: React.FC = () => {
                             <TextField
                                 fullWidth
                                 size="small"
-                                label="System / PC Name"
+                                label="SYSTEM / PC NAME"
                                 placeholder="e.g. COUNTER-PC"
                                 value={systemName}
                                 onChange={(e) => setSystemName(e.target.value)}
@@ -120,7 +120,7 @@ const VoucherPrinterSetup: React.FC = () => {
                             <TextField
                                 fullWidth
                                 size="small"
-                                label="Printer Share Name"
+                                label="PRINTER SHARE NAME"
                                 placeholder="e.g. tvs"
                                 value={printerShare}
                                 onChange={(e) => setPrinterShare(e.target.value)}
@@ -130,7 +130,7 @@ const VoucherPrinterSetup: React.FC = () => {
                             <TextField
                                 fullWidth
                                 size="small"
-                                label="Windows Username"
+                                label="WINDOWS USERNAME"
                                 placeholder="e.g. Admin"
                                 value={windowsUsername}
                                 onChange={(e) => setWindowsUsername(e.target.value)}

@@ -20,9 +20,9 @@ const greetingFor = (hour: number): { text: string; icon: LucideIcon; note: stri
 const titleCase = (name: string) => name.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 const SHORTCUTS = [
-    { menuId: "transactions", label: "Transactions", href: "/smiths/transactions", icon: Wallet },
-    { menuId: "orders", label: "Orders", href: "/smiths/order", icon: ClipboardList },
-    { menuId: "gift-voucher", label: "Gift voucher", href: "/gift-voucher#issue", icon: Gift },
+    { menuId: "transactions", label: "TRANSACTIONS", href: "/smiths/transactions", icon: Wallet },
+    { menuId: "orders", label: "ORDERS", href: "/smiths/order", icon: ClipboardList },
+    { menuId: "gift-voucher", label: "GIFT VOUCHER", href: "/gift-voucher#issue", icon: Gift },
 ];
 
 /** Dashboard welcome banner: time-of-day greeting, today's date and quick links. */

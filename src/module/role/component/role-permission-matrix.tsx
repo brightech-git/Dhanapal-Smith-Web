@@ -98,12 +98,12 @@ export default function RolePermissionMatrix({ roleId, onRoleChange }: { roleId:
         <section className={`${card} overflow-hidden`}>
             <CardHeader
                 icon={KeyRound}
-                title="Role permissions"
+                title="ROLE PERMISSIONS"
                 subtitle="Choose what each role can do in every menu"
                 actions={
                     <div className="flex w-full items-center gap-2 sm:w-auto" data-enter-nav>
-                        <label htmlFor="perm-role" className="shrink-0 text-sm font-medium">
-                            Role
+                        <label htmlFor="perm-role" className="shrink-0 text-xs font-medium">
+                            ROLE
                         </label>
                         <select
                             id="perm-role"
@@ -145,9 +145,9 @@ export default function RolePermissionMatrix({ roleId, onRoleChange }: { roleId:
                     )}
 
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-gradient-to-br from-accent-soft via-card to-accent-soft px-4 py-3">
-                        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold">
                             <Checkbox
-                                label="Select all menus and permissions"
+                                label="SELECT ALL MENUS AND PERMISSIONS"
                                 checked={globalState.checked}
                                 indeterminate={globalState.indeterminate}
                                 onChange={(on) => setCells(allMenuIds, FLAG_KEYS, on)}
@@ -188,7 +188,7 @@ export default function RolePermissionMatrix({ roleId, onRoleChange }: { roleId:
                                         <table className="w-full min-w-[720px] text-sm">
                                             <thead>
                                                 <tr className="border-y border-border text-xs uppercase tracking-wide text-muted-foreground">
-                                                    <th className="px-4 py-2 text-left font-medium">Menu</th>
+                                                    <th className="px-4 py-2 text-left font-medium">MENU</th>
                                                     {PERMISSION_FLAGS.map((f) => {
                                                         const cState = state(ids, [f.key]);
                                                         return (

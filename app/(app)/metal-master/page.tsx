@@ -24,7 +24,7 @@ function MetalMaster() {
                     onSaved={() => setEditing(null)} onCancel={editing ? () => setEditing(null) : undefined} />
             )}
             <div className={`min-w-0 overflow-hidden rounded-xl border border-border bg-card ${canAdd || (canEdit && editing) ? "" : "xl:col-span-2"}`}>
-                <h2 className="border-b border-border px-4 py-3 font-semibold">Saved metals</h2>
+                <h2 className="border-b border-border px-4 py-3 font-semibold">SAVED METALS</h2>
                 {list.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading metals…</p>}
                 {list.isError && <p role="alert" className="p-4 text-sm text-red-600">{getApiErrorMessage(list.error)}</p>}
                 {list.isSuccess && (list.data.length ? (
@@ -32,11 +32,11 @@ function MetalMaster() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-muted text-muted-foreground">
                                 <tr>
-                                    <th scope="col" className="px-4 py-3">Metal ID</th>
-                                    <th scope="col" className="px-4 py-3">Metal name</th>
-                                    <th scope="col" className="px-4 py-3">Display order</th>
-                                    <th scope="col" className="px-4 py-3">Active</th>
-                                    {canEdit && <th scope="col" className="px-4 py-3">Actions</th>}
+                                    <th scope="col" className="px-4 py-3">METAL ID</th>
+                                    <th scope="col" className="px-4 py-3">METAL NAME</th>
+                                    <th scope="col" className="px-4 py-3">DISPLAY ORDER</th>
+                                    <th scope="col" className="px-4 py-3">ACTIVE</th>
+                                    {canEdit && <th scope="col" className="px-4 py-3">ACTIONS</th>}
                                 </tr>
                             </thead>
                             <tbody>

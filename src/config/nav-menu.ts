@@ -5,8 +5,8 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-    BarChart3, ClipboardList, Database, Gift, Hammer, KeyRound, Layers, LayoutDashboard,
-    Package, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
+    BarChart3, ClipboardList, Database, FileBarChart, Gift, Hammer, IndianRupee, KeyRound, Layers, LayoutDashboard,
+    Package, Scale, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -29,55 +29,64 @@ export interface NavSection {
 export const NAV_MENU: NavSection[] = [
     {
         id: "overview",
-        label: "Overview",
+        label: "OVERVIEW",
         items: [
-            { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/", menuId: "dashboard" },
+          
+            { id: "dashboard", label: "DASHBOARD", icon: LayoutDashboard, href: "/", menuId: "dashboard" },
         ],
     },
     {
         id: "modules",
-        label: "Modules",
+        label: "MODULES",
         items: [
             {
-                id: "smith", label: "Smith", icon: Hammer, children: [
-                    { id: "transactions", label: "Transactions", icon: Wallet, href: "/smiths/transactions", menuId: "transactions" },
-                    { id: "orders", label: "Orders", icon: ClipboardList, href: "/smiths/order", menuId: "orders" },
+                id: "masters", label: "MASTERS", icon: Database, children: [
+                    { id: "metal-master", label: "METAL MASTER", icon: Layers, href: "/metal-master", menuId: "metals" },
+                    { id: "item-master", label: "ITEM MASTER", icon: Package, href: "/item-master", menuId: "items" },
                 ],
             },
             {
-                id: "gift-voucher", label: "Gift Voucher", icon: Gift, children: [
+                id: "smith", label: "SMITH", icon: Hammer, children: [
+                    { id: "transactions", label: "TRANSACTIONS", icon: Wallet, href: "/smiths/transactions", menuId: "transactions" },
+                    { id: "orders", label: "ORDERS", icon: ClipboardList, href: "/smiths/order", menuId: "orders" },
                     {
-                        id: "gv-vouchers", label: "Vouchers", icon: Ticket, children: [
-                            { id: "gv-issue", label: "Issue", href: "/gift-voucher#issue", menuId: "gift-voucher", isDefault: true },
-                            { id: "gv-receipt", label: "Receipt", href: "/gift-voucher#receipt", menuId: "gift-voucher" },
+                        id: "smith-reports", label: "REPORTS", icon: FileBarChart, children: [
+                            { id: "report-weight", label: "WEIGHT REPORT", icon: Scale, href: "/reports/weight", menuId: "report-weight" },
+                            { id: "report-amount", label: "AMOUNT REPORT", icon: IndianRupee, href: "/reports/amount", menuId: "report-amount" },
+                            { id: "report-smith", label: "SMITH SUMMARY", icon: Users, href: "/reports/smith", menuId: "report-smith" },
                         ],
                     },
-                    { id: "gv-introducers", label: "Introducers", icon: Users, href: "/gift-voucher#introducers", menuId: "gift-voucher" },
-                    { id: "gv-report", label: "Report", icon: BarChart3, href: "/gift-voucher#report", menuId: "gift-voucher" },
+                ],
+            },
+            {
+                id: "gift-voucher", label: "GIFT VOUCHER", icon: Gift, children: [
+                    {
+                        id: "gv-vouchers", label: "VOUCHERS", icon: Ticket, children: [
+                            { id: "gv-issue", label: "ISSUE", href: "/gift-voucher#issue", menuId: "gift-voucher", isDefault: true },
+                            { id: "gv-receipt", label: "RECEIPT", href: "/gift-voucher#receipt", menuId: "gift-voucher" },
+                        ],
+                    },
+                    { id: "gv-introducers", label: "INTRODUCERS", icon: Users, href: "/gift-voucher#introducers", menuId: "gift-voucher" },
+                    { id: "gv-report", label: "REPORT", icon: BarChart3, href: "/gift-voucher#report", menuId: "gift-voucher" },
                 ],
             },
         ],
     },
     {
         id: "settings",
-        label: "Settings",
+        label: "SETTINGS",
         items: [
+           
             {
-                id: "masters", label: "Masters", icon: Database, children: [
-                    { id: "metal-master", label: "Metal Master", icon: Layers, href: "/metal-master", menuId: "metals" },
-                    { id: "item-master", label: "Item Master", icon: Package, href: "/item-master", menuId: "items" },
-                ],
-            },
-            {
-                id: "administration", label: "Administration", icon: ShieldCheck, children: [
+                id: "administration", label: "ADMINISTRATION", icon: ShieldCheck, children: [
                     {
-                        id: "access-control", label: "Access control", icon: KeyRound, children: [
-                            { id: "roles", label: "Roles", href: "/roles#roles", menuId: "roles", isDefault: true },
-                            { id: "role-permissions", label: "Permissions", href: "/roles#permissions", menuId: "role-permissions" },
-                            { id: "user-roles", label: "User roles", href: "/roles#user-roles", menuId: "user-roles" },
+                        id: "access-control", label: "ACCESS CONTROL", icon: KeyRound, children: [
+                            { id: "roles", label: "ROLES", href: "/roles#roles", menuId: "roles", isDefault: true },
+                            { id: "role-permissions", label: "PERMISSIONS", href: "/roles#permissions", menuId: "role-permissions" },
+                            { id: "user-roles", label: "USER ROLES", href: "/roles#user-roles", menuId: "user-roles" },
                         ],
                     },
-                    { id: "soft-controls", label: "Soft Controls", icon: SlidersHorizontal, href: "/soft-controls", menuId: "soft-controls" },
+                    { id: "soft-controls", label: "SOFT CONTROLS", icon: SlidersHorizontal, href: "/soft-controls", menuId: "soft-controls" },
                 ],
             },
         ],

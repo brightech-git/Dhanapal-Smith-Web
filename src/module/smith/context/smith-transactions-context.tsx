@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useState, useEffect, ReactNode } from "react";
+import { useSoftControlFlags } from "./soft-control-context";
 import {
     SmithTransaction,
     SmithTransactionDetail,
@@ -56,7 +57,10 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
 
     const { isAuthenticated, isLoading: authLoading } = useAuth();
     const [summary, setSummary] = useState<TransactionSummaryRow[]>([]);
-    const [metalId, setMetalId] = useState("G");
+    const softControls = useSoftControlFlags();
+    const [chosenMetalId, setMetalId] = useState("G");
+    // WEIGHTITEM = N: weight rows have no item, so no metal either: show every row.
+    const metalId = softControls.weightItems ? chosenMetalId : "";
     const transactions = useMemo(() => summarizeSmiths(summary, metalId), [summary, metalId]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -141,11 +145,12 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
 
     useEffect(() => {
         // ✅ Only run after login is complete and authenticated
-        if (!authLoading && isAuthenticated) {
+        // Wait for the soft controls too: they decide whether a metal filter applies.
+        if (!authLoading && isAuthenticated && !softControls.loading) {
             loadTransactions();
         }
         // Reload the summary whenever the metal changes.
-    }, [isAuthenticated, authLoading, metalId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isAuthenticated, authLoading, metalId, softControls.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <SmithTransactionContext.Provider value={{

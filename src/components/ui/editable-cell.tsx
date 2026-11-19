@@ -62,10 +62,32 @@ const EditableCell: React.FC<EditableCellProps> = ({
         }
     }, [isEditing, type]);
 
-    const handleClick = () => setIsEditing(true);
+    // Start every edit from this row's current value. The table reuses cell
+    // components by position, so the state may still hold another row's value.
+    const startEdit = () => {
+        setEditValue(
+            type === "date"
+                ? parseDate(value)
+                : (type === "number" || type === "numbers") && value != null
+                    ? String(value)
+                    : value ?? ""
+        );
+        setIsEditing(true);
+    };
+
+    const handleClick = startEdit;
 
     const handleBlur = async () => {
         if (isEditing && !isSaving) await saveValue();
+    };
+
+    // Date cell: a picked day saves at once and moves on to the next cell.
+    const cellRef = useRef<HTMLDivElement>(null);
+    const pickDate = async (date: Date | null) => {
+        latestDate.current = date;
+        setEditValue(date);
+        const next = cellRef.current ? nextCellPosition(cellRef.current) : null;
+        if (await saveValue(date)) requestAnimationFrame(() => activateCell(next));
     };
 
     const handleKeyDown = async (e: React.KeyboardEvent) => {
@@ -145,15 +167,30 @@ const EditableCell: React.FC<EditableCellProps> = ({
     if (isEditing) {
         if (type === "date") {
             return (
-                <div data-cell-nav className="w-full">
+                <div ref={cellRef} data-cell-nav className="w-full">
                 <DatePicker
+                    autoFocus
+                    // Kept open by us while the cell is being edited, so nothing else can close it.
+                    open={!isSaving}
+                    shouldCloseOnSelect
                     selected={editValue}
                     onChange={(date: Date | null) => {
                         latestDate.current = date;
                         setEditValue(date);
                     }}
-                    onBlur={handleBlur}
-                    onKeyDown={handleKeyDown}
+                    // A day picked in the calendar (mouse, or Enter on a day): save and go on.
+                    // Enter in the text box itself is handled in onKeyDown.
+                    onSelect={(date: Date | null, event?: React.SyntheticEvent) => {
+                        if ((event?.target as HTMLElement | undefined)?.tagName !== "INPUT") void pickDate(date);
+                    }}
+                    // The calendar lives outside the cell, so save on a click elsewhere, not on blur.
+                    onClickOutside={() => { if (!isSaving) void saveValue(latestDate.current); }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Tab") { void saveValue(latestDate.current); return; }
+                        void handleKeyDown(e);
+                    }}
+                    portalId="cell-date-portal"
+                    popperPlacement="bottom-start"
                     dateFormat="dd-MM-yyyy"
                     placeholderText="dd-mm-yyyy"
                     todayButton="Today"
@@ -181,6 +218,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
                     disabled={isSaving}
                     className={`w-full px-1 py-1 border-none outline-none focus:outline-none focus:ring-0 focus:border-none ${isSaving ? "opacity-50 cursor-not-allowed" : ""
                         } ${className}`}
+                    maxLength={150}
                 />
             </div>
         );
@@ -193,7 +231,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
             onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "F2") {
                     e.preventDefault();
-                    setIsEditing(true);
+                    startEdit();
                 }
             }}
             role="button"

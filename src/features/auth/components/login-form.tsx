@@ -273,7 +273,7 @@ const LoginForm: React.FC = () => {
                             <motion.div variants={item}>
                                 <Field
                                     id="userName"
-                                    label="Username"
+                                    label="USERNAME"
                                     icon={User}
                                     inputRef={userRef}
                                     value={userName}
@@ -298,7 +298,7 @@ const LoginForm: React.FC = () => {
                             <motion.div variants={item}>
                                 <Field
                                     id="password"
-                                    label="Password"
+                                    label="PASSWORD"
                                     icon={Lock}
                                     inputRef={passwordRef}
                                     type={showPassword ? "text" : "password"}

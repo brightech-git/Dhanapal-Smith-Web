@@ -11,6 +11,7 @@ import { getApiErrorMessage } from "../api/gift.api";
 import { useDeleteGift, useGifts, useIntroducers, useIssueGifts, useRemaining, useUpdateGift } from "../hook/use-gift";
 import { formatAmount, formatDateTime, parseAmount, parsePiece } from "../lib/format";
 import type { GiftTran } from "../type/gift-voucher.types";
+import TextInput from "@/src/components/ui/text-input";
 
 type Values = { introducerId: string; amount: string; piece: string };
 const EMPTY: Values = { introducerId: "", amount: "", piece: "1" };
@@ -157,7 +158,7 @@ export default function VoucherGenerateForm() {
                             subtitle={editing ? "The tag number stays the same" : "One tag is printed for each piece"}
                         />
                         <form onSubmit={submit} className="space-y-4 p-5" noValidate>
-                            <Field label="Introducer" htmlFor="issue-introducerId">
+                            <Field label="INTRODUCER" htmlFor="issue-introducerId">
                                 <select
                                     id="issue-introducerId"
                                     ref={firstRef}
@@ -176,28 +177,32 @@ export default function VoucherGenerateForm() {
                                 {fieldError("introducerId")}
                             </Field>
                             <div className="grid grid-cols-2 gap-3">
-                                <Field label="Amount per piece" htmlFor="issue-amount">
-                                    <input
+                                <Field label="AMOUNT PER PIECE" htmlFor="issue-amount">
+                                    <TextInput
+                                        unstyled
                                         id="issue-amount"
-                                        inputMode="decimal"
-                                        autoComplete="off"
+                                        type="number"
+                                        decimals={2}
+                                        min={0}
                                         placeholder="0.00"
-                                        className={`${inputClass} text-right ${errors.amount ? "border-red-500" : ""}`}
+                                        inputClassName={`${inputClass} ${errors.amount ? "border-red-500" : ""}`}
                                         value={values.amount}
-                                        onChange={(e) => set("amount", e.target.value.replace(/[^\d.]/g, ""))}
+                                        onChange={(v) => set("amount", v)}
                                     />
                                     {fieldError("amount")}
                                 </Field>
-                                <Field label="Pcs" htmlFor="issue-piece">
-                                    <input
+                                <Field label="PCS" htmlFor="issue-piece">
+                                    <TextInput
+                                        unstyled
                                         id="issue-piece"
-                                        inputMode="numeric"
-                                        autoComplete="off"
+                                        type="number"
+                                        decimals={0}
+                                        maxLength={4}
                                         placeholder="1"
                                         disabled={!!editing}
-                                        className={`${inputClass} text-right disabled:opacity-60 ${errors.piece ? "border-red-500" : ""}`}
+                                        inputClassName={`${inputClass} disabled:opacity-60 ${errors.piece ? "border-red-500" : ""}`}
                                         value={values.piece}
-                                        onChange={(e) => set("piece", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                        onChange={(v) => set("piece", v)}
                                     />
                                     {fieldError("piece")}
                                 </Field>
@@ -256,16 +261,18 @@ export default function VoucherGenerateForm() {
                 <section className={`${card} min-w-0 overflow-hidden`}>
                     <CardHeader
                         icon={Ticket}
-                        title="Issued gifts"
+                        title="ISSUED GIFTS"
                         subtitle={`${issues.data?.length ?? 0} tags`}
                         actions={
                             <div className="relative w-full sm:w-64" data-enter-nav="off">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    className={`${inputClass} h-9 pl-9`}
+                                <TextInput
+                                    unstyled
+                                    uppercase={false}
+                                    inputClassName={`${inputClass} h-9 pl-9`}
                                     placeholder="Search tag or introducer..."
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={setSearch}
                                     aria-label="Search issued gifts"
                                 />
                             </div>
@@ -275,12 +282,12 @@ export default function VoucherGenerateForm() {
                         <table className="w-full min-w-[640px] text-sm">
                             <thead className="sticky top-0 bg-card">
                                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                    <th className="px-5 py-2.5 font-medium">Tag no</th>
-                                    <th className="px-3 py-2.5 font-medium">Batch</th>
-                                    <th className="px-3 py-2.5 font-medium">Introducer</th>
-                                    <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                                    <th className="px-3 py-2.5 text-right font-medium">Status</th>
-                                    <th className="px-5 py-2.5 text-right font-medium">Actions</th>
+                                    <th className="px-5 py-2.5 font-medium">TAG NO</th>
+                                    <th className="px-3 py-2.5 font-medium">BATCH</th>
+                                    <th className="px-3 py-2.5 font-medium">INTRODUCER</th>
+                                    <th className="px-3 py-2.5 text-right font-medium">AMOUNT</th>
+                                    <th className="px-3 py-2.5 text-right font-medium">STATUS</th>
+                                    <th className="px-5 py-2.5 text-right font-medium">ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">

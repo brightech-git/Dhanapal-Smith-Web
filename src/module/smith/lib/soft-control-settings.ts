@@ -14,6 +14,7 @@ export function readSoftControlSettings(controls: SoftControl[]) {
         saveButton: values.get("SAVEBUTTON") === "Y",
         showDashboard: values.get("DASHBOARD") === "Y",
         showLoading: values.get("LOADING") === "Y",
+        weightItems: values.get("WEIGHTITEM") === "Y",
         dashboardPosition: (position === "B" || position === "BELOW" || position === "BOTTOM"
             ? "below" : "above") as DashboardPosition,
     };

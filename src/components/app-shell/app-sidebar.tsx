@@ -20,7 +20,7 @@ interface NodeContext {
 }
 
 // Row styles per level: parent, child, grandchild.
-const rowSize = ["min-h-10 gap-3 px-3 text-sm", "min-h-9 gap-2.5 px-2.5 text-[13px]", "min-h-8 gap-2 px-2.5 text-[13px]"];
+const rowSize = ["min-h-10 gap-3 px-3 text-xs font-medium", "min-h-9 gap-2.5 px-2.5 text-xs", "min-h-8 gap-2 px-2.5 text-xs"];
 const iconSize = [18, 16, 14];
 
 function NavNode({ item, depth, ctx }: { item: NavItem; depth: number; ctx: NodeContext }) {
