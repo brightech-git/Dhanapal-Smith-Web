@@ -31,6 +31,8 @@ const fieldsIn = (container: HTMLElement) =>
             !(el as HTMLInputElement).readOnly &&
             el.tabIndex !== -1 &&
             !el.closest("[data-enter-nav=off]") &&
+            // The date picker's own month / year selects are not form fields.
+            !el.closest(".react-datepicker-popper") &&
             isVisible(el)
     );
 

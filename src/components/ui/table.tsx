@@ -43,6 +43,8 @@ export interface TableProps {
     fixedHeight?: string;
     showRows?: number;
     renderFooter?: () => React.ReactElement;
+    /** Extra classes for a row, e.g. a red background for cancelled rows. */
+    rowClassName?: (row: any, rowIndex: number) => string;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -70,6 +72,7 @@ const Table: React.FC<TableProps> = ({
     defaultSortDirection = 'asc',
     fixedHeight,
     showRows = 0,
+    rowClassName,
     renderFooter
 }) => {
     const { getTableStyles, responsive } = useTheme();
@@ -300,7 +303,7 @@ const Table: React.FC<TableProps> = ({
                             <tr
                                 // Saved rows keep their own cells (and edit state) when rows move.
                                 key={row?.id ?? `row-${rowIndex}`}
-                                className={`transition-colors duration-200 border-b ${tableStyles.border} ${striped && rowIndex % 2 === 0 ? tableStyles.stripedBg : ''} ${hoverable && !isEmptyRow(row, rowIndex) ? tableStyles.hoverBg : ''} ${onRowClick && !isEmptyRow(row, rowIndex) ? 'cursor-pointer' : ''} ${isEmptyRow(row, rowIndex) ? 'opacity-30' : ''}`}
+                                className={`transition-colors duration-200 border-b ${tableStyles.border} ${striped && rowIndex % 2 === 0 ? tableStyles.stripedBg : ''} ${hoverable && !isEmptyRow(row, rowIndex) ? tableStyles.hoverBg : ''} ${onRowClick && !isEmptyRow(row, rowIndex) ? 'cursor-pointer' : ''} ${isEmptyRow(row, rowIndex) ? 'opacity-30' : ''} ${!isEmptyRow(row, rowIndex) ? rowClassName?.(row, rowIndex) ?? '' : ''}`}
                                 onClick={() => !isEmptyRow(row, rowIndex) && onRowClick?.(row)}
                                 role="row"
                             >

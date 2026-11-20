@@ -70,9 +70,8 @@ export const formatReportDate = (value?: string | null) => {
     return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
 };
 
-/** Fixed decimals with Indian grouping; "" for null. */
-export const formatReportNumber = (value: number | null | undefined, decimals: number) =>
-    value == null ? "" : Number(value).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+/** Fixed decimals with no thousands separators (203120.00); "" for null. */
+export { formatReportNumber } from "../lib/report-format";
 
 /** Filters in words for the subtitle / print header. */
 export const describeFilters = (parts: [string, string | undefined | null][]) =>

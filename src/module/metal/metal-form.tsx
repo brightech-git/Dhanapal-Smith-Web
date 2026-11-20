@@ -83,7 +83,7 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
                 save.reset();
                 focusFirstField();
             }} className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
-            {showHeading && <h2 className="font-semibold">{editing ? "Edit metal" : "Add metal"}</h2>}
+            {/* {showHeading && <h2 className="font-semibold">{editing ? "Edit metal" : "Add metal"}</h2>} */}
             <fieldset disabled={save.isPending} className="grid min-w-0 gap-3">
                 <label className={row}>
                     <span>METAL ID</span>

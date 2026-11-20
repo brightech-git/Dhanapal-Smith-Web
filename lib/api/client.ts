@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { attachTranDb } from "./tran-db";
+import { attachUserId } from "./user-id";
 
 let axiosInstance: AxiosInstance | null = null;
 let currentBaseUrl: string | null = null;
@@ -20,6 +21,8 @@ export const getAxiosInstance = (baseUrl?: string): AxiosInstance => {
         });
         // Transaction, dashboard and report requests carry the tranDb request header.
         attachTranDb(axiosInstance);
+        // Write requests (POST, PUT, DELETE) carry the logged-in user in the userId header.
+        attachUserId(axiosInstance);
 
         // console.log("🔗 Axios initialized with baseURL:", BASEURL);
     }

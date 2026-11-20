@@ -28,14 +28,14 @@ export function ReportFilterForm({ onSubmit, onReset, busy, children }: {
 }) {
     return (
         <form
-            className="grid grid-cols-1 items-end gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6"
+            className="grid grid-cols-1 items-end gap-3 border-b border-border p-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7"
             onSubmit={(event) => {
                 event.preventDefault();
                 onSubmit();
             }}
         >
             {children}
-            <div className="flex gap-2 sm:col-span-2 lg:col-span-4 xl:col-span-6 xl:justify-end">
+            <div className="flex gap-2 sm:col-span-3 md:col-span-5  lg:col-span-6 xl:col-span-7 xl:justify-end">
                 <button type="button" className={ghostButton} onClick={onReset}>
                     <RotateCcw className="h-4 w-4" /> Reset
                 </button>

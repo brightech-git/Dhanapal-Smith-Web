@@ -123,3 +123,14 @@ body {
 @layer base {
   th { font-size: 0.75rem; line-height: 1rem; }
 }
+
+/* Combo box options (combo-box, multi-combo-box). Not in a layer, so it wins over utilities.
+   Light: hovered / keyboard option uses the soft accent.
+   Dark: options rest in a soft light grey; the hovered / keyboard option gets a darker
+   background with white text; the chosen option has a light white background with black text (and its tick). */
+.combo-option[data-active="true"] { background-color: var(--accent-soft); color: var(--primary-text); }
+.dark .combo-option:not(.combo-action) { color: color-mix(in srgb, var(--foreground) 72%, transparent); }
+.dark .combo-option[data-active="true"] { background-color: color-mix(in srgb, var(--primary) 28%, #05070a); color: #fff; }
+/* Chosen option: light white background with black text, a little greyer while hovered. */
+.dark .combo-option[aria-selected="true"]:not(.combo-action) { background-color: #f8fafc; color: #0b0f15; font-weight: 600; }
+.dark .combo-option[aria-selected="true"][data-active="true"]:not(.combo-action) { background-color: #dfe5ee; color: #0b0f15; }

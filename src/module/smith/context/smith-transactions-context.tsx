@@ -22,7 +22,9 @@ import {
     patchWeightFlow,
     addTransaction,
     NewSmithTransaction,
-    deleteSmithTransaction
+    deleteSmithTransaction,
+    cancelSmithTransaction,
+    type FlowFilter,
 } from "@/src/module/smith/api/smith-transactions.api";
 import { useAuth } from "@/src/features/auth/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,10 +47,12 @@ interface SmithTransactionContextType {
     addWeight: (smithId: string, data: Partial<any>) => Promise<void>;
     updateWeight: (id: number, data: Partial<any>) => Promise<void>;
     deleteWeight: (id: number) => Promise<void>;
-    getCashFlows: (smithId: string) => Promise<CashFlow[]>;
-    getWeightFlows: (smithId: string) => Promise<WeightFlow[]>;
+    getCashFlows: (smithId: string, filter?: FlowFilter) => Promise<CashFlow[]>;
+    getWeightFlows: (smithId: string, filter?: FlowFilter) => Promise<WeightFlow[]>;
     addTransaction: (data: NewSmithTransaction) => Promise<void>;
     deleteTransaction: (id: number) => Promise<void>;
+    /** Cancels a cash or weight row (kept, but not counted). */
+    cancelFlow: (id: number) => Promise<void>;
 }
 
 const SmithTransactionContext = createContext<SmithTransactionContextType | undefined>(undefined);
@@ -95,13 +99,13 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
     const getDetail = async (id: number) => {
         return await fetchSmithTransactionDetail(id);
     };
-    const getCashFlows = async (smithId: string) => {
-        return await fetchCashFlows(smithId);
+    const getCashFlows = async (smithId: string, filter?: FlowFilter) => {
+        return await fetchCashFlows(smithId, filter);
     };
 
-    const getWeightFlows = async (smithId: string) => {
+    const getWeightFlows = async (smithId: string, filter?: FlowFilter) => {
         // With a metal chosen, the weight ledger shows that metal's rows only.
-        return await fetchWeightFlows(smithId, metalId);
+        return await fetchWeightFlows(smithId, metalId, filter);
     };
     const addCash = async (smithId: string, data: Partial<any>) => {
         await addCashFlow(smithId, data);
@@ -137,6 +141,11 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
         await loadTransactions();
     };
 
+    const cancelFlow = async (id: number) => {
+        await cancelSmithTransaction(id);
+        await loadTransactions();
+    };
+
     const deleteTransaction =async(id:number)=>{
         await deleteSmithTransaction(id);
         await loadTransactions();
@@ -164,6 +173,7 @@ export const SmithTransactionProvider = ({ children }: { children: ReactNode }) 
             addCash,
             updateCash,
             deleteCash,
+            cancelFlow,
             addWeight,
             updateWeight,
             deleteWeight,

@@ -42,6 +42,12 @@ export interface TransactionApi {
     touch?: number | null;
     itemName?: string | null;
     age ? : number
+    /** Only GET transactions/smiths/{id} returns cancelled rows (cancel = true). */
+    cancel?: boolean;
+    metalId?: string | null;
+    metalName?: string | null;
+    /** Opening balance rows (negative id) are read-only. */
+    opening?: boolean;
 }
 
 /** A or W, from tranMode (or tranType on older backends). */
@@ -96,6 +102,8 @@ export interface SmithFlow {
     touch: number | null;
     purewt: number | null;
     age :number |null ;
+    /** Cancelled rows stay in the list but are left out of balances and totals. */
+    cancelled: boolean;
 }
 export type CashFlow = SmithFlow;
 export type WeightFlow = SmithFlow;
@@ -127,7 +135,8 @@ export const toFlows = (rows: TransactionApi[]): SmithFlow[] => {
     return [...rows]
         .sort((a, b) => (a.tranDate === b.tranDate ? a.id - b.id : a.tranDate < b.tranDate ? -1 : 1))
         .map((t) => {
-            total = total.plus(String(num(t.receipt))).minus(String(num(t.issue)));
+            // A cancelled row does not move the running balance.
+            if (!t.cancel) total = total.plus(String(num(t.receipt))).minus(String(num(t.issue)));
             const running = total.toNumber();
             return {
                 id: t.id,
@@ -146,7 +155,8 @@ export const toFlows = (rows: TransactionApi[]): SmithFlow[] => {
                 touch: optionalNum(t.touch),
                 // Older rows may come back without purewt: work it out from grswt and touch.
                 purewt: optionalNum(t.purewt) ?? (t.grswt != null && t.touch != null ? pureWeight(t.grswt, t.touch) : null),
-                age  : optionalNum(t.age)
+                age  : optionalNum(t.age),
+                cancelled: !!t.cancel,
             };
         });
 };
@@ -261,16 +271,52 @@ export const fetchSmithTransactionDetail = async (smithId: number): Promise<Smit
 /** Smiths have no separate transaction header any more; kept so callers still work. */
 export const addTransaction = async (_payload: NewSmithTransaction) => undefined;
 
+/** PUT transactions/{id}/cancel: keeps the row (cancel = true) but leaves it out of every balance. */
+export const cancelSmithTransaction = async (id: number) =>
+    remember(await api.put<TransactionApi>(`transactions/${id}/cancel`));
+
 export const deleteSmithTransaction = async (id: number) => {
     await api.delete(`transactions/${id}`);
     cache.delete(id);
 };
 
 // ---- Cash / weight rows
-export const fetchFlows = async (smithId: string, kind: FlowKind, metalId?: string) =>
-    toFlows(await fetchSmithTransactionsBySmith(smithId, tranTypeOf(kind), metalId));
-export const fetchCashFlows = (smithId: string) => fetchFlows(smithId, "cash");
-export const fetchWeightFlows = (smithId: string, metalId?: string) => fetchFlows(smithId, "weight", metalId);
+/** Filters of GET transactions/smiths/{smithId}; dates are YYYY-MM-DD. */
+export type SmithLedgerFilter = {
+    tranMode?: TranType;
+    metalId?: string;
+    itemId?: string | number;
+    fromDate?: string;
+    toDate?: string;
+    search?: string;
+};
+
+/** One smith's transactions (cancelled ones included, flagged cancel), newest first. */
+export const fetchSmithLedger = async (smithId: number | string, filter: SmithLedgerFilter = {}) => {
+    const params: Record<string, unknown> = {};
+    if (filter.tranMode) params.tranMode = filter.tranMode;
+    if (filter.metalId) params.metalId = filter.metalId;
+    if (filter.itemId !== undefined && filter.itemId !== "") params.itemId = filter.itemId;
+    if (filter.fromDate) params.fromDate = filter.fromDate;
+    if (filter.toDate) params.toDate = filter.toDate;
+    if (filter.search?.trim()) params.search = filter.search.trim();
+    return ((await api.get<TransactionApi[]>(`transactions/smiths/${smithId}`, params)) ?? [])
+        .filter(byMode(filter.tranMode)).map(remember);
+};
+
+/** Ledger filters the transactions screen adds on top of smith, mode and metal. */
+export type FlowFilter = Pick<SmithLedgerFilter, "itemId" | "fromDate" | "toDate" | "search">;
+
+export const fetchFlows = async (smithId: string, kind: FlowKind, metalId?: string, filter: FlowFilter = {}) =>
+    toFlows(await fetchSmithLedger(smithId, {
+        tranMode: tranTypeOf(kind),
+        // Metal, item and search only apply to weight rows.
+        ...(kind === "weight" ? { metalId, itemId: filter.itemId, search: filter.search } : {}),
+        fromDate: filter.fromDate,
+        toDate: filter.toDate,
+    }));
+export const fetchCashFlows = (smithId: string, filter: FlowFilter = {}) => fetchFlows(smithId, "cash", undefined, filter);
+export const fetchWeightFlows = (smithId: string, metalId?: string, filter: FlowFilter = {}) => fetchFlows(smithId, "weight", metalId, filter);
 
 export const addFlow = async (smithId: string, kind: FlowKind, data: Record<string, unknown>) => {
     const draft = applyPatch(

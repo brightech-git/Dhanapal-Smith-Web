@@ -222,7 +222,7 @@ export default function ComboBox({
                                 onMouseDown={(event) => event.preventDefault()}
                                 onMouseEnter={() => setHighlight(index)}
                                 onClick={() => pick(option, false)}
-                                className={`flex cursor-pointer items-center gap-2 text-xs px-2 py-1 ${active ? "bg-accent-soft text-primary-text" : ""}`}>
+                                className="combo-option flex cursor-pointer items-center gap-2 px-2 py-1 text-xs">
                                 <span className="flex-1 truncate">{option.label}</span>
                                 {isSelected && <Check size={12} aria-hidden className="shrink-0" />}
                             </li>
@@ -234,7 +234,7 @@ export default function ComboBox({
                             onMouseDown={(event) => event.preventDefault()}
                             onMouseEnter={() => setHighlight(filtered.length)}
                             onClick={chooseAddNew}
-                            className={`sticky bottom-0 mt-1 flex cursor-pointer items-center gap-2 border-t border-border bg-card px-2 py-1 text-xs font-semibold text-primary-text ${
+                            className={`combo-option combo-action sticky bottom-0 mt-1 flex cursor-pointer items-center gap-2 border-t border-border bg-card px-2 py-1 text-xs font-semibold text-primary-text ${
                                 highlight === filtered.length ? "bg-accent-soft" : ""
                             }`}>
                             <Plus size={15} aria-hidden /> Add new

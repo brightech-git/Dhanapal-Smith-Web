@@ -5,8 +5,8 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-    BarChart3, ClipboardList, Database, FileBarChart, Gift, Hammer, IndianRupee, KeyRound, Layers, LayoutDashboard,
-    Keyboard, Package, Scale, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
+    BarChart3, BookOpen, ClipboardList, Database, FileBarChart, Gift, Hammer, KeyRound, Layers, LayoutDashboard,
+    Keyboard, Package, ShieldCheck, SlidersHorizontal, Ticket, Users, Wallet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -51,8 +51,7 @@ export const NAV_MENU: NavSection[] = [
                     { id: "orders", label: "ORDERS", icon: ClipboardList, href: "/smiths/order", menuId: "orders" },
                     {
                         id: "smith-reports", label: "REPORTS", icon: FileBarChart, children: [
-                            { id: "report-weight", label: "WEIGHT REPORT", icon: Scale, href: "/reports/weight", menuId: "report-weight" },
-                            { id: "report-amount", label: "AMOUNT REPORT", icon: IndianRupee, href: "/reports/amount", menuId: "report-amount" },
+                            { id: "report-daybook", label: "DAY BOOK", icon: BookOpen, href: "/reports/day-book", menuId: "report-daybook" },
                             { id: "report-smith", label: "SMITH SUMMARY", icon: Users, href: "/reports/smith", menuId: "report-smith" },
                         ],
                     },

@@ -196,7 +196,7 @@ export default function MultiComboBox({
             {open && rect && createPortal(
                 <ul ref={list} id={listId} role="listbox" aria-multiselectable aria-labelledby={labelId}
                     style={{ top: rect.top, left: rect.left, width: rect.width, zIndex: 1500, transform: rect.above ? "translateY(-100%)" : undefined }}
-                    className="fixed max-h-72 overflow-y-auto rounded-lg border border-border bg-card py-1 text-sm text-foreground shadow-xl">
+                    className="fixed max-h-52 text-xs overflow-y-auto rounded-lg border border-border bg-card py-1  text-foreground shadow-xl">
                     {filtered.length === 0 && (
                         <li className="px-3 py-2 text-muted-foreground">{options.length ? "No matches" : "No options"}</li>
                     )}
@@ -208,7 +208,7 @@ export default function MultiComboBox({
                                 onMouseDown={(event) => event.preventDefault()}
                                 onMouseEnter={() => setHighlight(index)}
                                 onClick={() => toggle(option)}
-                                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 ${active ? "bg-accent-soft text-primary-text" : ""}`}>
+                                className="combo-option flex cursor-pointer items-center gap-2 px-3 py-1.5">
                                 <span aria-hidden className={`grid size-4 shrink-0 place-items-center rounded border ${isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>
                                     {isSelected && <Check size={12} />}
                                 </span>
@@ -221,7 +221,7 @@ export default function MultiComboBox({
                             onMouseDown={(event) => event.preventDefault()}
                             onMouseEnter={() => setHighlight(SELECT_ALL)}
                             onClick={toggleAllShown}
-                            className={`sticky bottom-0 mt-1 flex cursor-pointer items-center gap-2 border-t border-border bg-card px-3 py-2 font-semibold text-primary-text ${highlight === SELECT_ALL ? "bg-accent-soft" : ""}`}>
+                            className="combo-option combo-action sticky bottom-0 mt-1 flex cursor-pointer items-center gap-2 border-t border-border bg-card px-3 py-2 font-semibold text-primary-text">
                             {allShownPicked ? "Clear all shown" : "Select all shown"}
                         </li>
                     )}

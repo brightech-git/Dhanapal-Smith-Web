@@ -72,7 +72,7 @@ function ItemMaster() {
                     save.reset();
                     focusFirstField();
                 }} className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
-                    <h2 className="font-semibold">{editing ? "Edit item" : "Add item"}</h2>
+                    {/* <h2 className="font-semibold">{editing ? "Edit item" : "Add item"}</h2> */}
                     <fieldset disabled={save.isPending} className="grid min-w-0 gap-3">
 
                         <label className={row}>
@@ -127,7 +127,7 @@ function ItemMaster() {
                 </form>
             )}
             <div className={`min-w-0 overflow-hidden rounded-xl border border-border bg-card ${canAdd || (canEdit && editing) ? "" : "xl:col-span-2"}`}>
-                <h2 className="border-b border-border px-4 py-3 font-semibold">SAVED ITEMS</h2>
+                <h2 className="border-b border-border px-4 py-3 font-semibold">ITEM LIST</h2>
                 {list.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading items…</p>}
                 {list.isError && <p role="alert" className="p-4 text-sm text-red-600">{getApiErrorMessage(list.error)}</p>}
                 {list.isSuccess && (list.data.items.length ? (

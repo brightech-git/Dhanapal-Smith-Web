@@ -25,7 +25,7 @@ function MetalMaster() {
                     onSaved={() => setEditing(null)} onCancel={editing ? () => setEditing(null) : undefined} />
             )}
             <div className={`min-w-0 overflow-hidden rounded-xl border border-border bg-card ${canAdd || (canEdit && editing) ? "" : "xl:col-span-2"}`}>
-                <h2 className="border-b border-border px-4 py-3 font-semibold">SAVED METALS</h2>
+                <h2 className="border-b border-border px-4 py-3 font-semibold">METAL LIST</h2>
                 {list.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading metals…</p>}
                 {list.isError && <p role="alert" className="p-4 text-sm text-red-600">{getApiErrorMessage(list.error)}</p>}
                 {list.isSuccess && (list.data.length ? (

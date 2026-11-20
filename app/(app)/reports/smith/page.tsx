@@ -7,7 +7,7 @@ import SmithReport from "@/src/module/report/component/smith-report";
 export default function SmithReportRoute() {
     return (
         <ProtectedRoute>
-            <div className="mx-auto w-full p-3 sm:p-5">
+            <div className="mx-auto w-full p-2">
                 <SmithReport />
             </div>
         </ProtectedRoute>

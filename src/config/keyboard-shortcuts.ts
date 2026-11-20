@@ -35,8 +35,10 @@ const ACTIONS: ShortcutAction[] = [
         description: "Saves the form or row you are in" },
     { id: "print", label: "PRINT", group: "Actions", defaultKey: "Ctrl+P",
         description: "Prints the report or table on the page" },
-    { id: "add", label: "ADD NEW ROW", group: "Actions", defaultKey: "F9",
-        description: "Adds a row in transactions (the table you are in)" },
+    { id: "add", label: "ADD WEIGHT ROW", group: "Actions", defaultKey: "F9",
+        description: "Adds a row in the weight table of transactions" },
+    { id: "add-cash", label: "ADD CASH ROW", group: "Actions", defaultKey: "F10",
+        description: "Adds a row in the cash table of transactions" },
     { id: "search", label: "SEARCH", group: "Actions", defaultKey: "Ctrl+Shift+F",
         description: "Moves the cursor to the page's search box" },
 ];
@@ -46,8 +48,7 @@ const NAV_DEFAULTS: Record<string, string> = {
     transactions: "F2",
     dashboard: "F4",
     orders: "F6",
-    "report-weight": "F7",
-    "report-amount": "F8",
+    "report-daybook": "F7",
     "report-smith": "Ctrl+Shift+M",
     "gv-issue": "Ctrl+Shift+G",
 };

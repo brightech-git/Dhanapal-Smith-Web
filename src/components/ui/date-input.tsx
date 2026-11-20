@@ -48,7 +48,8 @@ export default function DateInput({ id, value, onChange, className = "", placeho
                     if (e.key !== "Enter" || e.shiftKey) return;
                     const input = e.target as HTMLElement;
                     if (input.tagName !== "INPUT") return;
-                    setTimeout(() => moveToNextField(input), 0);
+                    // A short wait lets the picker commit the date and close its calendar first.
+                    setTimeout(() => moveToNextField(input), 30);
                 }}
                 wrapperClassName="w-full"
                 popperClassName="z-[1400]"
