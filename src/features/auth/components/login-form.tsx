@@ -163,27 +163,29 @@ const LoginForm: React.FC = () => {
     const busy = status !== "idle";
 
     return (
-        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#f4f7fb] via-white to-[#fdf8ee] dark:from-[#0b1018] dark:via-[#0f141c] dark:to-[#17150f] px-4 py-10 sm:px-6">
+        <div className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-10 sm:px-6">
             <Backdrop reduceMotion={!!reduceMotion} />
 
             <motion.div
                 initial={{ opacity: 0, y: reduceMotion ? 0 : 24, scale: reduceMotion ? 1 : 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-full max-w-5xl rounded-[26px] bg-gradient-to-br from-amber-300/80 via-border to-[#1d5fb0]/50 dark:via-white/10 p-px shadow-[0_30px_70px_-25px_rgba(12,55,106,0.35)]"
+                className="relative w-full max-w-5xl rounded-[26px] bg-gradient-to-br from-secondary/80 via-border to-primary/60 p-px shadow-[0_40px_90px_-30px_color-mix(in_srgb,var(--primary)_55%,transparent)]"
             >
             <div className="grid overflow-hidden rounded-[25px] bg-card lg:grid-cols-[1.05fr_1fr]">
                 {/* Brand panel */}
-                <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border p-10 text-foreground lg:flex">
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#eaf2fc] via-[#f5f8fd] to-[#fdf3dc] dark:from-[#111a28] dark:via-[#121925] dark:to-[#1d1a10]" />
-                    <div className="absolute inset-0 -z-10 opacity-[0.35] dark:opacity-[0.06] [background-image:linear-gradient(45deg,#dbe5f1_1px,transparent_1px),linear-gradient(-45deg,#dbe5f1_1px,transparent_1px)] [background-size:28px_28px]" />
+                <div className="relative isolate hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-800 via-primary to-primary-700 p-10 text-primary-foreground lg:flex">
+                    <div className="pointer-events-none absolute inset-0 -z-10 text-primary-foreground/[0.12]" style={DOTS} />
+                    <div className="pointer-events-none absolute -right-24 -top-24 -z-10 size-80 rounded-full bg-secondary/25 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-32 -left-20 -z-10 size-72 rounded-full bg-primary-foreground/10 blur-3xl" />
+                    <div className="pointer-events-none absolute inset-y-8 right-0 w-px bg-gradient-to-b from-transparent via-secondary to-transparent opacity-80" />
 
-                    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+                    <motion.div variants={container} initial="hidden" animate="show" className="space-y-7">
                         <motion.div variants={item} className="flex items-center gap-4">
                             <BrandMark reduceMotion={!!reduceMotion} />
                             <div>
                                 <h1 className="text-xl font-bold uppercase leading-tight tracking-[0.18em]">{APP_TITLE}</h1>
-                                <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-700 dark:text-amber-300">
+                                <p className="text-xs font-medium uppercase tracking-[0.3em] text-secondary">
                                     Jewellery back office
                                 </p>
                             </div>
@@ -191,9 +193,9 @@ const LoginForm: React.FC = () => {
 
                         <motion.span
                             variants={item}
-                            className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-400/10 dark:text-amber-200"
+                            className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/10 px-3 py-1 text-xs font-medium ring-1 ring-primary-foreground/20 backdrop-blur-sm"
                         >
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-secondary" />
                             {PRODUCT}
                         </motion.span>
 
@@ -202,29 +204,34 @@ const LoginForm: React.FC = () => {
                             className="max-w-sm text-4xl font-semibold leading-[1.15] tracking-tight"
                         >
                             Jewellery back-office,{" "}
-                            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-700 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-secondary via-amber-200 to-secondary bg-clip-text text-transparent">
                                 crafted for precision.
                             </span>
                         </motion.h2>
 
-                        <motion.ul variants={container} className="space-y-4 pt-2">
+                        <motion.ul variants={container} className="space-y-3 pt-1">
                             {FEATURES.map(({ icon: Icon, title, text }) => (
-                                <motion.li key={title} variants={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card shadow-sm ring-1 ring-border">
-                                        <Icon className="h-4 w-4 text-amber-600" />
+                                <motion.li
+                                    key={title}
+                                    variants={item}
+                                    className="flex items-start gap-3 rounded-2xl bg-primary-foreground/[0.06] p-3 ring-1 ring-primary-foreground/10 backdrop-blur-sm transition-colors hover:bg-primary-foreground/10"
+                                >
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/10 ring-1 ring-primary-foreground/20">
+                                        <Icon className="h-4 w-4 text-secondary" />
                                     </span>
                                     <span>
                                         <span className="block text-sm font-semibold">{title}</span>
-                                        <span className="block text-sm text-muted-foreground">{text}</span>
+                                        <span className="block text-sm text-primary-foreground/70">{text}</span>
                                     </span>
                                 </motion.li>
                             ))}
                         </motion.ul>
                     </motion.div>
 
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 pt-8 text-xs text-primary-foreground/60">
+                        <span className="h-px w-8 bg-secondary/70" />
                         © {new Date().getFullYear()} {APP_TITLE}. All rights reserved.
-                    </p>
+                    </div>
                 </div>
 
                 {/* Form panel */}
@@ -239,6 +246,7 @@ const LoginForm: React.FC = () => {
                             </div>
                         </motion.div>
 
+                        <motion.span variants={item} aria-hidden className="mb-4 block h-1 w-12 rounded-full bg-gradient-to-r from-secondary to-primary" />
                         <motion.h3 variants={item} className="text-3xl font-semibold tracking-tight text-foreground">
                             Sign in
                         </motion.h3>
@@ -418,7 +426,7 @@ const Field: React.FC<FieldProps> = ({
 }) => (
     <div>
         <div
-            className={`group relative flex items-center rounded-xl border bg-muted/60 transition-all duration-200 focus-within:bg-card focus-within:shadow-[0_0_0_4px_rgba(12,55,106,0.08)] ${
+            className={`group relative flex items-center rounded-xl border bg-muted/60 transition-all duration-200 focus-within:bg-card focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--primary)_14%,transparent)] ${
                 error
                     ? "border-red-300 focus-within:border-red-400"
                     : "border-border hover:border-border focus-within:border-primary"
@@ -482,7 +490,7 @@ const SubmitButton: React.FC<{ status: "idle" | "loading" | "success"; reduceMot
         className={`group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl text-[15px] font-semibold text-white shadow-lg transition-colors duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 disabled:cursor-default ${
             status === "success"
                 ? "bg-emerald-600 shadow-emerald-600/25"
-                : "bg-gradient-to-r from-primary to-primary-500 shadow-primary/25"
+                : "bg-gradient-to-r from-primary-700 via-primary to-primary-500 shadow-primary/30 ring-1 ring-inset ring-white/10"
         }`}
     >
         {/* Shimmer sweep on hover */}
@@ -538,7 +546,7 @@ const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduc
             {/* Clip a rotating gradient to a rounded frame so only a thin ring shows. */}
             <span className="absolute -inset-[3px] overflow-hidden rounded-[17px]">
                 <motion.span
-                    className="absolute -inset-1/2 bg-[conic-gradient(from_0deg,#fde68a,#f59e0b,#1d5fb0,#fde68a)]"
+                    className="absolute -inset-1/2 bg-[conic-gradient(from_0deg,var(--secondary),#fde68a,var(--primary),var(--secondary))]"
                     animate={reduceMotion ? undefined : { rotate: 360 }}
                     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                 />
@@ -559,6 +567,14 @@ const BrandMark: React.FC<{ reduceMotion: boolean; small?: boolean }> = ({ reduc
     );
 };
 
+// Dot texture for the brand panel, fading in from the left.
+const DOTS = {
+    backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
+    backgroundSize: "18px 18px",
+    maskImage: "linear-gradient(120deg, transparent 20%, black 80%)",
+    WebkitMaskImage: "linear-gradient(120deg, transparent 20%, black 80%)",
+} as const;
+
 // Slow drifting glows and twinkling sparkles behind the card.
 const SPARKLES = Array.from({ length: 18 }, (_, i) => ({
     left: (i * 53) % 100,
@@ -570,12 +586,12 @@ const SPARKLES = Array.from({ length: 18 }, (_, i) => ({
 const Backdrop: React.FC<{ reduceMotion: boolean }> = ({ reduceMotion }) => (
     <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <motion.div
-            className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-[#93c5fd] opacity-40 blur-[120px]"
+            className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-primary opacity-20 blur-[120px]"
             animate={reduceMotion ? undefined : { x: [0, 60, 0], y: [0, 40, 0] }}
             transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-            className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-amber-300 opacity-35 blur-[120px]"
+            className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-secondary opacity-30 blur-[120px]"
             animate={reduceMotion ? undefined : { x: [0, -50, 0], y: [0, -30, 0] }}
             transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -583,7 +599,7 @@ const Backdrop: React.FC<{ reduceMotion: boolean }> = ({ reduceMotion }) => (
             SPARKLES.map((s, i) => (
                 <motion.span
                     key={i}
-                    className="absolute rounded-full bg-amber-400"
+                    className="absolute rounded-full bg-secondary"
                     style={{ left: `${s.left}%`, top: `${s.top}%`, width: s.size, height: s.size }}
                     animate={{ opacity: [0, 0.9, 0], scale: [0.6, 1.2, 0.6] }}
                     transition={{ duration: 3.2, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}
