@@ -26,11 +26,11 @@ export const DAYBOOK_COLUMNS: DaybookColumn[] = [
     { key: "date", label: "DATE" },
     { key: "rGross", label: "GROSS", side: "receipt", numeric: true },
     { key: "rTouch", label: "TOUCH", side: "receipt", numeric: true },
-    { key: "rNet", label: "NET", side: "receipt", numeric: true },
+    { key: "rNet", label: "PUREWT", side: "receipt", numeric: true },
     { key: "rAmount", label: "AMOUNT", side: "receipt", numeric: true },
     { key: "iGross", label: "GROSS", side: "issue", numeric: true },
     { key: "iTouch", label: "TOUCH", side: "issue", numeric: true },
-    { key: "iNet", label: "NET", side: "issue", numeric: true },
+    { key: "iNet", label: "PUREWT", side: "issue", numeric: true },
     { key: "iAmount", label: "AMOUNT", side: "issue", numeric: true },
     // { key: "remark", label: "REMARK" },
 ];

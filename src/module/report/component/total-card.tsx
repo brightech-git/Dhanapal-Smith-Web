@@ -19,7 +19,7 @@ export default function TotalCard({ label, tone, gross, net, amount }: {
         <div className={`rounded-xl border px-3 py-2 ${colors}`}>
             <p className={`text-xs font-bold tracking-wide ${heading}`}>{label}</p>
             <dl className="mt-1 grid grid-cols-3 gap-2 text-xs">
-                {[["GRS", wt(gross)], ["NET", wt(net)], ["AMOUNT", amt(amount)]].map(([k, v]) => (
+                {[["GRS", wt(gross)], ["PUREWT", wt(net)], ["AMOUNT", amt(amount)]].map(([k, v]) => (
                     <div key={k} className="min-w-0">
                         <dt className="text-[10px] text-muted-foreground">{k}</dt>
                         <dd className="truncate text-sm font-semibold tabular-nums">{v}</dd>

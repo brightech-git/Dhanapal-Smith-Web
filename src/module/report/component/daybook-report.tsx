@@ -123,7 +123,7 @@ export default function DaybookReport() {
     const hasRows = (query.data?.length ?? 0) > 0;
 
     const summary: ExportSummary = {
-        columns: ["GROSS", "NET", "AMOUNT"],
+        columns: ["GROSS", "PUREWT", "AMOUNT"],
         rows: [
             { label: "RECEIPT", tone: "receipt", cells: [wt(totals.receipt.gross), wt(totals.receipt.net), amt(totals.receipt.amount)] },
             { label: "ISSUE", tone: "issue", cells: [wt(totals.issue.gross), wt(totals.issue.net), amt(totals.issue.amount)] },

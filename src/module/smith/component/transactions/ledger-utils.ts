@@ -14,4 +14,4 @@ export const ledgerInput = "h-8 w-full rounded-lg border border-border bg-backgr
 export const cardHeader = "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3";
 export const actionButton = "inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-[8px] font-semibold text-white shadow-sm transition hover:opacity-90";
 /** Cancelled rows: red background, struck through (they are not counted). */
-export const cancelledRowClass = (row: any) => (row?.cancelled ? "!bg-red-200 line-through decoration-red-700/60 dark:!bg-red-500/30" : "");
+export const cancelledRowClass = (row: any) => (row?.cancelled ? "!bg-red-200 decoration-red-700/60 dark:!bg-red-500/30" : "");
