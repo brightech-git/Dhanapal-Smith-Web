@@ -10,6 +10,7 @@ import { useDeleteRole, useRoles, useSaveRole } from "../hook/use-roles";
 import type { RoleMaster, RoleMasterInput } from "../type/role.types";
 import { CardHeader, Field, StatusBadge, Switch, card, ghostButton, iconButton, inputClass, primaryButton } from "./ui";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { ACTIVE_OPTIONS } from "@/src/components/ui/native-select";
 
 const EMPTY: RoleMasterInput = { roleName: "", active: "Y", adminAccess: "N" };
 const isY = (v?: string | null) => (v ?? "").toUpperCase() === "Y";
@@ -117,15 +118,13 @@ export default function RoleMasterPanel({ onManagePermissions }: { onManagePermi
                         {error && <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
                     </Field>
                     <Field label="STATUS" htmlFor="role-active" hint="Only active roles can be assigned to users">
-                        <select
+                        <NativeSelect
                             id="role-active"
                             className={inputClass}
                             value={values.active}
-                            onChange={(e) => setValues((v) => ({ ...v, active: e.target.value as "Y" | "N" }))}
-                        >
-                            <option value="Y">Active</option>
-                            <option value="N">Inactive</option>
-                        </select>
+                            options={ACTIVE_OPTIONS}
+                            onChange={(active) => setValues((v) => ({ ...v, active: active as "Y" | "N" }))}
+                        />
                     </Field>
                     <div className="rounded-xl border border-border bg-muted/40 p-3">
                         <Switch

@@ -14,6 +14,7 @@ import { canMenuAction } from "@/src/features/auth/lib/access";
 import { useToast } from "@/src/providers/toast-provider";
 import { useFormFocus } from "@/src/hooks/use-form-focus";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { YES_NO_OPTIONS } from "@/src/components/ui/native-select";
 
 const empty = { metalId: "", itemName: "", active: "Y" };
 const row = "grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2 text-xs font-medium";
@@ -106,11 +107,8 @@ function ItemMaster() {
                         </label> */}
                         <label className={row}>
                             <span>ACTIVE</span>
-                            <select className={`${field} max-w-[100px]`} value={form.active}
-                                onChange={(event) => setForm({ ...form, active: event.target.value})}>
-                                <option value="Y">Yes</option>
-                                <option value="N">No</option>
-                            </select>
+                            <NativeSelect className={field} wrapperClassName="max-w-[100px]" value={form.active} options={YES_NO_OPTIONS}
+                                onChange={(active) => setForm({ ...form, active })} />
                         </label>
                     </fieldset>
                     {metals.isError && <p role="alert" className="text-sm text-red-600">{getApiErrorMessage(metals.error)}</p>}

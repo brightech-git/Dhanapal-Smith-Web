@@ -11,6 +11,7 @@ import { useSmithTransactionsContext } from "@/src/module/smith/context/smith-tr
 import { useToast } from "@/src/providers/toast-provider";
 import type { SmithDetails } from "@/src/module/smith/type/smith-details.types";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { ACTIVE_OPTIONS } from "@/src/components/ui/native-select";
 
 type Key = Exclude<keyof SmithDetails, "smithId" | "active" | "createdAt" | "updatedAt">;
 
@@ -137,10 +138,8 @@ export default function SmithFormModal({ open, smith, initialName, onClose, onSa
                     </div>
                 ))}
                 <Field label="STATUS" htmlFor="smith-active">
-                    <select id="smith-active" className={inputClass} value={values.active} onChange={(e) => set("active", e.target.value)}>
-                        <option value="Y">Active</option>
-                        <option value="N">Inactive</option>
-                    </select>
+                    <NativeSelect id="smith-active" className={inputClass} value={values.active} options={ACTIVE_OPTIONS}
+                        onChange={(active) => set("active", active)} />
                 </Field>
                 <div className="flex flex-wrap items-end justify-end gap-2 sm:col-span-2">
                     <button type="button" className={ghostButton} onClick={onClose} disabled={saving}>

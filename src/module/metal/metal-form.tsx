@@ -10,6 +10,7 @@ import { canMenuAction } from "@/src/features/auth/lib/access";
 import { useToast } from "@/src/providers/toast-provider";
 import { useFormFocus } from "@/src/hooks/use-form-focus";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { YES_NO_OPTIONS } from "@/src/components/ui/native-select";
 
 export type ListMetal = {sno:number, metalId: string; metalName: string; displayOrder: number; active: string };
 export type Metal = {metalId: string; metalName: string; displayOrder: number; active: string };
@@ -102,11 +103,8 @@ export default function MetalForm({ metal, onSaved, onCancel, showHeading = true
                 </label>
                 <label className={row}>
                     <span>ACTIVE</span>
-                    <select className={`${field} max-w-[100px]`} value={form.active}
-                        onChange={(event) => setForm({ ...form, active: event.target.value })}>
-                        <option value="Y">Yes</option>
-                        <option value="N">No</option>
-                    </select>
+                    <NativeSelect className={field} wrapperClassName="max-w-[100px]" value={form.active} options={YES_NO_OPTIONS}
+                        onChange={(active) => setForm({ ...form, active })} />
                 </label>
             </fieldset>
             <div className="flex flex-wrap gap-2">

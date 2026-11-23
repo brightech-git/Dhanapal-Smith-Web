@@ -52,3 +52,15 @@ src/
 ```
 
 Modules: `smith`, `smith-order`, `user`, `gift-voucher`.
+
+## Choosing a dropdown
+
+| Need | Component |
+|---|---|
+| Short fixed list where one value is always picked (Yes / No, Active / Inactive) | `NativeSelect` (`src/components/ui/native-select.tsx`), with `YES_NO_OPTIONS` / `ACTIVE_OPTIONS` |
+| Longer or loaded list, type to search in the field | `ComboBox` (`src/components/ui/combo-box.tsx`) |
+| Same, but the field only shows the value and the search box sits on top of the list | `ComboBox` with `searchInModal` |
+| Let the user create a missing entry | `ComboBox` with `addNew` and `onAddNew(searchText)`; the typed text is passed so the add form can start with it |
+| Several values | `MultiComboBox` |
+
+All of them follow the app's Enter navigation: Enter picks and moves to the next field.

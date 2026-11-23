@@ -11,6 +11,7 @@ import { useDeleteIntroducer, useIntroducers, useSaveIntroducer } from "../hook/
 import type { Introducer, IntroducerInput } from "../type/gift-voucher.types";
 import { partyFieldError } from "@/src/lib/party-validation";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { ACTIVE_OPTIONS } from "@/src/components/ui/native-select";
 
 const EMPTY: IntroducerInput = {
     introducerName: "", initial: "", active: "Y", mobile: "", email: "", doorno: "", street: "", area: "",
@@ -183,15 +184,13 @@ export default function IntroducerManager() {
                         <>
                             {MORE.map(renderField)}
                             <Field label="STATUS" htmlFor="intro-active">
-                                <select
+                                <NativeSelect
                                     id="intro-active"
                                     className={inputClass}
                                     value={values.active}
-                                    onChange={(e) => setValues((p) => ({ ...p, active: e.target.value }))}
-                                >
-                                    <option value="Y">Active</option>
-                                    <option value="N">Inactive</option>
-                                </select>
+                                    options={ACTIVE_OPTIONS}
+                                    onChange={(active) => setValues((p) => ({ ...p, active }))}
+                                />
                             </Field>
                         </>
                     )}

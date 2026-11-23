@@ -8,6 +8,7 @@ import { metalQueryKey, type Metal } from "@/src/module/metal/metal-form";
 import { useToast } from "@/src/providers/toast-provider";
 import { useFormFocus } from "@/src/hooks/use-form-focus";
 import TextInput from "@/src/components/ui/text-input";
+import NativeSelect, { YES_NO_OPTIONS } from "@/src/components/ui/native-select";
 
 // GET /item returns { nextId, items }; active is "Y" or "N". Same query key and
 // shape as Item Master, so both screens share one cache entry.
@@ -104,11 +105,8 @@ export default function ItemForm({ onSaved, onCancel, defaultMetalId = "" , meta
                 </label>
                 <label className={row}>
                     <span>ACTIVE</span>
-                    <select className={`${field} max-w-[100px]`} value={form.active}
-                        onChange={(event) => setForm({ ...form, active: event.target.value })}>
-                        <option value="Y">Yes</option>
-                        <option value="N">No</option>
-                    </select>
+                    <NativeSelect className={field} wrapperClassName="max-w-[100px]" value={form.active} options={YES_NO_OPTIONS}
+                        onChange={(active) => setForm({ ...form, active })} />
                 </label>
             </fieldset>
             {metals.isError && <p role="alert" className="text-sm text-red-600">{getApiErrorMessage(metals.error)}</p>}
